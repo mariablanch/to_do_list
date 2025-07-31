@@ -100,6 +100,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 children: [
                   //viewNotifications(),
                   IconButton(
+                    tooltip: 'Notificacions',
                     onPressed: () async {
                       openNotifications();
                     },
@@ -107,10 +108,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                         ? Icon(Icons.notifications)
                         : Icon(Icons.notifications_active, color: Colors.red),
                   ),
+
                   PopupMenuButton(
                     icon: Icon(Icons.menu),
                     tooltip: 'Menú',
-
                     itemBuilder: (BuildContext context) => [
                       PopupMenuItem(
                         child: const Row(
@@ -176,7 +177,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                   PopupMenuItem(
                     child: const Row(
                       children: [
-                        Icon(Icons.error_outline_rounded, color: Colors.black54),
+                        Icon(
+                          Icons.error_outline_rounded,
+                          color: Colors.black54,
+                        ),
                         SizedBox(width: 8),
                         Text('Prioritat'),
                       ],
@@ -194,7 +198,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                   PopupMenuItem(
                     child: const Row(
                       children: [
-                        Icon(Icons.calendar_month_rounded, color: Colors.black54),
+                        Icon(
+                          Icons.calendar_month_rounded,
+                          color: Colors.black54,
+                        ),
                         SizedBox(width: 8),
                         Text('Data'),
                       ],
@@ -327,9 +334,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                               ),
                             ),
                             onTap: () async {
-                              String str = await getUsersRelatedWithTask(
-                                task.id,
-                              );
+                              String str = await taskController
+                                  .getUsersRelatedWithTask(task.id);
                               openShowTask(task, str);
                             },
                           ),
@@ -383,42 +389,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  Future<void> deleteTaskInDatabase(int index, String id) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .doc(id)
-          .delete();
-      final tableId = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          .where(DbConstants.TASKID, isEqualTo: id)
-          .get();
-
-      for (var doc in tableId.docs) {
-        await doc.reference.delete();
-      }
-
-      //tableId.docs.first.reference.delete();
-
-      List<Notifications> allNotifications = await notController
-          .loadALLNotificationsFromDB();
-
-      for (int pos = 0; pos < allNotifications.length; pos++) {
-        if (allNotifications[pos].taskID == id) {
-          notController.deleteNotificationInDatabase(pos);
-          //allNotifications = notController.notifications;
-        }
-      }
-
-      setState(() {
-        //tasks.removeAt(index);
-        loadInitialData();
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
-
   confirmDelete(int index, String id, bool isDone) {
     showDialog(
       context: context,
@@ -430,9 +400,9 @@ class ToDoPage extends State<MyHomePageToDo> {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                await taskController.deleteTaskInDatabase(index, id);
                 Navigator.of(context).pop();
-                deleteTaskInDatabase(index, id);
               },
               style: ButtonStyle(
                 foregroundColor: WidgetStateProperty.resolveWith<Color>((
@@ -577,28 +547,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  Future<String> getUsersRelatedWithTask(String taskID) async {
-    List<String> userNames = [];
-    String str = '';
-
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.USERTASK)
-        .where(DbConstants.TASKID, isEqualTo: taskID)
-        .get();
-    for (var doc in db.docs) {
-      if (doc.data().containsKey(DbConstants.USERNAME)) {
-        final userName = doc.get(DbConstants.USERNAME);
-        if (userName is String) {
-          userNames.add(userName);
-        }
-      }
-    }
-
-    str = userNames.join('\n');
-
-    return str;
-  }
-
   Future<bool> enterUserName(Task task) async {
     final TextEditingController userNameController = TextEditingController();
 
@@ -628,7 +576,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                       return;
                     }
 
-                    final invited = await taskInvitation(userName, task);
+                    final invited = await notController.taskInvitation(userName, task, myUser.userName);
                     if (!invited) {
                       await userNotFoundMessage(
                         'Aquesta tasca ja ha estat compartida',
@@ -655,39 +603,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     return result ?? false;
   }
 
-  Future<bool> taskInvitation(String destinationUserName, Task task) async {
-    String description =
-        'L\'usuari ${myUser.userName} t\'ha compartit una tasca';
-    Notifications notification = Notifications(
-      id: '',
-      userName: destinationUserName,
-      description: description,
-      name: task.name,
-      taskID: task.id,
-    );
-
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.NOTIFICATION)
-        .where(DbConstants.TASKID, isEqualTo: task.id)
-        .where(DbConstants.USERNAME, isEqualTo: destinationUserName)
-        .get();
-
-    final db2 = await FirebaseFirestore.instance
-        .collection(DbConstants.USERTASK)
-        .where(DbConstants.TASKID, isEqualTo: task.id)
-        .where(DbConstants.USERNAME, isEqualTo: destinationUserName)
-        .get();
-
-    if (db.docs.isNotEmpty && db2.docs.isNotEmpty) {
-      return false;
-    } else {
-      await FirebaseFirestore.instance
-          .collection(DbConstants.NOTIFICATION)
-          .add(notification.toFirestore());
-      return true;
-    }
-  }
-
+  
   userNotFoundMessage(String message) {
     showDialog(
       context: context,
@@ -745,94 +661,97 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   viewNotifications() {
-    if (notifications.isEmpty) {
-      return Center(child: Text('No hi ha notificacions.'));
-    }
+    return (notifications.isEmpty)
+        ? Center(child: Text('No hi ha notificacions.'))
+        : ListView.builder(
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              final notification = notifications[index];
 
-    return ListView.builder(
-      itemCount: notifications.length,
-      itemBuilder: (context, index) {
-        final notification = notifications[index];
+              return Card(
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: EdgeInsets.all(5),
 
-        return Card(
-          child: ListTile(
-            leading: Text('    ${index + 1}'),
-            title: Text(notification.description),
-            subtitle: Text(notification.name),
+                  leading: Text('    ${index + 1}'),
+                  title: Text(notification.description),
+                  tileColor: Colors.deepPurple.shade50,
+                  subtitle: Text(notification.name),
 
-            tileColor: Colors.deepPurple.shade50,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            contentPadding: EdgeInsets.all(5),
+                  trailing: SizedBox(
+                    width: 150,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        //ELIMINAR
+                        IconButton(
+                          tooltip: 'Eliminar',
+                          icon: Icon(Icons.delete),
+                          style: ButtonStyle(
+                            foregroundColor:
+                                WidgetStateProperty.resolveWith<Color>((
+                                  states,
+                                ) {
+                                  if (states.contains(WidgetState.hovered)) {
+                                    return Colors.red;
+                                  }
+                                  return Colors.black54;
+                                }),
+                          ),
+                          onPressed: () async {
+                            await notController.deleteNotificationInDatabase(
+                              index,
+                            );
+                            await notController.loadNotificationsFromDB(
+                              myUser.userName,
+                            );
+                            notifications = notController.notifications;
+                            Navigator.of(context).pop();
+                          },
+                        ),
 
-            trailing: SizedBox(
-              width: 150,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  //ELIMINAR
-                  IconButton(
-                    tooltip: 'Eliminar',
-                    icon: Icon(Icons.delete),
-                    style: ButtonStyle(
-                      foregroundColor: WidgetStateProperty.resolveWith<Color>((
-                        states,
-                      ) {
-                        if (states.contains(WidgetState.hovered)) {
-                          return Colors.red;
-                        }
-                        return Colors.black54;
-                      }),
+                        //ACCEPTAR
+                        IconButton(
+                          tooltip: 'Acceptar i eliminar',
+                          icon: Icon(Icons.check_circle, color: Colors.grey),
+                          onPressed: () async {
+                            await FirebaseFirestore.instance
+                                .collection(DbConstants.USERTASK)
+                                .add({
+                                  'userName': notification.userName,
+                                  'taskId': notification.taskID,
+                                });
+
+                            Task newTask = await taskController.getTaskByID(
+                              notification.taskID,
+                            );
+                            await notController.deleteNotificationInDatabase(
+                              index,
+                            );
+                            await notController.loadNotificationsFromDB(
+                              myUser.userName,
+                            );
+                            setState(() {
+                              tasks.add(newTask);
+                              tasks.sort((task1, task2) {
+                                return Task.sortTask(sortType, task1, task2);
+                              });
+                              notifications = notController.notifications;
+                            });
+
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
                     ),
-                    onPressed: () async {
-                      await notController.deleteNotificationInDatabase(index);
-                      await notController.loadNotificationsFromDB(
-                        myUser.userName,
-                      );
-                      notifications = notController.notifications;
-                      Navigator.of(context).pop();
-                    },
                   ),
-
-                  //ACCEPTAR
-                  IconButton(
-                    tooltip: 'Acceptar i eliminar',
-                    icon: Icon(Icons.check_circle, color: Colors.grey),
-                    onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection(DbConstants.USERTASK)
-                          .add({
-                            'userName': notification.userName,
-                            'taskId': notification.taskID,
-                          });
-
-                      Task newTask = await taskController.getTaskByID(
-                        notification.taskID,
-                      );
-                      await notController.deleteNotificationInDatabase(index);
-                      await notController.loadNotificationsFromDB(
-                        myUser.userName,
-                      );
-                      setState(() {
-                        tasks.add(newTask);
-                        tasks.sort((task1, task2) {
-                          return Task.sortTask(sortType, task1, task2);
-                        });
-                        notifications = notController.notifications;
-                      });
-
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            //onTap: () => openShowTask(notification),
-          ),
-        );
-      },
-    );
+                  //onTap: () => openShowTask(notification),
+                ),
+              );
+            },
+          );
   }
 }
 
@@ -959,10 +878,7 @@ class TaskFormState extends State<TaskForm> {
             hint: Text('Selecciona nivell de prioritat'),
             value: prioritySTR!.isNotEmpty ? prioritySTR : null,
             items: priorities
-                .map(
-                  (p) =>
-                      DropdownMenuItem(value: p.toLowerCase(), child: Text(p)),
-                )
+                .map((line) => DropdownMenuItem(value: line, child: Text(line)))
                 .toList(),
             onChanged: (value) {
               setState(() {
@@ -1006,11 +922,11 @@ class TaskFormState extends State<TaskForm> {
 
   Priorities priorityFromString(String str) {
     switch (str) {
-      case 'alt':
+      case 'Alt':
         return Priorities.HIGH;
-      case 'mitjà':
+      case 'Mitjà':
         return Priorities.MEDIUM;
-      case 'baix':
+      case 'Baix':
         return Priorities.LOW;
       default:
         return Priorities.NONE;
@@ -1020,11 +936,11 @@ class TaskFormState extends State<TaskForm> {
   String priorityToString(Priorities priority) {
     switch (priority) {
       case Priorities.HIGH:
-        return 'alt';
+        return 'Alt';
       case Priorities.MEDIUM:
-        return 'mitjà';
+        return 'Mitjà';
       case Priorities.LOW:
-        return 'baix';
+        return 'Baix';
       default:
         return '';
     }

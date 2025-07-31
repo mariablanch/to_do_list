@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/notification_controller.dart';
+import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/sort.dart';
@@ -79,9 +81,6 @@ class TaskController {
           .collection(DbConstants.TASK)
           .add(newTask.toFirestore());
 
-      //User user = User.copy(myUser);
-
-      //String userName = user.userName;
       String taskId = docRef.id;
       newTask.id = taskId;
 
@@ -89,9 +88,61 @@ class TaskController {
         DbConstants.USERNAME: userName,
         DbConstants.TASKID: taskId,
       });
-      
     } catch (e) {
       print(e);
     }
+  }
+
+  Future<void> deleteTaskInDatabase(int index, String id) async {
+    NotificationController notController = NotificationController.empty();
+    
+    try {
+      await FirebaseFirestore.instance
+          .collection(DbConstants.TASK)
+          .doc(id)
+          .delete();
+      final tableId = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: id)
+          .get();
+
+      for (var doc in tableId.docs) {
+        await doc.reference.delete();
+      }
+
+      List<Notifications> allNotifications = await notController
+          .loadALLNotificationsFromDB();
+
+      for (int pos = 0; pos < allNotifications.length; pos++) {
+        if (allNotifications[pos].taskID == id) {
+          await notController.deleteNotificationInDatabase(pos);
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<String> getUsersRelatedWithTask(String taskID) async {
+    List<String> userNames = [];
+    String str = '';
+
+    final db = await FirebaseFirestore.instance
+        .collection(DbConstants.USERTASK)
+        .where(DbConstants.TASKID, isEqualTo: taskID)
+        .get();
+
+    for (var doc in db.docs) {
+      if (doc.data().containsKey(DbConstants.USERNAME)) {
+        final userName = doc.get(DbConstants.USERNAME);
+        if (userName is String) {
+          userNames.add(userName);
+        }
+      }
+    }
+
+    str = userNames.join('\n');
+
+    return str;
   }
 }

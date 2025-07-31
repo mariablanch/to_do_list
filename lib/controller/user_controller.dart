@@ -7,7 +7,7 @@ class UserController {
     int ret = DbConstants.USEREXISTS;
     User newUser = user.copyWith(password: User.hashPassword(user.password));
 
-    if (!await userNameExists(user.userName)) {
+    if (!await userNameExists(newUser.userName)) {
       try {
         await FirebaseFirestore.instance
             .collection(DbConstants.USER)
@@ -29,5 +29,4 @@ class UserController {
         .get();
     return db.docs.length == 1;
   }
-
 }
