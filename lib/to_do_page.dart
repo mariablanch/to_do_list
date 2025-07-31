@@ -402,6 +402,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             TextButton(
               onPressed: () async {
                 await taskController.deleteTaskInDatabase(index, id);
+                loadInitialData();
                 Navigator.of(context).pop();
               },
               style: ButtonStyle(
@@ -576,7 +577,11 @@ class ToDoPage extends State<MyHomePageToDo> {
                       return;
                     }
 
-                    final invited = await notController.taskInvitation(userName, task, myUser.userName);
+                    final invited = await notController.taskInvitation(
+                      userName,
+                      task,
+                      myUser.userName,
+                    );
                     if (!invited) {
                       await userNotFoundMessage(
                         'Aquesta tasca ja ha estat compartida',
@@ -603,7 +608,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     return result ?? false;
   }
 
-  
   userNotFoundMessage(String message) {
     showDialog(
       context: context,
@@ -704,6 +708,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                             await notController.deleteNotificationInDatabase(
                               index,
                             );
+                            setState(() {
+                              notifications = notController.notifications;
+                            });
                             await notController.loadNotificationsFromDB(
                               myUser.userName,
                             );
@@ -730,6 +737,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                             await notController.deleteNotificationInDatabase(
                               index,
                             );
+                            setState(() {
+                              notifications = notController.notifications;
+                            });
                             await notController.loadNotificationsFromDB(
                               myUser.userName,
                             );

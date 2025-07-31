@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 
 import 'package:to_do_list/utils/firebase_options.dart';
@@ -53,11 +54,9 @@ class ConfigPage extends State<ConfigHP> {
   late User myUser;
   bool editMode = false;
 
-  List<Widget> get pages => [
-    profile(),
-    editAccount(),
-    deleteAccount(),
-  ];
+  List<Widget> get pages => [profile(), editAccount(), deleteAccount()];
+
+  UserController userController = UserController();
 
   @override
   void initState() {
@@ -534,49 +533,17 @@ class ConfigPage extends State<ConfigHP> {
           onPressed: () async {
             //confirmDelete();
             if (await confirmPasword(true)) {
-              await deleteUser();
+              await userController.deleteUser(widget.user);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyApp()),
+              );
             }
           },
           child: Text('ELIMINAR COMPTE', style: TextStyle(fontSize: 20)),
         ),
       ],
     );
-  }
-
-  Future<void> deleteUser() async {
-    String username = User.copy(widget.user).name;
-    List<Task> tasks = await loadTasksFromDB();
-
-    try {
-      //BORRAR LES TASQUES DEL USUARI
-      for (Task task in tasks) {
-        await FirebaseFirestore.instance
-            .collection(DbConstants.USERTASK)
-            .doc(task.id)
-            .delete();
-      }
-
-      //BORRAR RELACIÓ
-      final usertasks = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: username)
-          .get();
-      for (var doc in usertasks.docs) {
-        await doc.reference.delete();
-      }
-
-      //BORRAR USUARI
-      final user = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: username)
-          .get();
-      var doc = user.docs.first;
-      await doc.reference.delete();
-
-      Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
-    } catch (e) {
-      print('DELETE USER $e');
-    }
   }
 
   Future<List<Task>> loadTasksFromDB() async {

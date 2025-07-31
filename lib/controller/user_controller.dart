@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/task_controller.dart';
+import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/model/user.dart';
+import 'package:to_do_list/utils/sort.dart';
 
 class UserController {
   Future<int> createAccountDB(User user) async {
@@ -28,5 +31,51 @@ class UserController {
         .where(DbConstants.USERNAME, isEqualTo: userName)
         .get();
     return db.docs.length == 1;
+  }
+
+  Future<void> deleteUser(User user) async {
+    String username = user.userName;
+    TaskController taskController = TaskController.empty();
+    await taskController.loadTasksFromDB(user.userName, SortType.NONE);
+
+    List<Task> tasks = taskController.tasks;
+
+    try {
+      //BORRAR LES TASQUES DEL USUARI
+      for (Task task in tasks) {
+        await FirebaseFirestore.instance
+            .collection(DbConstants.USERTASK)
+            .doc(task.id)
+            .delete();
+      }
+
+      //BORRAR RELACIÓ
+      final usertasks = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.USERNAME, isEqualTo: username)
+          .get();
+      for (var doc in usertasks.docs) {
+        await doc.reference.delete();
+      }
+
+      //BORRAR USUARI
+      final user = await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .where(DbConstants.USERNAME, isEqualTo: username)
+          .get();
+      var doc = user.docs.first;
+      await doc.reference.delete();
+
+      final notification = await FirebaseFirestore.instance
+          .collection(DbConstants.NOTIFICATION)
+          .where(DbConstants.USERNAME, isEqualTo: username)
+          .get();
+
+      for (var doc in notification.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      print('DELETE USER $e');
+    }
   }
 }
