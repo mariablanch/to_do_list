@@ -43,10 +43,12 @@ class UserController {
     try {
       //BORRAR LES TASQUES DEL USUARI
       for (Task task in tasks) {
-        await FirebaseFirestore.instance
+        //taskController.deleteTask(task.id);
+        /*await FirebaseFirestore.instance
             .collection(DbConstants.USERTASK)
             .doc(task.id)
-            .delete();
+            .delete();*/
+        taskController.deleteTaskInDatabase(task.id);
       }
 
       //BORRAR RELACIÓ
@@ -63,17 +65,20 @@ class UserController {
           .collection(DbConstants.USER)
           .where(DbConstants.USERNAME, isEqualTo: username)
           .get();
-      var doc = user.docs.first;
-      await doc.reference.delete();
 
-      final notification = await FirebaseFirestore.instance
+      if (user.docs.isNotEmpty) {
+        await user.docs.first.reference.delete();
+      }
+
+      //NOTIFICACIONS
+      /*final notification = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
           .where(DbConstants.USERNAME, isEqualTo: username)
           .get();
 
       for (var doc in notification.docs) {
         await doc.reference.delete();
-      }
+      }*/
     } catch (e) {
       print('DELETE USER $e');
     }

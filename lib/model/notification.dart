@@ -2,35 +2,35 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Notifications implements Comparable<Notifications>{
   String _id;
-  String _taskID;
+  String _taskId;
   String _name;
   String _userName;
   String _description;
 
   Notifications.empty()
     : this._id = '',
-      this._taskID = '',
+      this._taskId = '',
       this._name = '',
       this._userName = '',
       this._description = '';
 
   Notifications.coppy(Notifications not)
     : this._id = not.id,
-      this._taskID = not.taskID,
+      this._taskId = not.taskId,
       this._name = not.name,
       this._userName = not.userName,
       this._description = not.description;
 
   Notifications copyWith({
     String? id,
-    String? taskID,
+    String? taskId,
     String? name,
     String? userName,
     String? description,
   }) {
     return Notifications(
       id: id ?? this._id,
-      taskID: taskID ?? this._taskID,
+      taskId: taskId ?? this._taskId,
       name: name ?? this._name,
       userName: userName ?? this._userName,
       description: description ?? this._description,
@@ -38,19 +38,19 @@ class Notifications implements Comparable<Notifications>{
   }
 
   String get id => this._id;
-  String get taskID => this._taskID;
+  String get taskId => this._taskId;
   String get name => this._name;
   String get userName => this._userName;
   String get description => this._description;
 
   Notifications({
     required String id,
-    required String taskID,
+    required String taskId,
     required String name,
     required String userName,
     required String description,
   }) : this._id = id,
-       this._taskID = taskID,
+       this._taskId = taskId,
        this._name = name,
        this._userName = userName,
        this._description = description;
@@ -58,7 +58,7 @@ class Notifications implements Comparable<Notifications>{
   Map<String, dynamic> toFirestore() {
     return {
       //'id': id,
-      'taskID': _taskID,
+      'taskId': _taskId,
       'name': _name,
       'userName': _userName,
       'description': _description,
@@ -69,7 +69,7 @@ class Notifications implements Comparable<Notifications>{
     final data = doc.data() as Map<String, dynamic>;
     return Notifications(
       id: doc.id,
-      taskID: data['taskID'] ?? '',
+      taskId: data['taskId'] ?? '',
       name: data['name'] ?? '',
       userName: data['userName'] ?? '',
       description: data['description'] ?? '',

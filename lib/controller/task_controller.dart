@@ -97,7 +97,7 @@ class TaskController {
 
     try {
       if (usernames.length == 1) {
-        _deleteTask(id);
+        deleteTask(id);
       }
 
       final db = await FirebaseFirestore.instance
@@ -112,12 +112,20 @@ class TaskController {
     }
   }
 
-  Future<void> _deleteTask(String id) async {
+  Future<void> deleteTask(String id) async {
     try {
       await FirebaseFirestore.instance
           .collection(DbConstants.TASK)
           .doc(id)
           .delete();
+
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.NOTIFICATION)
+          .where(DbConstants.TASKID, isEqualTo: id)
+          .get();
+      if (db.docs.isNotEmpty) {
+        await db.docs.first.reference.delete();
+      }
     } catch (e) {
       print(e);
     }

@@ -745,11 +745,11 @@ class ToDoPage extends State<MyHomePageToDo> {
                                 .collection(DbConstants.USERTASK)
                                 .add({
                                   'userName': notification.userName,
-                                  'taskId': notification.taskID,
+                                  'taskId': notification.taskId,
                                 });
 
                             Task newTask = await taskController.getTaskByID(
-                              notification.taskID,
+                              notification.taskId,
                             );
                             await notController.deleteNotificationInDatabase(
                               index,
