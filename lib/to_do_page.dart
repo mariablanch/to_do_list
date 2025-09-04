@@ -401,8 +401,11 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                await taskController.deleteTaskInDatabase(index, id);
-                loadInitialData();
+                await taskController.deleteTaskInDatabase(id);
+                //loadInitialData();
+                setState(() {
+                  tasks.removeAt(index);
+                });
                 Navigator.of(context).pop();
               },
               style: ButtonStyle(
@@ -550,18 +553,31 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Future<bool> enterUserName(Task task) async {
     final TextEditingController userNameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Compartir Tasca'),
-          content: Text('Nom d\'usuari a qui es vol compartir'),
+          //content: Text('Nom d\'usuari a qui es vol compartir'),
           actions: <Widget>[
+            Row(children: [Text('Nom d\'usuari a qui es vol compartir')]),
+
             TextField(
               controller: userNameController,
               decoration: InputDecoration(border: OutlineInputBorder()),
             ),
+
+            SizedBox(height: 10),
+
+            Row(children: [Text('Descripció')]),
+            TextField(
+              controller: descriptionController,
+              decoration: InputDecoration(border: OutlineInputBorder()),
+            ),
+
+            SizedBox(height: 10),
 
             Row(
               children: [
@@ -581,6 +597,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                       userName,
                       task,
                       myUser.userName,
+                      descriptionController.text,
                     );
                     if (!invited) {
                       await userNotFoundMessage(
@@ -721,7 +738,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                         //ACCEPTAR
                         IconButton(
-                          tooltip: 'Acceptar i eliminar',
+                          tooltip: 'Acceptar tasca',
                           icon: Icon(Icons.check_circle, color: Colors.grey),
                           onPressed: () async {
                             await FirebaseFirestore.instance
@@ -799,9 +816,11 @@ class TaskFormState extends State<TaskForm> {
     super.initState();
     selectedDate = widget.task.getLimitDate();
     prioritySTR = priorityToString(widget.task.getPriority());
-    dateController = TextEditingController(
-      text: DateFormat('dd/MM/yyyy').format(widget.task.getLimitDate()),
-    );
+    widget.onTaskCreated != null
+        ? dateController = TextEditingController(text: null)
+        : dateController = TextEditingController(
+            text: DateFormat('dd/MM/yyyy').format(widget.task.getLimitDate()),
+          );
     nameController = TextEditingController(text: widget.task.getName());
     descriptionController = TextEditingController(
       text: widget.task.getDescription(),

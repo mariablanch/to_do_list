@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:to_do_list/controller/notification_controller.dart';
-import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/sort.dart';
@@ -93,7 +91,39 @@ class TaskController {
     }
   }
 
-  Future<void> deleteTaskInDatabase(int index, String id) async {
+  Future<void> deleteTaskInDatabase(String id) async {
+    String str = await getUsersRelatedWithTask(id);
+    List<String> usernames = str.split('\n');
+
+    try {
+      if (usernames.length == 1) {
+        _deleteTask(id);
+      }
+
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: id)
+          .where(DbConstants.USERNAME, isEqualTo: usernames.first)
+          .get();
+
+      db.docs.first.reference.delete();
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> _deleteTask(String id) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection(DbConstants.TASK)
+          .doc(id)
+          .delete();
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  /*Future<void> deleteTaskInDatabase(int index, String id) async {
     NotificationController notController = NotificationController.empty();
     
     try {
@@ -121,7 +151,7 @@ class TaskController {
     } catch (e) {
       print(e);
     }
-  }
+  }*/
 
   Future<String> getUsersRelatedWithTask(String taskID) async {
     List<String> userNames = [];

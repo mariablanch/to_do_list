@@ -92,7 +92,7 @@ class ConfigPage extends State<ConfigHP> {
                 ),
                 NavigationRailDestination(
                   icon: Icon(Icons.settings),
-                  label: Text('Editar'),
+                  label: Text('Configuració'),
                   selectedIcon: Icon(Icons.settings, color: Colors.deepPurple),
                 ),
                 NavigationRailDestination(
@@ -172,7 +172,7 @@ class ConfigPage extends State<ConfigHP> {
                         editMode = true;
                       });
                     },
-                    label: Text('Editar'),
+                    label: Text('Editar perfil'),
                     icon: Icon(Icons.edit),
                   ),
                   /*TextButton.icon(
