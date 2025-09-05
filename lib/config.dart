@@ -157,13 +157,13 @@ class ConfigPage extends State<ConfigHP> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'EDITAR',
+          'EDITAR PERFIL',
           style: TextStyle(color: Colors.deepPurple, fontSize: 20),
         ),
         SizedBox(height: 20),
-        editMode
-            ? editProfile()
-            : Column(
+        /*editMode
+            ? */editProfile()
+            /*: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextButton.icon(
@@ -185,7 +185,7 @@ class ConfigPage extends State<ConfigHP> {
                     icon: Icon(Icons.password),
                   ),*/
                 ],
-              ),
+              ),*/
       ],
     );
   }
