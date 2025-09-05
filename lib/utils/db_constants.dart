@@ -8,6 +8,8 @@ class DbConstants {
   static final String USERNAME = 'userName';
   static final String PASSWORD = 'password';
 
+  static final String USERROLE = 'userRole';
+
   static final int USEREXISTS = 0;
   static final int USERNOTEXISTS = 1;
   static final int DATABASEERROR = 2;

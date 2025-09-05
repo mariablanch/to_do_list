@@ -8,6 +8,7 @@ import 'package:to_do_list/utils/firebase_options.dart';
 //import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/main.dart';
+import 'package:to_do_list/utils/user_role.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ Future<void> main() async {
     '111',
     '111',
     'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
+    UserRole.ADMIN,
   );
 
   runApp(MyAppConfig(user: userProva));
@@ -34,7 +36,8 @@ class MyAppConfig extends StatelessWidget {
       title: 'ToDoList',
       home: ConfigHP(user: user),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
     );
     //return ConfigHP(user: user);
@@ -53,8 +56,10 @@ class ConfigPage extends State<ConfigHP> {
   int selectedIndex = 0;
   late User myUser;
   bool editMode = false;
+  late bool isAdmin;
 
   List<Widget> get pages => [profile(), editAccount(), deleteAccount()];
+  List<Widget> get adminPages => [profile(), editAccount(), viewUsers(), deleteAccount()];
 
   UserController userController = UserController();
 
@@ -62,10 +67,13 @@ class ConfigPage extends State<ConfigHP> {
   void initState() {
     super.initState();
     myUser = User.copy(widget.user);
+    isAdmin = myUser.userRole == UserRole.ADMIN;
   }
 
   @override
   Widget build(BuildContext context) {
+    final Color pageColor = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -84,18 +92,25 @@ class ConfigPage extends State<ConfigHP> {
                 });
               },
               labelType: NavigationRailLabelType.all,
-              destinations: const [
+              destinations: [
                 NavigationRailDestination(
-                  icon: Icon(Icons.person),
-                  label: Text('Perfil'),
-                  selectedIcon: Icon(Icons.person, color: Colors.deepPurple),
+                  icon: const Icon(Icons.person),
+                  label: const Text('Perfil'),
+                  selectedIcon: Icon(Icons.person, color: pageColor),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.settings),
-                  label: Text('Configuració'),
-                  selectedIcon: Icon(Icons.settings, color: Colors.deepPurple),
+                  icon: const Icon(Icons.settings),
+                  label: const Text('Configuració'),
+                  selectedIcon: Icon(Icons.settings, color: pageColor),
                 ),
-                NavigationRailDestination(
+
+                ?isAdmin ? NavigationRailDestination(
+                  icon: const Icon(Icons.people),
+                  label: const Text('Usuaris'),
+                  selectedIcon: Icon(Icons.settings, color: pageColor),
+                ) : null,
+
+                const NavigationRailDestination(
                   icon: Icon(Icons.delete),
                   label: Text('Eliminar\ncompte'),
                   selectedIcon: Icon(Icons.delete, color: Colors.red),
@@ -106,7 +121,7 @@ class ConfigPage extends State<ConfigHP> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: pages[selectedIndex],
+                child: isAdmin ? adminPages[selectedIndex] : pages[selectedIndex],
               ),
             ),
           ],
@@ -121,7 +136,7 @@ class ConfigPage extends State<ConfigHP> {
       children: [
         Text(
           'PERFIL',
-          style: TextStyle(color: Colors.deepPurple, fontSize: 20),
+          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
         ),
         SizedBox(height: 20),
         Table(
@@ -158,7 +173,7 @@ class ConfigPage extends State<ConfigHP> {
       children: [
         Text(
           'EDITAR PERFIL',
-          style: TextStyle(color: Colors.deepPurple, fontSize: 20),
+          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
         ),
         SizedBox(height: 20),
         /*editMode
@@ -544,6 +559,10 @@ class ConfigPage extends State<ConfigHP> {
         ),
       ],
     );
+  }
+
+  Widget viewUsers(){
+    return Column();
   }
 
   /*Future<List<Task>> loadTasksFromDB() async {

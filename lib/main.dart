@@ -7,6 +7,7 @@ import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/to_do_page.dart';
+import 'package:to_do_list/utils/user_role.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -299,6 +300,7 @@ class LogInPage extends State<MyHomePage> {
                     userName,
                     mail,
                     password,
+                    UserRole.USER
                   );
                   nameController.clear();
                   surnameController.clear();

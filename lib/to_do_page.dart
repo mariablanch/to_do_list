@@ -15,6 +15,7 @@ import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/config.dart';
 import 'package:to_do_list/main.dart';
+import 'package:to_do_list/utils/user_role.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ Future<void> main() async {
     '111',
     '111',
     'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
+    UserRole.ADMIN,
   );
 
   runApp(MyAppToDo(user: userProva));
@@ -41,7 +43,7 @@ class MyAppToDo extends StatelessWidget {
       title: 'ToDoList',
       home: MyHomePageToDo(user: user),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
     );
   }
@@ -74,8 +76,13 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Future<void> loadInitialData() async {
-    await taskController.loadTasksFromDB(myUser.userName, sortType);
-    await notController.loadNotificationsFromDB(myUser.userName);
+    if (myUser.userRole == UserRole.ADMIN) {
+      await taskController.loadAllTasksFromDB(sortType);
+      await notController.loadALLNotificationsFromDB();
+    } else {
+      await taskController.loadTasksFromDB(myUser.userName, sortType);
+      await notController.loadNotificationsFromDB(myUser.userName);
+    }
     setState(() {
       notifications = notController.notifications;
       tasks = taskController.tasks;
@@ -151,8 +158,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                         ),
                         onTap: () => Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => MyHomePage()),
+                          MaterialPageRoute(builder: (context) => MyApp()),
                         ),
+                        //onTap: () =>  Navigator.of(context).pop(),
+               
                       ),
                     ],
                   ),
@@ -237,7 +246,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 child: Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(28, 104, 58, 183),
+                    color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12.0),
                   ),
 
@@ -260,7 +269,34 @@ class ToDoPage extends State<MyHomePageToDo> {
                             title: Text(
                               '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
                             ),
-                            subtitle: Text(task.description),
+                            /*subtitle: Text(
+                              '${task.description}\n${await taskController.getUsersRelatedWithTask(task.id)}',
+                            ),*/
+                            
+                            subtitle: FutureBuilder<String>(
+                              future: taskController.getUsersRelatedWithTask(
+                                task.id,
+                              ),
+                              builder: (context, snapshot) {
+                                String str = snapshot.data?.replaceAll('\n', ' | ') ?? '';
+
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Text(
+                                    task.description,
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return Text(
+                                    task.description,
+                                  );
+                                } else {
+                                  return Text(
+                                  '${task.description}\n--> Usuaris: $str',
+                                );
+                                }
+                              },
+                            ),
+
                             textColor: task.limitDate.isBefore(DateTime.now())
                                 ? Colors.red
                                 : null,
@@ -401,8 +437,14 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                await taskController.deleteTaskInDatabase(id, myUser.userName);
-                //loadInitialData();
+                if (myUser.userRole == UserRole.ADMIN) {
+                  await taskController.deleteTaskWithRelation(id);
+                } else {
+                  await taskController.deleteTaskInDatabase(
+                    id,
+                    myUser.userName,
+                  );
+                }
                 setState(() {
                   tasks.removeAt(index);
                 });
@@ -429,7 +471,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                   states,
                 ) {
                   if (states.contains(WidgetState.hovered)) {
-                    return Colors.indigo;
+                    //return Colors.indigo;
+                    return Theme.of(context).colorScheme.onPrimaryContainer;
                   }
                   return Theme.of(context).colorScheme.primary;
                 }),
@@ -512,7 +555,7 @@ class ToDoPage extends State<MyHomePageToDo> {
       children: [
         Text(
           task.name,
-          style: TextStyle(color: Colors.deepPurple, fontSize: 20),
+          style: TextStyle(color: Theme.of(context).colorScheme.inverseSurface, fontSize: 20),
         ),
         SizedBox(height: 20),
         Table(
@@ -690,6 +733,7 @@ class ToDoPage extends State<MyHomePageToDo> {
               final notification = notifications[index];
 
               return Card(
+                color: Theme.of(context).colorScheme.inversePrimary,
                 child: ListTile(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -698,7 +742,8 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                   leading: Text('    ${index + 1}'),
                   title: Text(notification.message),
-                  tileColor: Colors.deepPurple.shade50,
+                  //tileColor: Colors.deepPurple.shade50,
+                  //tileColor: Theme.of(context).colorScheme.inversePrimary,
                   subtitle: Text(notification.description),
 
                   trailing: SizedBox(
@@ -739,7 +784,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                         //ACCEPTAR
                         IconButton(
                           tooltip: 'Acceptar tasca',
-                          icon: Icon(Icons.check_circle, color: Colors.grey),
+                          icon: Icon(Icons.check_circle, color: Colors.black54),
                           onPressed: () async {
                             await FirebaseFirestore.instance
                                 .collection(DbConstants.USERTASK)

@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/notification_controller.dart';
+import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/sort.dart';
@@ -32,6 +34,33 @@ class TaskController {
             .doc(id)
             .get();
 
+        if (doc.exists) {
+          task = Task.fromFirestore(doc, null);
+          loadedTasks.add(task);
+        }
+      }
+
+      loadedTasks.sort((task1, task2) {
+        return Task.sortTask(sortType, task1, task2);
+      });
+
+      this.tasks = loadedTasks;
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> loadAllTasksFromDB(SortType sortType) async {
+    Task task;
+    try {
+      List<Task> loadedTasks = [];
+
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.TASK)
+          .get();
+      final docs = db.docs;
+
+      for (var doc in docs) {
         if (doc.exists) {
           task = Task.fromFirestore(doc, null);
           loadedTasks.add(task);
@@ -132,7 +161,7 @@ class TaskController {
     }
   }
 
-  /*Future<void> deleteTaskInDatabase(int index, String id) async {
+  Future<void> deleteTaskWithRelation(String id) async {
     NotificationController notController = NotificationController.empty();
     
     try {
@@ -153,14 +182,14 @@ class TaskController {
           .loadALLNotificationsFromDB();
 
       for (int pos = 0; pos < allNotifications.length; pos++) {
-        if (allNotifications[pos].taskID == id) {
+        if (allNotifications[pos].taskId == id) {
           await notController.deleteNotificationInDatabase(pos);
         }
       }
     } catch (e) {
       print(e);
     }
-  }*/
+  }
 
   Future<String> getUsersRelatedWithTask(String taskID) async {
     List<String> userNames = [];
