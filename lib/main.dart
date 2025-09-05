@@ -349,7 +349,7 @@ class LogInPage extends State<MyHomePage> {
           .where(DbConstants.PASSWORD, isEqualTo: User.hashPassword(pswrd))
           .get();
 
-      if (!lines.docs.isEmpty) {
+      if (lines.docs.isNotEmpty) {
         final doc = lines.docs.first;
         user = User.fromFirestore(doc, null);
       }

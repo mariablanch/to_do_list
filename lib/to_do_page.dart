@@ -258,9 +258,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                           child: ListTile(
                             leading: getIconPriority(task),
                             title: Text(
-                              '${task.getName()}   -   ${DateFormat('dd/MMM').format(task.getLimitDate())}',
+                              '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
                             ),
-                            subtitle: Text(task.getDescription()),
+                            subtitle: Text(task.description),
                             textColor: task.limitDate.isBefore(DateTime.now())
                                 ? Colors.red
                                 : null,
@@ -401,7 +401,7 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                await taskController.deleteTaskInDatabase(id);
+                await taskController.deleteTaskInDatabase(id, myUser.userName);
                 //loadInitialData();
                 setState(() {
                   tasks.removeAt(index);
@@ -443,7 +443,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Icon getIconPriority(Task task) {
-    Priorities priority = task.getPriority();
+    Priorities priority = task.priority;
     switch (priority) {
       case Priorities.HIGH:
         return Icon(Icons.arrow_upward, color: Colors.red);
@@ -472,7 +472,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             height: MediaQuery.of(context).size.height * 0.7,
             child: TaskForm(
               onTaskEdited: (Task task) async {
-                await taskController.updateTaskInDatabase(task, task.getId());
+                await taskController.updateTaskInDatabase(task, task.id);
 
                 setState(() {
                   tasks[index] = task;
@@ -814,16 +814,16 @@ class TaskFormState extends State<TaskForm> {
   @override
   void initState() {
     super.initState();
-    selectedDate = widget.task.getLimitDate();
-    prioritySTR = priorityToString(widget.task.getPriority());
+    selectedDate = widget.task.limitDate;
+    prioritySTR = priorityToString(widget.task.priority);
     widget.onTaskCreated != null
         ? dateController = TextEditingController(text: null)
         : dateController = TextEditingController(
-            text: DateFormat('dd/MM/yyyy').format(widget.task.getLimitDate()),
+            text: DateFormat('dd/MM/yyyy').format(widget.task.limitDate),
           );
-    nameController = TextEditingController(text: widget.task.getName());
+    nameController = TextEditingController(text: widget.task.name);
     descriptionController = TextEditingController(
-      text: widget.task.getDescription(),
+      text: widget.task.description,
     );
   }
 
@@ -832,8 +832,8 @@ class TaskFormState extends State<TaskForm> {
     List<String> priorities = ['Alt', 'Mitjà', 'Baix'];
     Task newTask = Task.copy(widget.task);
 
-    String name = newTask.getName();
-    String description = newTask.getDescription();
+    String name = newTask.name;
+    String description = newTask.description;
 
     return Form(
       key: _formKey,
@@ -883,7 +883,7 @@ class TaskFormState extends State<TaskForm> {
             onTap: () async {
               DateTime? picked = await showDatePicker(
                 context: context,
-                initialDate: widget.task.getLimitDate(),
+                initialDate: widget.task.limitDate,
                 firstDate: DateTime.now(),
                 lastDate: DateTime(2050),
               );

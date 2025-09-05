@@ -5,7 +5,7 @@ import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 
 import 'package:to_do_list/utils/firebase_options.dart';
-import 'package:to_do_list/model/task.dart';
+//import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/main.dart';
 
@@ -546,7 +546,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Future<List<Task>> loadTasksFromDB() async {
+  /*Future<List<Task>> loadTasksFromDB() async {
     List<Task> loadedTasks = [];
     Task task;
     try {
@@ -580,4 +580,5 @@ class ConfigPage extends State<ConfigHP> {
       return [];
     }
   }
+*/
 }

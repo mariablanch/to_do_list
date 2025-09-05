@@ -48,7 +48,7 @@ class UserController {
             .collection(DbConstants.USERTASK)
             .doc(task.id)
             .delete();*/
-        taskController.deleteTaskInDatabase(task.id);
+        taskController.deleteTaskInDatabase(task.id, user.userName);
       }
 
       //BORRAR RELACIÓ
@@ -61,13 +61,13 @@ class UserController {
       }
 
       //BORRAR USUARI
-      final user = await FirebaseFirestore.instance
+      final fUser = await FirebaseFirestore.instance
           .collection(DbConstants.USER)
           .where(DbConstants.USERNAME, isEqualTo: username)
           .get();
 
-      if (user.docs.isNotEmpty) {
-        await user.docs.first.reference.delete();
+      if (fUser.docs.isNotEmpty) {
+        await fUser.docs.first.reference.delete();
       }
 
       //NOTIFICACIONS

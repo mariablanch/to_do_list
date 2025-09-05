@@ -6,7 +6,7 @@ import 'package:to_do_list/utils/sort.dart';
 class TaskController {
   List<Task> tasks;
 
-  TaskController.empty() : this.tasks = [];
+  TaskController.empty() : tasks = [];
   TaskController(List<Task> tasks) : this.tasks = tasks;
 
   Future<void> loadTasksFromDB(String userName, SortType sortType) async {
@@ -91,7 +91,7 @@ class TaskController {
     }
   }
 
-  Future<void> deleteTaskInDatabase(String id) async {
+  Future<void> deleteTaskInDatabase(String id, String userName) async {
     String str = await getUsersRelatedWithTask(id);
     List<String> usernames = str.split('\n');
 
@@ -103,7 +103,7 @@ class TaskController {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
           .where(DbConstants.TASKID, isEqualTo: id)
-          .where(DbConstants.USERNAME, isEqualTo: usernames.first)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
           .get();
 
       db.docs.first.reference.delete();

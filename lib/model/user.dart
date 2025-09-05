@@ -50,25 +50,11 @@ class User {
     );
   }
 
-  String get name {
-    return this._name;
-  }
-
-  String get surname {
-    return this._surname;
-  }
-
-  String get userName {
-    return this._userName;
-  }
-
-  String get mail {
-    return this._mail;
-  }
-
-  String get password {
-    return this._password;
-  }
+  String get name => this._name;
+  String get surname => this._surname;
+  String get userName => this._userName;
+  String get mail => this._mail;
+  String get password => this._password;
 
   @override
   String toString() {
