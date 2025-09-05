@@ -70,15 +70,15 @@ class UserController {
         await fUser.docs.first.reference.delete();
       }
 
-      //NOTIFICACIONS
-      /*final notification = await FirebaseFirestore.instance
+      //NOTIFICACIONS QUE TINGUI EL USUARI
+      final notification = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
           .where(DbConstants.USERNAME, isEqualTo: username)
           .get();
 
       for (var doc in notification.docs) {
         await doc.reference.delete();
-      }*/
+      }
     } catch (e) {
       print('DELETE USER $e');
     }

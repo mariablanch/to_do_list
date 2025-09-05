@@ -697,9 +697,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                   contentPadding: EdgeInsets.all(5),
 
                   leading: Text('    ${index + 1}'),
-                  title: Text(notification.description),
+                  title: Text(notification.message),
                   tileColor: Colors.deepPurple.shade50,
-                  subtitle: Text(notification.name),
+                  subtitle: Text(notification.description),
 
                   trailing: SizedBox(
                     width: 150,

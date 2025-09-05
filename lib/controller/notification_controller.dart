@@ -90,13 +90,13 @@ class NotificationController {
   }
 
   Future<bool> taskInvitation(String destinationUserName, Task task, String userName, String userDescription) async {
-    String description =
+    String message =
         'L\'usuari $userName t\'ha compartit una tasca (${task.name})';
     Notifications notification = Notifications(
       id: '',
       userName: destinationUserName,
-      description: description,
-      name: userDescription,
+      message: message,
+      description: userDescription,
       taskId: task.id,
     );
 

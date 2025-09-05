@@ -92,7 +92,7 @@ class LogInPage extends State<MyHomePage> {
             child: TextFormField(
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: 'Nom usuari/correu',
+                labelText: 'Nom usuari',
               ),
               controller: nameController,
 

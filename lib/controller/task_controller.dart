@@ -119,6 +119,7 @@ class TaskController {
           .doc(id)
           .delete();
 
+      //BORRAR NOTIS Q ESTIGUIN RELACIONADES AMB LA TASCA
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
           .where(DbConstants.TASKID, isEqualTo: id)

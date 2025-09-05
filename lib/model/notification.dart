@@ -3,65 +3,65 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Notifications implements Comparable<Notifications>{
   String _id;
   String _taskId;
-  String _name;
-  String _userName;
   String _description;
+  String _userName;
+  String _message;
 
   Notifications.empty()
     : this._id = '',
       this._taskId = '',
-      this._name = '',
+      this._description = '',
       this._userName = '',
-      this._description = '';
+      this._message = '';
 
   Notifications.coppy(Notifications not)
     : this._id = not.id,
       this._taskId = not.taskId,
-      this._name = not.name,
+      this._description = not.description,
       this._userName = not.userName,
-      this._description = not.description;
+      this._message = not.message;
 
   Notifications copyWith({
     String? id,
     String? taskId,
-    String? name,
-    String? userName,
     String? description,
+    String? userName,
+    String? message,
   }) {
     return Notifications(
       id: id ?? this._id,
       taskId: taskId ?? this._taskId,
-      name: name ?? this._name,
-      userName: userName ?? this._userName,
       description: description ?? this._description,
+      userName: userName ?? this._userName,
+      message: message ?? this._message,
     );
   }
 
   String get id => this._id;
   String get taskId => this._taskId;
-  String get name => this._name;
-  String get userName => this._userName;
   String get description => this._description;
+  String get userName => this._userName;
+  String get message => this._message;
 
   Notifications({
     required String id,
     required String taskId,
-    required String name,
-    required String userName,
     required String description,
+    required String userName,
+    required String message,
   }) : this._id = id,
        this._taskId = taskId,
-       this._name = name,
+       this._description = description,
        this._userName = userName,
-       this._description = description;
+       this._message = message;
 
   Map<String, dynamic> toFirestore() {
     return {
       //'id': id,
       'taskId': _taskId,
-      'name': _name,
-      'userName': _userName,
       'description': _description,
+      'userName': _userName,
+      'message': _message,
     };
   }
 
@@ -70,14 +70,14 @@ class Notifications implements Comparable<Notifications>{
     return Notifications(
       id: doc.id,
       taskId: data['taskId'] ?? '',
-      name: data['name'] ?? '',
-      userName: data['userName'] ?? '',
       description: data['description'] ?? '',
+      userName: data['userName'] ?? '',
+      message: data['message'] ?? '',
     );
   }
   
   @override
   int compareTo(Notifications not) {
-    return this.description.compareTo(not.description);
+    return this.message.compareTo(not.message);
   }
 }
