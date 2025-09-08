@@ -43,7 +43,9 @@ class MyAppToDo extends StatelessWidget {
       title: 'ToDoList',
       home: MyHomePageToDo(user: user),
       theme: ThemeData(
-        colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
+        colorScheme: (user.userRole == UserRole.USER)
+            ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
+            : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
     );
   }
@@ -61,6 +63,8 @@ class ToDoPage extends State<MyHomePageToDo> {
   SortType sortType = SortType.NONE;
   late User myUser;
 
+  bool showAllTask = true;
+
   List<Task> tasks = [];
   List<Notifications> notifications = [];
 
@@ -72,11 +76,11 @@ class ToDoPage extends State<MyHomePageToDo> {
   void initState() {
     super.initState();
     myUser = widget.user;
-    loadInitialData();
+    loadInitialData(myUser.userRole == UserRole.ADMIN);
   }
 
-  Future<void> loadInitialData() async {
-    if (myUser.userRole == UserRole.ADMIN) {
+  Future<void> loadInitialData(bool allTask) async {
+    if (allTask) {
       await taskController.loadAllTasksFromDB(sortType);
       await notController.loadALLNotificationsFromDB();
     } else {
@@ -160,8 +164,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                           context,
                           MaterialPageRoute(builder: (context) => MyApp()),
                         ),
+
                         //onTap: () =>  Navigator.of(context).pop(),
-               
                       ),
                     ],
                   ),
@@ -175,84 +179,110 @@ class ToDoPage extends State<MyHomePageToDo> {
         margin: const EdgeInsets.all(30),
         child: Column(
           children: [
-            Container(
-              alignment: Alignment.centerLeft,
-              margin: EdgeInsets.only(bottom: 10),
+            Row(
+              children: [
+                Container(
+                  alignment: Alignment.centerLeft,
+                  margin: EdgeInsets.only(bottom: 10),
 
-              child: PopupMenuButton(
-                tooltip: 'Sobre quin element voleu ordenar',
+                  child: PopupMenuButton(
+                    tooltip: 'Sobre quin element voleu ordenar',
 
-                itemBuilder: (BuildContext context) => [
-                  PopupMenuItem(
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          color: Colors.black54,
+                    itemBuilder: (BuildContext context) => [
+                      PopupMenuItem(
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              color: Colors.black54,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Prioritat'),
+                          ],
                         ),
-                        SizedBox(width: 8),
-                        Text('Prioritat'),
-                      ],
-                    ),
-                    onTap: () {
-                      setState(() {
-                        sortType = SortType.NONE;
-                        tasks.sort((task1, task2) {
-                          return Task.sortTask(sortType, task1, task2);
-                        });
-                      });
-                    },
-                  ),
+                        onTap: () {
+                          setState(() {
+                            sortType = SortType.NONE;
+                            tasks.sort((task1, task2) {
+                              return Task.sortTask(sortType, task1, task2);
+                            });
+                          });
+                        },
+                      ),
 
-                  PopupMenuItem(
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_month_rounded,
-                          color: Colors.black54,
+                      PopupMenuItem(
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_month_rounded,
+                              color: Colors.black54,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Data'),
+                          ],
                         ),
-                        SizedBox(width: 8),
-                        Text('Data'),
-                      ],
-                    ),
-                    onTap: () {
-                      setState(() {
-                        sortType = SortType.DATE;
-                        tasks.sort((task1, task2) {
-                          return Task.sortTask(sortType, task1, task2);
-                        });
-                      });
-                    },
-                  ),
+                        onTap: () {
+                          setState(() {
+                            sortType = SortType.DATE;
+                            tasks.sort((task1, task2) {
+                              return Task.sortTask(sortType, task1, task2);
+                            });
+                          });
+                        },
+                      ),
 
-                  PopupMenuItem(
-                    child: const Row(
-                      children: [
-                        Icon(Icons.text_fields_rounded, color: Colors.black54),
-                        SizedBox(width: 8),
-                        Text('Nom'),
-                      ],
-                    ),
-                    onTap: () {
-                      setState(() {
-                        sortType = SortType.NAME;
-                        tasks.sort((task1, task2) {
-                          return Task.sortTask(sortType, task1, task2);
-                        });
-                      });
-                    },
-                  ),
-                ],
-                child: Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
+                      PopupMenuItem(
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.text_fields_rounded,
+                              color: Colors.black54,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Nom'),
+                          ],
+                        ),
+                        onTap: () {
+                          setState(() {
+                            sortType = SortType.NAME;
+                            tasks.sort((task1, task2) {
+                              return Task.sortTask(sortType, task1, task2);
+                            });
+                          });
+                        },
+                      ),
+                    ],
+                    child: Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
 
-                  child: Text('Ordenar', style: TextStyle(fontSize: 17)),
+                      child: Text('Ordenar', style: TextStyle(fontSize: 17)),
+                    ),
+                  ),
                 ),
-              ),
+
+                Container(width: 10),
+
+                if (myUser.userRole == UserRole.ADMIN)
+                  Container(
+                    alignment: Alignment.centerLeft,
+                    margin: EdgeInsets.only(bottom: 10),
+
+                    child: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          showAllTask = !showAllTask;
+                          loadInitialData(showAllTask);
+                        });
+                      },
+                      tooltip: showAllTask ? 'Mostrar les mesves tasques' : 'Mostrar totes les tasques',
+                      icon: Icon(showAllTask ? Icons.visibility_off :  Icons.visibility),
+                    ),
+                  ),
+              ],
             ),
 
             Expanded(
@@ -269,30 +299,28 @@ class ToDoPage extends State<MyHomePageToDo> {
                             title: Text(
                               '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
                             ),
+
                             /*subtitle: Text(
                               '${task.description}\n${await taskController.getUsersRelatedWithTask(task.id)}',
                             ),*/
-                            
                             subtitle: FutureBuilder<String>(
                               future: taskController.getUsersRelatedWithTask(
                                 task.id,
                               ),
                               builder: (context, snapshot) {
-                                String str = snapshot.data?.replaceAll('\n', ' | ') ?? '';
+                                String str =
+                                    snapshot.data?.replaceAll('\n', ' | ') ??
+                                    '';
 
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
-                                  return Text(
-                                    task.description,
-                                  );
+                                  return Text(task.description);
                                 } else if (snapshot.hasError) {
-                                  return Text(
-                                    task.description,
-                                  );
+                                  return Text(task.description);
                                 } else {
                                   return Text(
-                                  '${task.description}\n--> Usuaris: $str',
-                                );
+                                    '${task.description}\n--> Usuaris: $str',
+                                  );
                                 }
                               },
                             ),
@@ -555,7 +583,10 @@ class ToDoPage extends State<MyHomePageToDo> {
       children: [
         Text(
           task.name,
-          style: TextStyle(color: Theme.of(context).colorScheme.inverseSurface, fontSize: 20),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.inverseSurface,
+            fontSize: 20,
+          ),
         ),
         SizedBox(height: 20),
         Table(
