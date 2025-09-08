@@ -4,6 +4,7 @@ import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/sort.dart';
+import 'package:to_do_list/utils/user_role.dart';
 
 class UserController {
   Future<int> createAccountDB(User user) async {
@@ -103,14 +104,37 @@ class UserController {
     return users;
   }
 
-  Future<void> restartPswrd(User user) async {
-    final db = await FirebaseFirestore.instance.collection(DbConstants.USER).where(DbConstants.USERNAME, isEqualTo: user.userName).get();
-    if(db.docs.isNotEmpty){
+  Future<void> resetPswrd(User user) async {
+    final db = await FirebaseFirestore.instance
+        .collection(DbConstants.USER)
+        .where(DbConstants.USERNAME, isEqualTo: user.userName)
+        .get();
+    if (db.docs.isNotEmpty) {
       String id = db.docs.first.id;
 
       user.password = User.hashPassword('123');
 
-      await FirebaseFirestore.instance.collection(DbConstants.USER).doc(id).update(user.toFirestore());
+      await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .doc(id)
+          .update(user.toFirestore());
+    }
+  }
+
+  Future<void> giveAdmin(User user, UserRole uR) async {
+    final db = await FirebaseFirestore.instance
+        .collection(DbConstants.USER)
+        .where(DbConstants.USERNAME, isEqualTo: user.userName)
+        .get();
+    if (db.docs.isNotEmpty) {
+      String id = db.docs.first.id;
+
+      user = user.copyWith(userRole: uR);
+
+      await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .doc(id)
+          .update(user.toFirestore());
     }
   }
 }

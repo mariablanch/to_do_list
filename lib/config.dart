@@ -362,7 +362,7 @@ class ConfigPage extends State<ConfigHP> {
                 labelText: 'Nova contrasenya',
               ),
               obscureText: true,
-              readOnly: adminEdit,
+              //readOnly: adminEdit,
               //controller: paswordController,
               /*validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -696,7 +696,7 @@ class ConfigPage extends State<ConfigHP> {
                     ),
                     IconButton(
                       onPressed: () {
-                        userController.restartPswrd(allUsers[index]);
+                        userController.resetPswrd(allUsers[index]);
                       },
                       icon: Icon(Icons.password),
                       tooltip: 'Reiniciar contrasenya',
@@ -712,6 +712,7 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   viewUser(bool edit, User user) {
+    UserRole uR = user.userRole == UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN;
     return edit
         ? editAccount(user)
         : Column(
@@ -724,45 +725,35 @@ class ConfigPage extends State<ConfigHP> {
                   buildTableRow('Cognom:', user.surname),
                   buildTableRow('Nom d\'usuari:', user.userName),
                   buildTableRow('Correu:', user.mail),
+                  buildTableRow(
+                    'Rol:',
+                    (user.userRole == UserRole.ADMIN)
+                        ? 'Administrador'
+                        : 'Usuari',
+                  ),
                 ],
+              ),
+              Container(height: 10),
+              //if (user.userRole == UserRole.USER)
+              ElevatedButton(
+                onPressed: () {
+                  userController.giveAdmin(user, uR);
+                  setState(() {
+                    selectedIndex = 2;
+                    viewUserList = true;
+                    //userEdit = false;
+                    user = user.copyWith(userRole: uR);
+                    loadUsers();
+                  });
+                },
+                child: Text(
+                  (user.userRole == UserRole.ADMIN)
+                      ? 'Treure permís d\'administrador'
+                      : 'Donar permís d\'administrador',
+                ),
+                //child: Text('Donar permís d\'administrador'),
               ),
             ],
           );
   }
-
-  /*Future<List<Task>> loadTasksFromDB() async {
-    List<Task> loadedTasks = [];
-    Task task;
-    try {
-      User user = User.copy(widget.user);
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: user.userName)
-          .get();
-
-      List<String> taskIDs = db.docs
-          .map((doc) => doc[DbConstants.TASKID] as String)
-          .toList();
-
-      for (String id in taskIDs) {
-        final doc = await FirebaseFirestore.instance
-            .collection(DbConstants.USERTASK)
-            .doc(id)
-            .get();
-
-        if (doc.exists) {
-          task = Task.fromFirestore(doc, null);
-          loadedTasks.add(task);
-        }
-      }
-
-      loadedTasks.sort();
-
-      return loadedTasks;
-    } catch (e) {
-      print(e);
-      return [];
-    }
-  }
-*/
 }
