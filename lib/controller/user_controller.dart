@@ -84,5 +84,33 @@ class UserController {
     }
   }
 
+  static Future<List<User>> loadAllUsers() async {
+    List<User> users = [];
+    User user;
 
+    final db = await FirebaseFirestore.instance
+        .collection(DbConstants.USER)
+        .get();
+    final docs = db.docs;
+
+    for (var doc in docs) {
+      if (doc.exists) {
+        user = User.fromFirestore(doc, null);
+        users.add(user);
+      }
+    }
+
+    return users;
+  }
+
+  Future<void> restartPswrd(User user) async {
+    final db = await FirebaseFirestore.instance.collection(DbConstants.USER).where(DbConstants.USERNAME, isEqualTo: user.userName).get();
+    if(db.docs.isNotEmpty){
+      String id = db.docs.first.id;
+
+      user.password = User.hashPassword('123');
+
+      await FirebaseFirestore.instance.collection(DbConstants.USER).doc(id).update(user.toFirestore());
+    }
+  }
 }

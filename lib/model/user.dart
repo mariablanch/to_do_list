@@ -66,6 +66,8 @@ class User {
   String get password => this._password;
   UserRole get userRole => this._userRole;
 
+  set password(String password) => _password = password;
+
   @override
   String toString() {
     String str = '';

@@ -36,8 +36,8 @@ class MyAppConfig extends StatelessWidget {
       title: 'ToDoList',
       home: ConfigHP(user: user),
       theme: ThemeData(
-        //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        //colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
     );
     //return ConfigHP(user: user);
@@ -55,19 +55,46 @@ class ConfigHP extends StatefulWidget {
 class ConfigPage extends State<ConfigHP> {
   int selectedIndex = 0;
   late User myUser;
-  bool editMode = false;
+  //bool editMode = false;
+  bool viewUserList = true;
+  bool userEdit = false;
   late bool isAdmin;
+  User editUser = User.empty();
 
-  List<Widget> get pages => [profile(), editAccount(), deleteAccount()];
-  List<Widget> get adminPages => [profile(), editAccount(), viewUsers(), deleteAccount()];
+  List<Widget> get pages => [
+    profilePage(),
+    editAccountPage(),
+    deleteAccountPage(),
+  ];
+  List<Widget> get adminPages => [
+    profilePage(),
+    editAccountPage(),
+    usersPage(),
+    deleteAccountPage(),
+  ];
 
   UserController userController = UserController();
+  List<User> allUsers = [];
 
   @override
   void initState() {
     super.initState();
     myUser = User.copy(widget.user);
     isAdmin = myUser.userRole == UserRole.ADMIN;
+    loadUsers();
+  }
+
+  Future<void> loadUsers() async {
+    List<User> users = await UserController.loadAllUsers();
+    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+
+    users.removeWhere((user) {
+      return user.userName == myUser.userName;
+    });
+
+    setState(() {
+      allUsers = users;
+    });
   }
 
   @override
@@ -104,11 +131,12 @@ class ConfigPage extends State<ConfigHP> {
                   selectedIcon: Icon(Icons.settings, color: pageColor),
                 ),
 
-                ?isAdmin ? NavigationRailDestination(
-                  icon: const Icon(Icons.people),
-                  label: const Text('Usuaris'),
-                  selectedIcon: Icon(Icons.settings, color: pageColor),
-                ) : null,
+                if (isAdmin)
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.people),
+                    label: const Text('Usuaris'),
+                    selectedIcon: Icon(Icons.people, color: pageColor),
+                  ),
 
                 const NavigationRailDestination(
                   icon: Icon(Icons.delete),
@@ -121,7 +149,9 @@ class ConfigPage extends State<ConfigHP> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: isAdmin ? adminPages[selectedIndex] : pages[selectedIndex],
+                child: isAdmin
+                    ? adminPages[selectedIndex]
+                    : pages[selectedIndex],
               ),
             ),
           ],
@@ -130,13 +160,16 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Widget profile() {
+  Widget profilePage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'PERFIL',
-          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: 20,
+          ),
         ),
         SizedBox(height: 20),
         Table(
@@ -167,18 +200,22 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Widget editAccount() {
+  Widget editAccountPage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'EDITAR PERFIL',
-          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: 20,
+          ),
         ),
         SizedBox(height: 20),
         /*editMode
-            ? */editProfile()
-            /*: Column(
+            ? */
+        editAccount(myUser),
+        /*: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextButton.icon(
@@ -205,26 +242,30 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  editProfile() {
+  editAccount(User editUser) {
     final formKey = GlobalKey<FormState>();
 
-    String name = myUser.name;
-    String surname = myUser.surname;
-    String userName = myUser.userName;
-    String mail = myUser.mail;
-    String password = myUser.password;
+    // false si el usuari es igual (s edita a ell mateix)
+    // true si es diferent (edita a algu altre ==> restablir contrasenya)
+    bool adminEdit = editUser.userName.compareTo(myUser.userName) != 0;
+
+    String name = editUser.name;
+    String surname = editUser.surname;
+    String userName = editUser.userName;
+    String mail = editUser.mail;
+    String password = editUser.password;
 
     TextEditingController nameController = TextEditingController(
-      text: myUser.name,
+      text: editUser.name,
     );
     TextEditingController surnameController = TextEditingController(
       text: surname,
     );
     TextEditingController userNameController = TextEditingController(
-      text: myUser.userName,
+      text: editUser.userName,
     );
     TextEditingController mailController = TextEditingController(
-      text: myUser.mail,
+      text: editUser.mail,
     );
     //TextEditingController paswordController = TextEditingController();
 
@@ -310,6 +351,9 @@ class ConfigPage extends State<ConfigHP> {
             ),
           ),
 
+          /*?adminEdit
+              ? null
+              : */
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
@@ -318,6 +362,7 @@ class ConfigPage extends State<ConfigHP> {
                 labelText: 'Nova contrasenya',
               ),
               obscureText: true,
+              readOnly: adminEdit,
               //controller: paswordController,
               /*validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -339,26 +384,26 @@ class ConfigPage extends State<ConfigHP> {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
 
-                  if (userName != myUser.userName &&
+                  if (userName != editUser.userName &&
                       await userNameExists(userName)) {
-                    userNotAviable();
+                    userNotAviableMessage();
                   } else {
                     bool confirmPswrd = await confirmPasword(false);
 
                     if (confirmPswrd) {
                       bool isEmpty = password.isEmpty;
 
-                      User updatedUser = myUser.copyWith(
+                      User updatedUser = editUser.copyWith(
                         name: name,
                         surname: surname,
                         userName: userName,
                         mail: mail,
                         password: !isEmpty
                             ? User.hashPassword(password)
-                            : myUser.password,
+                            : editUser.password,
                       );
                       try {
-                        await updateProfileDB(updatedUser);
+                        await updateProfileDB(updatedUser, editUser);
                       } catch (e) {
                         print(e);
                       }
@@ -366,10 +411,14 @@ class ConfigPage extends State<ConfigHP> {
 
                       setState(() {
                         selectedIndex = 0;
-                        editMode = false;
+                        viewUserList = true;
+                        userEdit = false;
+                        //editMode = false;
                       });
 
-                      Navigator.pop(context, updatedUser);
+                      if (!adminEdit) {
+                        Navigator.pop(context, updatedUser);
+                      }
                     }
 
                     /*nameController.clear();
@@ -388,7 +437,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  userNotAviable() {
+  userNotAviableMessage() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -485,12 +534,12 @@ class ConfigPage extends State<ConfigHP> {
     return db.docs.length == 1;
   }
 
-  Future<void> updateProfileDB(User updatedUser) async {
+  Future<void> updateProfileDB(User updatedUser, User oldUser) async {
     String doc;
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: myUser.userName)
+          .where(DbConstants.USERNAME, isEqualTo: oldUser.userName)
           .get();
       doc = db.docs.first.id;
 
@@ -499,7 +548,7 @@ class ConfigPage extends State<ConfigHP> {
           .doc(doc)
           .update(updatedUser.toFirestore());
 
-      if (myUser.userName != updatedUser.userName) {
+      if (oldUser.userName != updatedUser.userName) {
         await updateUserTask(updatedUser);
       }
     } catch (e) {
@@ -532,7 +581,7 @@ class ConfigPage extends State<ConfigHP> {
     }
   }
 
-  Widget deleteAccount() {
+  Widget deleteAccountPage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -561,8 +610,124 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Widget viewUsers(){
-    return Column();
+  Widget usersPage() {
+    //loadUsers();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (!viewUserList)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    viewUserList = true;
+                  });
+                },
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+
+                //icon: Icon(Icons.arrow_back, color: Colors.red),
+              ),
+            Text(
+              viewUserList ? 'USUARIS' : '${editUser.userName}',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+
+        SizedBox(height: 20),
+
+        viewUserList ? userList() : viewUser(userEdit, editUser),
+      ],
+    );
+  }
+
+  userList() {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: allUsers.length,
+        itemBuilder: (context, index) {
+          final user = allUsers[index];
+
+          return Card(
+            //color: Theme.of(context).colorScheme.inversePrimary,
+            child: ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: EdgeInsets.all(5),
+
+              leading: Text('    ${index + 1}'),
+              title: Text(user.userName),
+              subtitle: Text(''),
+
+              trailing: SizedBox(
+                width: 150,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      tooltip: 'Veure dades',
+                      onPressed: () {
+                        setState(() {
+                          viewUserList = false;
+                          userEdit = false;
+                          editUser = allUsers[index];
+                        });
+                      },
+                      icon: Icon(Icons.remove_red_eye),
+                    ),
+                    IconButton(
+                      tooltip: 'Editar',
+                      onPressed: () {
+                        setState(() {
+                          viewUserList = false;
+                          userEdit = true;
+                          editUser = allUsers[index];
+                        });
+                      },
+                      icon: Icon(Icons.edit),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        userController.restartPswrd(allUsers[index]);
+                      },
+                      icon: Icon(Icons.password),
+                      tooltip: 'Reiniciar contrasenya',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  viewUser(bool edit, User user) {
+    return edit
+        ? editAccount(user)
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Table(
+                columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+                children: [
+                  buildTableRow('Nom:', user.name),
+                  buildTableRow('Cognom:', user.surname),
+                  buildTableRow('Nom d\'usuari:', user.userName),
+                  buildTableRow('Correu:', user.mail),
+                ],
+              ),
+            ],
+          );
   }
 
   /*Future<List<Task>> loadTasksFromDB() async {
