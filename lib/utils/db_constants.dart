@@ -10,6 +10,8 @@ class DbConstants {
 
   static final String USERROLE = 'userRole';
 
+  static final String PFP = 'iconName';
+
   static final int USEREXISTS = 0;
   static final int USERNOTEXISTS = 1;
   static final int DATABASEERROR = 2;

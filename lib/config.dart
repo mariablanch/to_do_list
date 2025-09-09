@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -21,6 +23,7 @@ Future<void> main() async {
     '111',
     'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
     UserRole.ADMIN,
+    User.getRandomIcon()
   );
 
   runApp(MyAppConfig(user: userProva));
@@ -60,6 +63,8 @@ class ConfigPage extends State<ConfigHP> {
   bool userEdit = false;
   late bool isAdmin;
   User editUser = User.empty();
+
+  bool isUserAdmin = false;
 
   List<Widget> get pages => [
     profilePage(),
@@ -245,9 +250,13 @@ class ConfigPage extends State<ConfigHP> {
   editAccount(User editUser, bool isNew) {
     final formKey = GlobalKey<FormState>();
 
+    //isUserAdmin = editUser.userRole == UserRole.ADMIN;
+
     // false si el usuari es igual (s edita a ell mateix)
     // true si es diferent (edita a algu altre ==> restablir contrasenya)
     bool adminEdit = editUser.userName.compareTo(myUser.userName) != 0;
+
+    bool roleChanged = false;
 
     String name = editUser.name;
     String surname = editUser.surname;
@@ -376,6 +385,50 @@ class ConfigPage extends State<ConfigHP> {
             ),
           ),
 
+          Container(height: 5),
+
+          /*ElevatedButton(
+            onPressed: () async {
+              final isUser = await confirmUserName(editUser.userName);
+              if (isUser) {
+                setState(() {
+                  selectedIndex = 2;
+                  viewUserList = true;
+                  //userEdit = false;
+                  //user = user.copyWith(userRole: uR);
+                });
+                await userController.giveAdmin(editUser, uR);
+                await loadUsers();
+              }
+            },
+            child: Text(
+              (editUser.userRole == UserRole.ADMIN)
+                  ? 'Treure permís d\'administrador'
+                  : 'Donar permís d\'administrador',
+            ),
+            //child: Text('Donar permís d\'administrador'),
+          ),*/
+          if (isAdmin && editUser.userName != myUser.userName)
+            Row(
+              children: [
+                Switch(
+                  //value: isUserAdmin,
+                  value: editUser.userRole == UserRole.ADMIN,
+                  onChanged: (bool value) async {
+                    setState(() {
+                      if (value) {
+                        editUser.userRole = UserRole.ADMIN;
+                      } else {
+                        editUser.userRole = UserRole.USER;
+                      }
+                      roleChanged = !roleChanged;
+                    });
+                  },
+                ),
+                Text('Permisos d\'administrador'),
+              ],
+            ),
+
           Container(
             margin: EdgeInsets.symmetric(vertical: 20),
 
@@ -395,9 +448,9 @@ class ConfigPage extends State<ConfigHP> {
                         password: User.hashPassword(password),
                       );
                       await userController.createAccountDB(user);
+                      await loadUsers();
 
                       Navigator.pop(context, user);
-                      await loadUsers();
                     }
                   } else {
                     if (userName != editUser.userName && usernameExists) {
@@ -430,6 +483,13 @@ class ConfigPage extends State<ConfigHP> {
                           userEdit = false;
                           //editMode = false;
                         });
+
+                        if (roleChanged) {
+                          final uR = editUser.userRole != UserRole.ADMIN
+                              ? UserRole.USER
+                              : UserRole.ADMIN;
+                          await userController.giveAdmin(editUser, uR);
+                        }
 
                         if (!adminEdit) {
                           Navigator.pop(context, updatedUser);
@@ -709,7 +769,8 @@ class ConfigPage extends State<ConfigHP> {
               ),
               contentPadding: EdgeInsets.all(5),
 
-              leading: Text('    ${index + 1}'),
+              //leading: Text('    ${index + 1}'),
+              leading: getRandomIcon(),
               title: Text(user.userName),
               subtitle: Text(''),
 
@@ -761,9 +822,6 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   viewUser(bool edit, User user) {
-    UserRole uR = user.userRole == UserRole.ADMIN
-        ? UserRole.USER
-        : UserRole.ADMIN;
     return edit
         ? editAccount(user, false)
         : Column(
@@ -784,29 +842,7 @@ class ConfigPage extends State<ConfigHP> {
                   ),
                 ],
               ),
-              Container(height: 10),
               //if (user.userRole == UserRole.USER)
-              ElevatedButton(
-                onPressed: () async {
-                  final isUser = await confirmUserName(user.userName);
-                  if (isUser) {
-                    setState(() {
-                      selectedIndex = 2;
-                      viewUserList = true;
-                      //userEdit = false;
-                      //user = user.copyWith(userRole: uR);
-                    });
-                    await userController.giveAdmin(user, uR);
-                    await loadUsers();
-                  }
-                },
-                child: Text(
-                  (user.userRole == UserRole.ADMIN)
-                      ? 'Treure permís d\'administrador'
-                      : 'Donar permís d\'administrador',
-                ),
-                //child: Text('Donar permís d\'administrador'),
-              ),
             ],
           );
   }
@@ -885,6 +921,8 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
+  
+  
   /*createAccountForm() {
     String name = '';
     String surname = '';

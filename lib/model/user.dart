@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
@@ -12,6 +14,64 @@ class User {
   String _mail;
   String _password;
   UserRole _userRole;
+  Icon _icon;
+
+  final Map<String, IconData> _iconMap = {
+    'home': Icons.home,
+    'star': Icons.star,
+    'favorite': Icons.favorite,
+    'person': Icons.person,
+    'cake': Icons.cake,
+    'pets': Icons.pets,
+    'alarm': Icons.alarm,
+    'settings': Icons.settings,
+    'mail': Icons.mail,
+    'phone': Icons.phone,
+    'music_note': Icons.music_note,
+    'school': Icons.school,
+    'snowshoeing_sharp': Icons.snowshoeing_sharp,
+    'ramen_dining': Icons.ramen_dining,
+    'ac_unit': Icons.ac_unit,
+    'filter_vintage': Icons.filter_vintage,
+    'currency_bitcoin': Icons.currency_bitcoin,
+    'park': Icons.park,
+    'local_play_sharp': Icons.local_play_sharp,
+    'theater_comedy': Icons.theater_comedy,
+    'check': Icons.check,
+  };
+
+  static Icon getRandomIcon() {
+    Random random = Random();
+
+    // Lista de IconData posibles
+    final icons = <IconData>[
+      Icons.home,
+      Icons.star,
+      Icons.favorite,
+      Icons.person,
+      Icons.cake,
+      Icons.pets,
+      Icons.alarm,
+      Icons.settings,
+      Icons.mail,
+      Icons.phone,
+      Icons.music_note,
+      Icons.school,
+      Icons.snowshoeing_sharp,
+      Icons.ramen_dining,
+      Icons.ac_unit,
+      Icons.filter_vintage,
+      Icons.currency_bitcoin,
+      Icons.park,
+      Icons.local_play_sharp,
+      Icons.theater_comedy,
+      Icons.check,
+    ];
+
+    final randomIconData = icons[random.nextInt(icons.length)];
+
+    return Icon(randomIconData);
+  }
 
   User.empty()
     : this._name = '',
@@ -19,7 +79,8 @@ class User {
       this._userName = '',
       this._mail = '',
       this._password = '',
-      this._userRole = UserRole.USER;
+      this._userRole = UserRole.USER,
+      this._icon = getRandomIcon();
   User.parameter(
     String name,
     String surname,
@@ -27,19 +88,22 @@ class User {
     String mail,
     String password,
     UserRole role,
+    Icon icon
   ) : this._name = name,
       this._surname = surname,
       this._userName = userName,
       this._mail = mail,
       this._password = password,
-      this._userRole = role;
+      this._userRole = role,
+      this._icon = icon;
   User.copy(User user)
     : this._name = user.name,
       this._surname = user.surname,
       this._userName = user.userName,
       this._mail = user.mail,
       this._password = user.password,
-      this._userRole = user.userRole;
+      this._userRole = user.userRole,
+      this._icon = user.icon;
 
   User copyWith({
     String? name,
@@ -48,6 +112,7 @@ class User {
     String? mail,
     String? password,
     UserRole? userRole,
+    Icon? icon,
   }) {
     return User(
       name: name ?? this.name,
@@ -56,6 +121,7 @@ class User {
       mail: mail ?? this.mail,
       password: password ?? this.password,
       userRole: userRole ?? this.userRole,
+      iconName: icon ?? this.icon,
     );
   }
 
@@ -65,8 +131,10 @@ class User {
   String get mail => this._mail;
   String get password => this._password;
   UserRole get userRole => this._userRole;
+  Icon get icon => this._icon;
 
   set password(String password) => _password = password;
+  set userRole(UserRole uR) => _userRole = uR;
 
   @override
   String toString() {
@@ -86,6 +154,7 @@ class User {
       'mail': _mail,
       DbConstants.PASSWORD: _password,
       DbConstants.USERROLE: _userRole.name,
+      'iconName': _icon,
     };
   }
 
@@ -96,12 +165,14 @@ class User {
     required String mail,
     required String password,
     required UserRole userRole,
+    required Icon pfp,
   }) : _password = password,
        _mail = mail,
        _userName = userName,
        _surname = surname,
        _name = name,
-       _userRole = userRole;
+       _userRole = userRole,
+       _icon = pfp;
 
   factory User.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> snapshot,
@@ -119,6 +190,7 @@ class User {
             uR.name.toLowerCase() ==
             (data?[DbConstants.USERROLE] ?? '').toString().toLowerCase(),
       ),
+      pfp: data?['iconName'] ?? 'person',
     );
   }
 
