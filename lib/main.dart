@@ -308,13 +308,15 @@ class LogInPage extends State<MyHomePage> {
                   mailController.clear();
                   paswordController.clear();
 
+                  int accountError = await userController.createAccountDB(user);
+
                   try {
-                    if (await userController.createAccountDB(user) == DbConstants.USERNOTEXISTS) {
+                    if (accountError == DbConstants.USERNOTEXISTS) {
                       setState(() {
                         control = 'Usuari creat, inicia sessió';
                         _hasAccount = true;
                       });
-                    } else if (await userController.createAccountDB(user) == DbConstants.USEREXISTS) {
+                    } else if (accountError == DbConstants.USEREXISTS) {
                       setState(() {
                         control =
                             'El nom d\'usuari ja existeix, prova a fer-ne un altre';

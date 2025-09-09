@@ -214,7 +214,7 @@ class ConfigPage extends State<ConfigHP> {
         SizedBox(height: 20),
         /*editMode
             ? */
-        editAccount(myUser),
+        editAccount(myUser, false),
         /*: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -242,7 +242,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  editAccount(User editUser) {
+  editAccount(User editUser, bool isNew) {
     final formKey = GlobalKey<FormState>();
 
     // false si el usuari es igual (s edita a ell mateix)
@@ -364,12 +364,12 @@ class ConfigPage extends State<ConfigHP> {
               obscureText: true,
               //readOnly: adminEdit,
               //controller: paswordController,
-              /*validator: (value) {
-                if (value == null || value.isEmpty) {
+              validator: (value) {
+                if (isNew && (value == null || value.isEmpty)) {
                   return 'Aquest camp és obligatori';
                 }
                 return null;
-              },*/
+              },
               onSaved: (value) {
                 password = value!;
               },
@@ -383,53 +383,71 @@ class ConfigPage extends State<ConfigHP> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
+                  bool usernameExists = await userNameExists(userName);
 
-                  if (userName != editUser.userName &&
-                      await userNameExists(userName)) {
-                    userNotAviableMessage();
-                  } else {
-                    bool confirmPswrd = await confirmPasword(false);
-
-                    if (confirmPswrd) {
-                      bool isEmpty = password.isEmpty;
-
-                      User updatedUser = editUser.copyWith(
+                  if (isNew) {
+                    if (!usernameExists) {
+                      User user = editUser.copyWith(
                         name: name,
                         surname: surname,
                         userName: userName,
                         mail: mail,
-                        password: !isEmpty
-                            ? User.hashPassword(password)
-                            : editUser.password,
+                        password: User.hashPassword(password),
                       );
-                      try {
-                        await updateProfileDB(updatedUser, editUser);
-                      } catch (e) {
-                        print(e);
-                      }
-                      //user = updatedUser;
+                      await userController.createAccountDB(user);
 
-                      setState(() {
-                        selectedIndex = 0;
-                        viewUserList = true;
-                        userEdit = false;
-                        //editMode = false;
-                      });
-
-                      if (!adminEdit) {
-                        Navigator.pop(context, updatedUser);
-                      }
+                      Navigator.pop(context, user);
+                      await loadUsers();
                     }
+                  } else {
+                    if (userName != editUser.userName && usernameExists) {
+                      userNotAviableMessage();
+                    } else {
+                      bool confirmPswrd = await confirmPasword(false);
 
-                    /*nameController.clear();
+                      if (confirmPswrd) {
+                        bool isEmpty = password.isEmpty;
+
+                        User updatedUser = editUser.copyWith(
+                          name: name,
+                          surname: surname,
+                          userName: userName,
+                          mail: mail,
+                          password: !isEmpty
+                              ? User.hashPassword(password)
+                              : editUser.password,
+                        );
+                        try {
+                          await updateProfileDB(updatedUser, editUser);
+                        } catch (e) {
+                          print(e);
+                        }
+                        //user = updatedUser;
+
+                        setState(() {
+                          //selectedIndex = 0;
+                          viewUserList = true;
+                          userEdit = false;
+                          //editMode = false;
+                        });
+
+                        if (!adminEdit) {
+                          Navigator.pop(context, updatedUser);
+                        } else {
+                          await loadUsers();
+                        }
+                      }
+
+                      /*nameController.clear();
                     surnameController.clear();
                     userNameController.clear();
                     mailController.clear();
                     paswordController.clear();*/
+                    }
                   }
                 }
               },
-              label: Text('Guardar canvis'),
+              label: Text(!isNew ? 'Guardar canvis' : 'Crear compte'),
             ),
           ),
         ],
@@ -644,6 +662,34 @@ class ConfigPage extends State<ConfigHP> {
         SizedBox(height: 20),
 
         viewUserList ? userList() : viewUser(userEdit, editUser),
+
+        if (viewUserList)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: FloatingActionButton.extended(
+              heroTag: 'createUser',
+              onPressed: () async {
+                await openFormCreateUser();
+                await loadUsers();
+              },
+              label: Text('Crear Usuari'),
+              icon: Icon(Icons.add),
+            ),
+          ),
+
+        /*Row(
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'createUser',
+              onPressed: () {
+                openFormCreateUser();
+              },
+              label: Text('Crear Usuari'),
+              icon: Icon(Icons.add),
+            ),
+          ],
+        ),*/
       ],
     );
   }
@@ -695,8 +741,11 @@ class ConfigPage extends State<ConfigHP> {
                       icon: Icon(Icons.edit),
                     ),
                     IconButton(
-                      onPressed: () {
-                        userController.resetPswrd(allUsers[index]);
+                      onPressed: () async {
+                        final isUserName = await confirmUserName(user.userName);
+                        if (isUserName) {
+                          userController.resetPswrd(allUsers[index]);
+                        }
                       },
                       icon: Icon(Icons.password),
                       tooltip: 'Reiniciar contrasenya',
@@ -712,9 +761,11 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   viewUser(bool edit, User user) {
-    UserRole uR = user.userRole == UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN;
+    UserRole uR = user.userRole == UserRole.ADMIN
+        ? UserRole.USER
+        : UserRole.ADMIN;
     return edit
-        ? editAccount(user)
+        ? editAccount(user, false)
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -736,15 +787,18 @@ class ConfigPage extends State<ConfigHP> {
               Container(height: 10),
               //if (user.userRole == UserRole.USER)
               ElevatedButton(
-                onPressed: () {
-                  userController.giveAdmin(user, uR);
-                  setState(() {
-                    selectedIndex = 2;
-                    viewUserList = true;
-                    //userEdit = false;
-                    user = user.copyWith(userRole: uR);
-                    loadUsers();
-                  });
+                onPressed: () async {
+                  final isUser = await confirmUserName(user.userName);
+                  if (isUser) {
+                    setState(() {
+                      selectedIndex = 2;
+                      viewUserList = true;
+                      //userEdit = false;
+                      //user = user.copyWith(userRole: uR);
+                    });
+                    await userController.giveAdmin(user, uR);
+                    await loadUsers();
+                  }
                 },
                 child: Text(
                   (user.userRole == UserRole.ADMIN)
@@ -756,4 +810,248 @@ class ConfigPage extends State<ConfigHP> {
             ],
           );
   }
+
+  Future<bool> confirmUserName(String userName) async {
+    final TextEditingController userNameController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Nom d\'usuari'),
+          content: Text('Per continuar, introdueixi el nom de l\'usuari'),
+          actions: <Widget>[
+            TextField(
+              controller: userNameController,
+              //obscureText: true,
+              decoration: InputDecoration(border: OutlineInputBorder()),
+            ),
+
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    //final isValid = await isUserName(userNameController.text);
+                    final isValid =
+                        userNameController.text.compareTo(userName) == 0;
+                    Navigator.of(context).pop(isValid);
+                  },
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                      states,
+                    ) {
+                      if (states.contains(WidgetState.hovered)) {
+                        return Colors.red;
+                      }
+                      return Theme.of(context).colorScheme.primary;
+                    }),
+                  ),
+                  child: Text('Confirmar'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel·lar'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  openFormCreateUser() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 30,
+          ),
+
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: editAccount(User.empty(), true),
+          ),
+        );
+      },
+    );
+  }
+
+  /*createAccountForm() {
+    String name = '';
+    String surname = '';
+    String userName = '';
+    String mail = '';
+    String password = '';
+    User user;
+
+    final formKey = GlobalKey<FormState>();
+
+    TextEditingController nameController = TextEditingController();
+    TextEditingController surnameController = TextEditingController();
+    TextEditingController userNameController = TextEditingController();
+    TextEditingController mailController = TextEditingController();
+    TextEditingController paswordController = TextEditingController();
+
+    return Form(
+      key: formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 5),
+            child: TextFormField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Nom',
+              ),
+              controller: nameController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Aquest camp és obligatori';
+                }
+                return null;
+              },
+              onSaved: (value) {
+                name = value!;
+              },
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 5),
+            child: TextFormField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Cognom',
+              ),
+              controller: surnameController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Aquest camp és obligatori';
+                }
+                return null;
+              },
+              onSaved: (value) {
+                surname = value!;
+              },
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 5),
+            child: TextFormField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Nom d\'usuari',
+              ),
+              controller: userNameController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Aquest camp és obligatori';
+                }
+                return null;
+              },
+              onSaved: (value) {
+                userName = value!;
+              },
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 5),
+            child: TextFormField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Correu',
+              ),
+              controller: mailController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Aquest camp és obligatori';
+                }
+                return null;
+              },
+              onSaved: (value) {
+                mail = value!;
+              },
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 5),
+            child: TextFormField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Contrasenya',
+              ),
+              controller: paswordController,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Aquest camp és obligatori';
+                }
+                return null;
+              },
+              onSaved: (value) {
+                password = value!;
+              },
+            ),
+          ),
+
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 20),
+
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  formKey.currentState!.save();
+                  user = User.parameter(
+                    name,
+                    surname,
+                    userName,
+                    mail,
+                    password,
+                    UserRole.USER,
+                  );
+                  nameController.clear();
+                  surnameController.clear();
+                  userNameController.clear();
+                  mailController.clear();
+                  paswordController.clear();
+
+                  int accountError = await userController.createAccountDB(user);
+
+                  try {
+                    if (accountError == DbConstants.USERNOTEXISTS) {
+                      setState(() {
+                        control = 'Usuari creat, inicia sessió';
+                        _hasAccount = true;
+                      });
+                    } else if (accountError == DbConstants.USEREXISTS) {
+                      setState(() {
+                        control =
+                            'El nom d\'usuari ja existeix, prova a fer-ne un altre';
+                      });
+                    } else {
+                      setState(() {
+                        control =
+                            'Ha hagut un problema amb la base de dades, torna-ho a provar més tard';
+                      });
+                    }
+                  } catch (e) {
+                    print(e);
+                  }
+                }
+              },
+              label: Text('Crear compte'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }*/
 }
