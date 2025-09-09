@@ -278,8 +278,12 @@ class ToDoPage extends State<MyHomePageToDo> {
                           loadInitialData(showAllTask);
                         });
                       },
-                      tooltip: showAllTask ? 'Mostrar les mesves tasques' : 'Mostrar totes les tasques',
-                      icon: Icon(showAllTask ? Icons.visibility_off :  Icons.visibility),
+                      tooltip: showAllTask
+                          ? 'Mostrar les mesves tasques'
+                          : 'Mostrar totes les tasques',
+                      icon: Icon(
+                        showAllTask ? Icons.visibility_off : Icons.visibility,
+                      ),
                     ),
                   ),
               ],
@@ -439,7 +443,8 @@ class ToDoPage extends State<MyHomePageToDo> {
               onTaskCreated: (Task task) async {
                 await taskController.addTaskToDataBase(task, myUser.userName);
                 setState(() {
-                  tasks.add(task);
+                  //tasks.add(task);
+                  addTask(task);
                   tasks.sort((task1, task2) {
                     return Task.sortTask(sortType, task1, task2);
                   });
@@ -465,7 +470,7 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                if (myUser.userRole == UserRole.ADMIN) {
+                if (myUser.userRole == UserRole.ADMIN && showAllTask) {
                   await taskController.deleteTaskWithRelation(id);
                 } else {
                   await taskController.deleteTaskInDatabase(
@@ -820,8 +825,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                             await FirebaseFirestore.instance
                                 .collection(DbConstants.USERTASK)
                                 .add({
-                                  'userName': notification.userName,
-                                  'taskId': notification.taskId,
+                                  DbConstants.USERNAME: notification.userName,
+                                  DbConstants.TASKID: notification.taskId,
                                 });
 
                             Task newTask = await taskController.getTaskByID(
@@ -837,7 +842,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                               myUser.userName,
                             );
                             setState(() {
-                              tasks.add(newTask);
+                              //tasks.add(newTask);
+                              addTask(newTask);
                               tasks.sort((task1, task2) {
                                 return Task.sortTask(sortType, task1, task2);
                               });
@@ -855,6 +861,13 @@ class ToDoPage extends State<MyHomePageToDo> {
               );
             },
           );
+  }
+
+  void addTask(Task newTask) {
+    bool contains = tasks.any((task) => task.id == newTask.id);
+    if (!contains) {
+      tasks.add(newTask);
+    }
   }
 }
 

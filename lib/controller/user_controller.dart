@@ -137,4 +137,17 @@ class UserController {
           .update(user.toFirestore());
     }
   }
+
+  Future<bool> userHasTask(String userName, String taskId) async {
+    bool ret = false;
+    final db = await FirebaseFirestore.instance
+        .collection(DbConstants.USERTASK)
+        .where(DbConstants.TASKID, isEqualTo: taskId)
+        .where(DbConstants.USERNAME, isEqualTo: userName).get();
+
+    if(db.docs.isNotEmpty){
+      ret = true;
+    } 
+    return ret;
+  }
 }

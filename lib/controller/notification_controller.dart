@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/user_controller.dart';
+//import 'package:flutter/material.dart';
 import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
@@ -89,7 +91,7 @@ class NotificationController {
     }
   }
 
-  Future<bool> taskInvitation(String destinationUserName, Task task, String userName, String userDescription) async {
+  Future<bool> taskInvitation(String destinationUserName,Task task,String userName,String userDescription,) async {
     String message =
         'L\'usuari $userName t\'ha compartit una tasca (${task.name})';
     Notifications notification = Notifications(
@@ -100,7 +102,7 @@ class NotificationController {
       taskId: task.id,
     );
 
-    final db = await FirebaseFirestore.instance
+    /*final db = await FirebaseFirestore.instance
         .collection(DbConstants.NOTIFICATION)
         .where(DbConstants.TASKID, isEqualTo: task.id)
         .where(DbConstants.USERNAME, isEqualTo: destinationUserName)
@@ -110,9 +112,13 @@ class NotificationController {
         .collection(DbConstants.USERTASK)
         .where(DbConstants.TASKID, isEqualTo: task.id)
         .where(DbConstants.USERNAME, isEqualTo: destinationUserName)
-        .get();
+        .get();*/
+    UserController uController = UserController();
+    bool notExists = await notificationExists(task.id, destinationUserName);
+    bool userHasTask = await uController.userHasTask(destinationUserName, task.id);
 
-    if (db.docs.isNotEmpty && db2.docs.isNotEmpty) {
+    //if (db.docs.isNotEmpty && db2.docs.isNotEmpty) {
+    if(notExists || userHasTask){
       return false;
     } else {
       await FirebaseFirestore.instance
@@ -122,4 +128,16 @@ class NotificationController {
     }
   }
 
+  Future<bool> notificationExists(String taskId, String userName) async {
+    bool ret = false;
+    final db = await FirebaseFirestore.instance
+        .collection(DbConstants.NOTIFICATION)
+        .where(DbConstants.TASKID, isEqualTo: taskId)
+        .where(DbConstants.USERNAME, isEqualTo: userName).get();
+
+    if(db.docs.isNotEmpty){
+      ret = true;
+    } 
+    return ret;
+  }
 }
