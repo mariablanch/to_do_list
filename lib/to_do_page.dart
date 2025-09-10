@@ -21,13 +21,15 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  User userProva = User.parameter(
-    '111',
-    '111',
-    '111',
-    '111',
-    'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
-    UserRole.ADMIN,
+  User userProva = User(
+    name: '111',
+    surname: '111',
+    userName: '111',
+    mail: '111',
+    password:
+        'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
+    userRole: UserRole.ADMIN,
+    iconName: Icon(Icons.park),
   );
 
   runApp(MyAppToDo(user: userProva));
@@ -105,7 +107,13 @@ class ToDoPage extends State<MyHomePageToDo> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(myUser.userName),
+              Row(
+                children: [
+                  myUser.icon,
+                  Container(width: 7),
+                  Text(myUser.userName),
+                ],
+              ),
 
               Row(
                 children: [

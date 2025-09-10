@@ -16,7 +16,7 @@ class User {
   UserRole _userRole;
   Icon _icon;
 
-  final Map<String, IconData> _iconMap = {
+  static final Map<String, IconData> _iconMap = {
     'home': Icons.home,
     'star': Icons.star,
     'favorite': Icons.favorite,
@@ -25,7 +25,6 @@ class User {
     'pets': Icons.pets,
     'alarm': Icons.alarm,
     'settings': Icons.settings,
-    'mail': Icons.mail,
     'phone': Icons.phone,
     'music_note': Icons.music_note,
     'school': Icons.school,
@@ -43,7 +42,6 @@ class User {
   static Icon getRandomIcon() {
     Random random = Random();
 
-    // Lista de IconData posibles
     final icons = <IconData>[
       Icons.home,
       Icons.star,
@@ -53,7 +51,6 @@ class User {
       Icons.pets,
       Icons.alarm,
       Icons.settings,
-      Icons.mail,
       Icons.phone,
       Icons.music_note,
       Icons.school,
@@ -88,14 +85,15 @@ class User {
     String mail,
     String password,
     UserRole role,
-    Icon icon
+    //Icon icon
   ) : this._name = name,
       this._surname = surname,
       this._userName = userName,
       this._mail = mail,
       this._password = password,
       this._userRole = role,
-      this._icon = icon;
+      //this._icon = icon;
+      this._icon = getRandomIcon();
   User.copy(User user)
     : this._name = user.name,
       this._surname = user.surname,
@@ -154,7 +152,7 @@ class User {
       'mail': _mail,
       DbConstants.PASSWORD: _password,
       DbConstants.USERROLE: _userRole.name,
-      'iconName': _icon,
+      'iconName': _iconMap.entries.firstWhere((e) => e.value == _icon.icon).key,
     };
   }
 
@@ -165,20 +163,22 @@ class User {
     required String mail,
     required String password,
     required UserRole userRole,
-    required Icon pfp,
+    required Icon iconName,
   }) : _password = password,
        _mail = mail,
        _userName = userName,
        _surname = surname,
        _name = name,
        _userRole = userRole,
-       _icon = pfp;
+       _icon = iconName;
 
   factory User.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> snapshot,
     SnapshotOptions? options,
   ) {
     final data = snapshot.data();
+    final iconName = data?['iconName'] ?? 'person';
+
     return User(
       name: data?['name'] ?? '',
       surname: data?['surname'] ?? '',
@@ -190,7 +190,7 @@ class User {
             uR.name.toLowerCase() ==
             (data?[DbConstants.USERROLE] ?? '').toString().toLowerCase(),
       ),
-      pfp: data?['iconName'] ?? 'person',
+      iconName: Icon(_iconMap[iconName] ?? Icons.person),
     );
   }
 

@@ -1,4 +1,4 @@
-import 'dart:math';
+//import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +23,6 @@ Future<void> main() async {
     '111',
     'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
     UserRole.ADMIN,
-    User.getRandomIcon()
   );
 
   runApp(MyAppConfig(user: userProva));
@@ -39,8 +38,8 @@ class MyAppConfig extends StatelessWidget {
       title: 'ToDoList',
       home: ConfigHP(user: user),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        //colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
+        //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
     );
     //return ConfigHP(user: user);
@@ -86,7 +85,7 @@ class ConfigPage extends State<ConfigHP> {
     super.initState();
     myUser = User.copy(widget.user);
     isAdmin = myUser.userRole == UserRole.ADMIN;
-    loadUsers();
+    if(isAdmin) loadUsers();
   }
 
   Future<void> loadUsers() async {
@@ -770,7 +769,8 @@ class ConfigPage extends State<ConfigHP> {
               contentPadding: EdgeInsets.all(5),
 
               //leading: Text('    ${index + 1}'),
-              leading: getRandomIcon(),
+              //leading: user.icon,
+              leading: SizedBox(width: 35, child: user.icon,),
               title: Text(user.userName),
               subtitle: Text(''),
 
@@ -920,8 +920,6 @@ class ConfigPage extends State<ConfigHP> {
       },
     );
   }
-
-  
   
   /*createAccountForm() {
     String name = '';

@@ -301,7 +301,6 @@ class LogInPage extends State<MyHomePage> {
                     mail,
                     password,
                     UserRole.USER,
-                    User.getRandomIcon()
                   );
                   nameController.clear();
                   surnameController.clear();
