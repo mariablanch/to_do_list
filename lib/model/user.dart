@@ -16,7 +16,7 @@ class User {
   UserRole _userRole;
   Icon _icon;
 
-  static final Map<String, IconData> _iconMap = {
+  static final Map<String, IconData> iconMap = {
     'home': Icons.home,
     'star': Icons.star,
     'favorite': Icons.favorite,
@@ -133,6 +133,7 @@ class User {
 
   set password(String password) => _password = password;
   set userRole(UserRole uR) => _userRole = uR;
+  set icon(Icon icon) => _icon = icon;
 
   @override
   String toString() {
@@ -152,7 +153,7 @@ class User {
       'mail': _mail,
       DbConstants.PASSWORD: _password,
       DbConstants.USERROLE: _userRole.name,
-      'iconName': _iconMap.entries.firstWhere((e) => e.value == _icon.icon).key,
+      'iconName': iconMap.entries.firstWhere((e) => e.value == _icon.icon).key,
     };
   }
 
@@ -190,7 +191,7 @@ class User {
             uR.name.toLowerCase() ==
             (data?[DbConstants.USERROLE] ?? '').toString().toLowerCase(),
       ),
-      iconName: Icon(_iconMap[iconName] ?? Icons.person),
+      iconName: Icon(iconMap[iconName] ?? Icons.person),
     );
   }
 

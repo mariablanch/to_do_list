@@ -39,7 +39,9 @@ class MyAppConfig extends StatelessWidget {
       home: ConfigHP(user: user),
       theme: ThemeData(
         //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        colorScheme: (user.userRole==UserRole.USER) ? ColorScheme.fromSeed(seedColor: Colors.deepPurple) : ColorScheme.fromSeed(seedColor: Colors.amber),
+        colorScheme: (user.userRole == UserRole.USER)
+            ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
+            : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
     );
     //return ConfigHP(user: user);
@@ -65,6 +67,8 @@ class ConfigPage extends State<ConfigHP> {
 
   bool isUserAdmin = false;
 
+  //String iconSelected = 'person';
+
   List<Widget> get pages => [
     profilePage(),
     editAccountPage(),
@@ -85,7 +89,7 @@ class ConfigPage extends State<ConfigHP> {
     super.initState();
     myUser = User.copy(widget.user);
     isAdmin = myUser.userRole == UserRole.ADMIN;
-    if(isAdmin) loadUsers();
+    if (isAdmin) loadUsers();
   }
 
   Future<void> loadUsers() async {
@@ -386,30 +390,13 @@ class ConfigPage extends State<ConfigHP> {
 
           Container(height: 5),
 
-          /*ElevatedButton(
-            onPressed: () async {
-              final isUser = await confirmUserName(editUser.userName);
-              if (isUser) {
-                setState(() {
-                  selectedIndex = 2;
-                  viewUserList = true;
-                  //userEdit = false;
-                  //user = user.copyWith(userRole: uR);
-                });
-                await userController.giveAdmin(editUser, uR);
-                await loadUsers();
-              }
-            },
-            child: Text(
-              (editUser.userRole == UserRole.ADMIN)
-                  ? 'Treure permís d\'administrador'
-                  : 'Donar permís d\'administrador',
-            ),
-            //child: Text('Donar permís d\'administrador'),
-          ),*/
           if (isAdmin && editUser.userName != myUser.userName)
             Row(
               children: [
+                Text('Permisos d\'administrador'),
+
+                Container(width: 10,),
+
                 Switch(
                   //value: isUserAdmin,
                   value: editUser.userRole == UserRole.ADMIN,
@@ -424,7 +411,42 @@ class ConfigPage extends State<ConfigHP> {
                     });
                   },
                 ),
-                Text('Permisos d\'administrador'),
+              ],
+            ),
+
+          if (isAdmin)
+            Row(
+              children: [
+                Text('Icona'),
+
+                Container(width: 10,),
+
+                DropdownButton<String>(
+                  value: User.iconMap.entries
+                      .firstWhere(
+                        (e) =>
+                            e.value.codePoint == editUser.icon.icon!.codePoint,
+                      )
+                      .key,
+                  hint: Icon(Icons.person),
+                  items: User.iconMap.keys.map((String iconName) {
+                    return DropdownMenuItem<String>(
+                      value: iconName,
+                      child: Icon(User.iconMap[iconName]),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      editUser.icon = Icon(User.iconMap[newValue!]);
+                    });
+                  },
+                  selectedItemBuilder: (BuildContext context) {
+                    return User.iconMap.keys.map((String iconName) {
+                      return Icon(User.iconMap[iconName]);
+                    }).toList();
+                  },
+                  menuMaxHeight: 300,
+                ),
               ],
             ),
 
@@ -770,9 +792,9 @@ class ConfigPage extends State<ConfigHP> {
 
               //leading: Text('    ${index + 1}'),
               //leading: user.icon,
-              leading: SizedBox(width: 35, child: user.icon,),
+              leading: SizedBox(width: 35, child: user.icon),
               title: Text(user.userName),
-              subtitle: Text(''),
+              subtitle: Text('${user.name} ${user.surname}'),
 
               trailing: SizedBox(
                 width: 150,
@@ -842,7 +864,25 @@ class ConfigPage extends State<ConfigHP> {
                   ),
                 ],
               ),
-              //if (user.userRole == UserRole.USER)
+
+              Container(height: 20),
+
+              ElevatedButton(
+                onPressed: () async {
+                  if (await confirmPasword(true)) {
+                    await userController.deleteUser(user);
+
+                    int pos = allUsers.indexOf((user));
+
+                    setState(() {
+                      allUsers.removeAt(pos);
+                      viewUserList = true;
+                    });
+                  }
+                },
+                child: Text('Eliminar usuari'),
+                //child: Text('Donar permís d\'administrador'),
+              ),
             ],
           );
   }
@@ -920,174 +960,4 @@ class ConfigPage extends State<ConfigHP> {
       },
     );
   }
-  
-  /*createAccountForm() {
-    String name = '';
-    String surname = '';
-    String userName = '';
-    String mail = '';
-    String password = '';
-    User user;
-
-    final formKey = GlobalKey<FormState>();
-
-    TextEditingController nameController = TextEditingController();
-    TextEditingController surnameController = TextEditingController();
-    TextEditingController userNameController = TextEditingController();
-    TextEditingController mailController = TextEditingController();
-    TextEditingController paswordController = TextEditingController();
-
-    return Form(
-      key: formKey,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom',
-              ),
-              controller: nameController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                name = value!;
-              },
-            ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Cognom',
-              ),
-              controller: surnameController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                surname = value!;
-              },
-            ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom d\'usuari',
-              ),
-              controller: userNameController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                userName = value!;
-              },
-            ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Correu',
-              ),
-              controller: mailController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                mail = value!;
-              },
-            ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Contrasenya',
-              ),
-              controller: paswordController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                password = value!;
-              },
-            ),
-          ),
-
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 20),
-
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  user = User.parameter(
-                    name,
-                    surname,
-                    userName,
-                    mail,
-                    password,
-                    UserRole.USER,
-                  );
-                  nameController.clear();
-                  surnameController.clear();
-                  userNameController.clear();
-                  mailController.clear();
-                  paswordController.clear();
-
-                  int accountError = await userController.createAccountDB(user);
-
-                  try {
-                    if (accountError == DbConstants.USERNOTEXISTS) {
-                      setState(() {
-                        control = 'Usuari creat, inicia sessió';
-                        _hasAccount = true;
-                      });
-                    } else if (accountError == DbConstants.USEREXISTS) {
-                      setState(() {
-                        control =
-                            'El nom d\'usuari ja existeix, prova a fer-ne un altre';
-                      });
-                    } else {
-                      setState(() {
-                        control =
-                            'Ha hagut un problema amb la base de dades, torna-ho a provar més tard';
-                      });
-                    }
-                  } catch (e) {
-                    print(e);
-                  }
-                }
-              },
-              label: Text('Crear compte'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }*/
 }
