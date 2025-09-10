@@ -153,7 +153,7 @@ class User {
       'mail': _mail,
       DbConstants.PASSWORD: _password,
       DbConstants.USERROLE: _userRole.name,
-      'iconName': iconMap.entries.firstWhere((e) => e.value == _icon.icon).key,
+      'iconName': iconMap.entries.firstWhere((line) => line.value == _icon.icon).key,
     };
   }
 

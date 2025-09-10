@@ -67,8 +67,10 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   bool showAllTask = true;
 
-  List<Task> tasks = [];
+  List<Task> allTasks = [];
   List<Notifications> notifications = [];
+  List<Task> filterTask = [];
+  List<String> allUserNames = [];
 
   NotificationController notController = NotificationController.empty();
   TaskController taskController = TaskController.empty();
@@ -89,9 +91,15 @@ class ToDoPage extends State<MyHomePageToDo> {
       await taskController.loadTasksFromDB(myUser.userName, sortType);
       await notController.loadNotificationsFromDB(myUser.userName);
     }
+    final users = await userController.loadAllUsers();
+
     setState(() {
       notifications = notController.notifications;
-      tasks = taskController.tasks;
+      allTasks = taskController.tasks;
+      //filterTask = List.from(allTasks);
+      allUserNames.addAll(users.map((User user) => user.userName).toList());
+      allUserNames.sort();
+      allUserNames.insert(0, 'Mostrar totes');
     });
   }
 
@@ -211,7 +219,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                         onTap: () {
                           setState(() {
                             sortType = SortType.NONE;
-                            tasks.sort((task1, task2) {
+                            allTasks.sort((task1, task2) {
                               return Task.sortTask(sortType, task1, task2);
                             });
                           });
@@ -232,7 +240,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                         onTap: () {
                           setState(() {
                             sortType = SortType.DATE;
-                            tasks.sort((task1, task2) {
+                            allTasks.sort((task1, task2) {
                               return Task.sortTask(sortType, task1, task2);
                             });
                           });
@@ -253,7 +261,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                         onTap: () {
                           setState(() {
                             sortType = SortType.NAME;
-                            tasks.sort((task1, task2) {
+                            allTasks.sort((task1, task2) {
                               return Task.sortTask(sortType, task1, task2);
                             });
                           });
@@ -271,6 +279,52 @@ class ToDoPage extends State<MyHomePageToDo> {
                     ),
                   ),
                 ),
+
+                Container(width: 10),
+
+                if (myUser.userRole == UserRole.ADMIN)
+                  Container(
+                    alignment: Alignment.centerLeft,
+                    margin: EdgeInsets.only(bottom: 10),
+
+                    child: PopupMenuButton(
+                      tooltip: 'Filtrar tasques per usuari',
+
+                      itemBuilder: (BuildContext context) {
+                        return allUserNames.map((String userName) {
+                          return PopupMenuItem<String>(
+                            value: userName,
+                            child: Text(userName),
+                          );
+                        }).toList();
+                      },
+
+                      onSelected: (value) async {
+                        //TaskController tc = TaskController.empty();
+                        if (value == 'Mostrar totes') {
+                          await taskController.loadAllTasksFromDB(sortType);
+                        } else {
+                          await taskController.loadTasksFromDB(
+                            value,
+                            sortType,
+                          );
+                        }
+                        setState(() {
+                          allTasks = taskController.tasks;
+                        });
+                      },
+
+                      child: Container(
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+
+                        child: Text('Filtrar', style: TextStyle(fontSize: 17)),
+                      ),
+                    ),
+                  ),
 
                 Container(width: 10),
 
@@ -298,12 +352,12 @@ class ToDoPage extends State<MyHomePageToDo> {
             ),
 
             Expanded(
-              child: tasks.isEmpty
+              child: allTasks.isEmpty
                   ? Center(child: Text('No hi ha tasques.'))
                   : ListView.builder(
-                      itemCount: tasks.length,
+                      itemCount: allTasks.length,
                       itemBuilder: (context, index) {
-                        final task = tasks[index];
+                        final task = allTasks[index];
 
                         return Card(
                           child: ListTile(
@@ -395,7 +449,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                                         task.id,
                                       );
                                       setState(() {
-                                        tasks[index] = updatedTask;
+                                        allTasks[index] = updatedTask;
                                       });
                                       if (updatedTask.completed) {
                                         await confirmDelete(
@@ -453,7 +507,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 setState(() {
                   //tasks.add(task);
                   addTask(task);
-                  tasks.sort((task1, task2) {
+                  allTasks.sort((task1, task2) {
                     return Task.sortTask(sortType, task1, task2);
                   });
                 });
@@ -487,7 +541,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   );
                 }
                 setState(() {
-                  tasks.removeAt(index);
+                  allTasks.removeAt(index);
                 });
                 Navigator.of(context).pop();
               },
@@ -559,8 +613,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                 await taskController.updateTaskInDatabase(task, task.id);
 
                 setState(() {
-                  tasks[index] = task;
-                  tasks.sort((task1, task2) {
+                  allTasks[index] = task;
+                  allTasks.sort((task1, task2) {
                     return Task.sortTask(sortType, task1, task2);
                   });
                 });
@@ -852,7 +906,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                             setState(() {
                               //tasks.add(newTask);
                               addTask(newTask);
-                              tasks.sort((task1, task2) {
+                              allTasks.sort((task1, task2) {
                                 return Task.sortTask(sortType, task1, task2);
                               });
                               notifications = notController.notifications;
@@ -872,9 +926,9 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   void addTask(Task newTask) {
-    bool contains = tasks.any((task) => task.id == newTask.id);
+    bool contains = allTasks.any((task) => task.id == newTask.id);
     if (!contains) {
-      tasks.add(newTask);
+      allTasks.add(newTask);
     }
   }
 }

@@ -7,6 +7,10 @@ import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
 class UserController {
+  List<User> users;
+
+  UserController() : users = [];
+
   Future<int> createAccountDB(User user) async {
     int ret = DbConstants.USEREXISTS;
     User newUser = user.copyWith(password: User.hashPassword(user.password));
@@ -85,8 +89,8 @@ class UserController {
     }
   }
 
-  static Future<List<User>> loadAllUsers() async {
-    List<User> users = [];
+  Future<List<User>> loadAllUsers() async {
+    List<User> loadedUsers = [];
     User user;
 
     final db = await FirebaseFirestore.instance
@@ -97,11 +101,14 @@ class UserController {
     for (var doc in docs) {
       if (doc.exists) {
         user = User.fromFirestore(doc, null);
-        users.add(user);
+        loadedUsers.add(user);
+        
       }
     }
 
-    return users;
+    users = loadedUsers;
+
+    return loadedUsers;
   }
 
   Future<void> resetPswrd(User user) async {
@@ -143,11 +150,12 @@ class UserController {
     final db = await FirebaseFirestore.instance
         .collection(DbConstants.USERTASK)
         .where(DbConstants.TASKID, isEqualTo: taskId)
-        .where(DbConstants.USERNAME, isEqualTo: userName).get();
+        .where(DbConstants.USERNAME, isEqualTo: userName)
+        .get();
 
-    if(db.docs.isNotEmpty){
+    if (db.docs.isNotEmpty) {
       ret = true;
-    } 
+    }
     return ret;
   }
 }

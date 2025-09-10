@@ -93,7 +93,7 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Future<void> loadUsers() async {
-    List<User> users = await UserController.loadAllUsers();
+    List<User> users = await userController.loadAllUsers();
     users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
 
     users.removeWhere((user) {
@@ -395,7 +395,7 @@ class ConfigPage extends State<ConfigHP> {
               children: [
                 Text('Permisos d\'administrador'),
 
-                Container(width: 10,),
+                Container(width: 10),
 
                 Switch(
                   //value: isUserAdmin,
@@ -419,14 +419,11 @@ class ConfigPage extends State<ConfigHP> {
               children: [
                 Text('Icona'),
 
-                Container(width: 10,),
+                Container(width: 10),
 
                 DropdownButton<String>(
                   value: User.iconMap.entries
-                      .firstWhere(
-                        (e) =>
-                            e.value.codePoint == editUser.icon.icon!.codePoint,
-                      )
+                      .firstWhere((e) => e.value == editUser.icon.icon)
                       .key,
                   hint: Icon(Icons.person),
                   items: User.iconMap.keys.map((String iconName) {
