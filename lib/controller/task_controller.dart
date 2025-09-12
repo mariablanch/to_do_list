@@ -46,7 +46,7 @@ class TaskController {
 
       this.tasks = loadedTasks;
     } catch (e) {
-      print(e);
+      print('LOAD TASKS FROM DB $e');
     }
   }
 
@@ -73,7 +73,7 @@ class TaskController {
 
       this.tasks = loadedTasks;
     } catch (e) {
-      print(e);
+      print('LOAD ALL TASKS FROM DB $e');
     }
   }
 
@@ -98,7 +98,7 @@ class TaskController {
           .doc(id)
           .update(task.toFirestore());
     } catch (e) {
-      print(e);
+      print('GET TASK BY ID $e');
     }
   }
 
@@ -116,7 +116,7 @@ class TaskController {
         DbConstants.TASKID: taskId,
       });
     } catch (e) {
-      print(e);
+      print('ADD TASK TO DATABASE $e');
     }
   }
 
@@ -137,7 +137,7 @@ class TaskController {
 
       db.docs.first.reference.delete();
     } catch (e) {
-      print(e);
+      print('DELETE TASK IN DB $e');
     }
   }
 
@@ -157,7 +157,7 @@ class TaskController {
         await db.docs.first.reference.delete();
       }
     } catch (e) {
-      print(e);
+      print('DELETE TASK $e');
     }
   }
 
@@ -187,7 +187,7 @@ class TaskController {
         }
       }
     } catch (e) {
-      print(e);
+      print('DELETE TASK WITH RELATION $e');
     }
   }
 

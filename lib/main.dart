@@ -158,7 +158,7 @@ class LogInPage extends State<MyHomePage> {
                       });
                     }
                   } catch (e) {
-                    print(e);
+                    print('LOG IN FORM $e');
                   }
                 }
               },
@@ -328,7 +328,7 @@ class LogInPage extends State<MyHomePage> {
                       });
                     }
                   } catch (e) {
-                    print(e);
+                    print('CREATE ACCOUNT FORM $e');
                   }
                 }
               },
@@ -343,8 +343,6 @@ class LogInPage extends State<MyHomePage> {
 
   Future<bool> logIn(String username, String pswrd) async {
     bool ret = false;
-    
-    //User user = await getUser(username, pswrd);
     User user = User.empty();
     try {
       final lines = await FirebaseFirestore.instance
@@ -371,42 +369,4 @@ class LogInPage extends State<MyHomePage> {
     return ret;
   }
 
-  /*Future<User> getUser(String username, String pswrd) async {
-    try {
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .where('userName', isEqualTo: username)
-          .where('password', isEqualTo: User.hashPassword(pswrd))
-          .get();
-
-      if (!db.docs.isEmpty) {
-        final doc = db.docs.first;
-        return User.fromFirestore(doc, null);
-      }
-    } catch (e) {
-      print(e);
-    }
-    return User.empty();
-  }*/
-
-  //CODI PER A AFEGIR USUARI PROVA
-  /*Future<bool> createAccount(User user) async {
-    bool ret = false;
-
-    try {
-      await FirebaseFirestore.instance.collection(DbConstants.USER).doc('prova').set({
-        'name': user.getName(),
-        'surname': user.getSurname(),
-        'userName': user.getUserName(),
-        'mail': user.getMail(),
-        'password': user.getPassword(),
-      });
-      ret = true;
-    } catch (e) {
-      print('CREATE ACCOUNT: $e');
-      ret = false;
-    }
-
-    return ret;
-  }*/
 }

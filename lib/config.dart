@@ -68,7 +68,7 @@ class ConfigPage extends State<ConfigHP> {
 
   bool isUserAdmin = false;
 
-  //String iconSelected = 'person';
+  String iconSelected = 'person';
 
   List<Widget> get pages => [
     profilePage(),
@@ -103,6 +103,9 @@ class ConfigPage extends State<ConfigHP> {
 
     setState(() {
       allUsers = users;
+      iconSelected = User.iconMap.entries
+          .firstWhere((e) => e.value == myUser.icon.icon)
+          .key;
     });
   }
 
@@ -140,7 +143,7 @@ class ConfigPage extends State<ConfigHP> {
                   selectedIcon: Icon(Icons.settings, color: pageColor),
                 ),
 
-                //if (isAdmin)
+                if (isAdmin)
                   NavigationRailDestination(
                     icon: const Icon(Icons.people),
                     label: const Text('Usuaris'),
@@ -159,10 +162,10 @@ class ConfigPage extends State<ConfigHP> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: adminPages[selectedIndex],
-                /*child: isAdmin
+                //child: adminPages[selectedIndex],
+                child: isAdmin
                     ? adminPages[selectedIndex]
-                    : pages[selectedIndex],*/
+                    : pages[selectedIndex],
               ),
             ),
           ],
@@ -425,9 +428,10 @@ class ConfigPage extends State<ConfigHP> {
                 Container(width: 10),
 
                 DropdownButton<String>(
-                  value: User.iconMap.entries
+                  /*value: User.iconMap.entries
                       .firstWhere((e) => e.value == editUser.icon.icon)
-                      .key,
+                      .key,*/
+                  value: iconSelected,
                   hint: Icon(Icons.person),
                   items: User.iconMap.keys.map((String iconName) {
                     return DropdownMenuItem<String>(
@@ -437,8 +441,9 @@ class ConfigPage extends State<ConfigHP> {
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
-                      editUser = editUser.copyWith(icon: Icon(User.iconMap[newValue!]));
+                      //editUser = editUser.copyWith(icon: Icon(User.iconMap[newValue!]));
                       //editUser.icon = Icon(User.iconMap[newValue!]);
+                      iconSelected = newValue!;
                     });
                   },
                   selectedItemBuilder: (BuildContext context) {
@@ -491,11 +496,12 @@ class ConfigPage extends State<ConfigHP> {
                           password: !isEmpty
                               ? User.hashPassword(password)
                               : editUser.password,
+                          icon: Icon(User.iconMap[iconSelected]),
                         );
                         try {
                           await updateProfileDB(updatedUser, editUser);
                         } catch (e) {
-                          print(e);
+                          print('EDIT ACCOUNT $e');
                         }
                         //user = updatedUser;
 
@@ -619,7 +625,7 @@ class ConfigPage extends State<ConfigHP> {
           .get();
       ret = lines.docs.length == 1;
     } catch (e) {
-      print(e);
+      print('IS PASSWORD $e');
       ret = false;
     }
 
@@ -649,18 +655,19 @@ class ConfigPage extends State<ConfigHP> {
           .update(updatedUser.toFirestore());
 
       if (oldUser.userName != updatedUser.userName) {
-        await updateUserTask(updatedUser);
+        await updateUserTask(oldUser.userName, updatedUser);
       }
     } catch (e) {
-      print(e);
+      print('UPDATE PROFILE DB $e');
     }
   }
 
-  Future<void> updateUserTask(User updatedUser) async {
+  Future<void> updateUserTask(String oldUserName, User updatedUser) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: myUser.userName)
+          //.where(DbConstants.USERNAME, isEqualTo: myUser.userName)
+          .where(DbConstants.USERNAME, isEqualTo: oldUserName)
           .get();
 
       final docs = db.docs;
@@ -677,7 +684,7 @@ class ConfigPage extends State<ConfigHP> {
             });
       }
     } catch (e) {
-      print(e);
+      print('UPDATE USER-TASK $e');
     }
   }
 
@@ -820,11 +827,15 @@ class ConfigPage extends State<ConfigHP> {
                           viewUserList = false;
                           userEdit = true;
                           editUser = allUsers[index];
+                          //iconSelected = editUser.icon;
+                          iconSelected = User.iconMap.entries
+                              .firstWhere((e) => e.value == editUser.icon.icon)
+                              .key;
                         });
                       },
                       icon: Icon(Icons.edit),
                     ),
-                    IconButton(
+                    /*IconButton(
                       onPressed: () async {
                         final isUserName = await confirmUserName(user.userName);
                         if (isUserName) {
@@ -833,7 +844,7 @@ class ConfigPage extends State<ConfigHP> {
                       },
                       icon: Icon(Icons.password),
                       tooltip: 'Reiniciar contrasenya',
-                    ),
+                    ),*/
                   ],
                 ),
               ),
@@ -866,7 +877,19 @@ class ConfigPage extends State<ConfigHP> {
                 ],
               ),
 
-              Container(height: 20),
+              Container(height: 30),
+
+              ElevatedButton(
+                onPressed: () async {
+                  final isUserName = await confirmUserName(user.userName);
+                  if (isUserName) {
+                    userController.resetPswrd(user);
+                  }
+                },
+                child: Text('Reiniciar contrasenya'),
+              ),
+
+              Container(height: 15),
 
               ElevatedButton(
                 onPressed: () async {

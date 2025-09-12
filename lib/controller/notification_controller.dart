@@ -38,7 +38,7 @@ class NotificationController {
       loadedNotifications.sort();
       this.notifications = loadedNotifications;
     } catch (e) {
-      print(e);
+      print('LOAD NOTIFICATIONS FROM DATABASE $e');
     }
   }
 
@@ -71,7 +71,7 @@ class NotificationController {
       loadedNotifications.sort();
       this.notifications = loadedNotifications;
     } catch (e) {
-      print(e);
+      print('LOAD ALL NOTIFICATIONS FROM DB $e');
     }
 
     return loadedNotifications;
@@ -87,7 +87,7 @@ class NotificationController {
 
       notifications.removeAt(index);
     } catch (e) {
-      print(e);
+      print('DELETE NOTIFICATION IN DB $e');
     }
   }
 
