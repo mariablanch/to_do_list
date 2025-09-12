@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/priorities.dart';
@@ -69,8 +70,9 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   List<Task> allTasks = [];
   List<Notifications> notifications = [];
-  List<Task> filterTask = [];
   List<String> allUserNames = [];
+  List<String> usersFromTask = [];
+  Map<String, String> taskAndUsersMAP = {};
 
   NotificationController notController = NotificationController.empty();
   TaskController taskController = TaskController.empty();
@@ -93,14 +95,17 @@ class ToDoPage extends State<MyHomePageToDo> {
     }
     final users = await userController.loadAllUsers();
 
-    setState(() {
-      notifications = notController.notifications;
-      allTasks = taskController.tasks;
-      //filterTask = List.from(allTasks);
-      allUserNames.addAll(users.map((User user) => user.userName).toList());
-      allUserNames.sort();
-      allUserNames.insert(0, 'Mostrar totes');
-    });
+    notifications = notController.notifications;
+    allTasks = taskController.tasks;
+    //filterTask = List.from(allTasks);
+    allUserNames = users.map((User user) => user.userName).toList();
+    allUserNames.sort();
+    allUserNames.insert(0, AppStrings.SHOWALL);
+
+    taskAndUsersMAP.clear();
+    await taskAndUsers();
+
+    setState(() {});
   }
 
   @override
@@ -111,7 +116,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
         title: Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -197,157 +202,11 @@ class ToDoPage extends State<MyHomePageToDo> {
           children: [
             Row(
               children: [
-                Container(
-                  alignment: Alignment.centerLeft,
-                  margin: EdgeInsets.only(bottom: 10),
-
-                  child: PopupMenuButton(
-                    tooltip: 'Sobre quin element voleu ordenar',
-
-                    itemBuilder: (BuildContext context) => [
-                      PopupMenuItem(
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline_rounded,
-                              color: Colors.black54,
-                            ),
-                            SizedBox(width: 8),
-                            Text('Prioritat'),
-                          ],
-                        ),
-                        onTap: () {
-                          setState(() {
-                            sortType = SortType.NONE;
-                            allTasks.sort((task1, task2) {
-                              return Task.sortTask(sortType, task1, task2);
-                            });
-                          });
-                        },
-                      ),
-
-                      PopupMenuItem(
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_month_rounded,
-                              color: Colors.black54,
-                            ),
-                            SizedBox(width: 8),
-                            Text('Data'),
-                          ],
-                        ),
-                        onTap: () {
-                          setState(() {
-                            sortType = SortType.DATE;
-                            allTasks.sort((task1, task2) {
-                              return Task.sortTask(sortType, task1, task2);
-                            });
-                          });
-                        },
-                      ),
-
-                      PopupMenuItem(
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.text_fields_rounded,
-                              color: Colors.black54,
-                            ),
-                            SizedBox(width: 8),
-                            Text('Nom'),
-                          ],
-                        ),
-                        onTap: () {
-                          setState(() {
-                            sortType = SortType.NAME;
-                            allTasks.sort((task1, task2) {
-                              return Task.sortTask(sortType, task1, task2);
-                            });
-                          });
-                        },
-                      ),
-                    ],
-                    child: Container(
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-
-                      child: Text('Ordenar', style: TextStyle(fontSize: 17)),
-                    ),
-                  ),
-                ),
-
+                taskFilter(),
                 Container(width: 10),
-
-                if (myUser.userRole == UserRole.ADMIN)
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    margin: EdgeInsets.only(bottom: 10),
-
-                    child: PopupMenuButton(
-                      tooltip: 'Filtrar tasques per usuari',
-
-                      itemBuilder: (BuildContext context) {
-                        return allUserNames.map((String userName) {
-                          return PopupMenuItem<String>(
-                            value: userName,
-                            child: Text(userName),
-                          );
-                        }).toList();
-                      },
-
-                      onSelected: (value) async {
-                        //TaskController tc = TaskController.empty();
-                        if (value == 'Mostrar totes') {
-                          await taskController.loadAllTasksFromDB(sortType);
-                        } else {
-                          await taskController.loadTasksFromDB(
-                            value,
-                            sortType,
-                          );
-                        }
-                        setState(() {
-                          allTasks = taskController.tasks;
-                        });
-                      },
-
-                      child: Container(
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-
-                        child: Text('Filtrar', style: TextStyle(fontSize: 17)),
-                      ),
-                    ),
-                  ),
-
+                if (myUser.userRole == UserRole.ADMIN) userFilter(),
                 Container(width: 10),
-
-                if (myUser.userRole == UserRole.ADMIN)
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    margin: EdgeInsets.only(bottom: 10),
-
-                    child: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          showAllTask = !showAllTask;
-                          loadInitialData(showAllTask);
-                        });
-                      },
-                      tooltip: showAllTask
-                          ? 'Mostrar les mesves tasques'
-                          : 'Mostrar totes les tasques',
-                      icon: Icon(
-                        showAllTask ? Icons.visibility_off : Icons.visibility,
-                      ),
-                    ),
-                  ),
+                if (myUser.userRole == UserRole.ADMIN) showHideTask(),
               ],
             ),
 
@@ -366,10 +225,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                               '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
                             ),
 
-                            /*subtitle: Text(
-                              '${task.description}\n${await taskController.getUsersRelatedWithTask(task.id)}',
-                            ),*/
-                            subtitle: FutureBuilder<String>(
+                            /*subtitle: FutureBuilder<String>(
                               future: taskController.getUsersRelatedWithTask(
                                 task.id,
                               ),
@@ -389,6 +245,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                                   );
                                 }
                               },
+                            ),*/
+                            subtitle: Text(
+                              '${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}',
                             ),
 
                             textColor: task.limitDate.isBefore(DateTime.now())
@@ -464,9 +323,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                               ),
                             ),
                             onTap: () async {
-                              String str = await taskController
-                                  .getUsersRelatedWithTask(task.id);
-                              openShowTask(task, str);
+                              //String str = await taskController.getUsersRelatedWithTask(task.id);
+                              openShowTask(task);
                             },
                           ),
                         );
@@ -555,7 +413,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   return Theme.of(context).colorScheme.primary;
                 }),
               ),
-              child: Text('Confirmar'),
+              child: Text(AppStrings.CONFIRM),
             ),
             TextButton(
               onPressed: () {
@@ -572,7 +430,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   return Theme.of(context).colorScheme.primary;
                 }),
               ),
-              child: Text('Cancel·lar'),
+              child: Text(AppStrings.CANCEL),
             ),
           ],
         );
@@ -627,7 +485,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  openShowTask(Task task, String users) {
+  openShowTask(Task task) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -638,7 +496,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             right: 20,
             top: 30,
           ),
-          child: viewTask(task, users),
+          child: viewTask(task, taskAndUsersMAP[task.id]!),
         );
       },
     );
@@ -730,7 +588,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                       userName,
                     );
                     if (!isValid) {
-                      await userNotFoundMessage('Aquest usuari no existeix');
+                      await userNotFoundMessage(AppStrings.NOTEXISTS_MESSAGE);
                       return;
                     }
 
@@ -742,20 +600,20 @@ class ToDoPage extends State<MyHomePageToDo> {
                     );
                     if (!invited) {
                       await userNotFoundMessage(
-                        'Aquesta tasca ja ha estat compartida',
+                        AppStrings.ALREADY_SHARED,
                       );
                       return;
                     }
 
                     Navigator.of(context).pop(true);
                   },
-                  child: Text('Confirmar'),
+                  child: Text(AppStrings.CONFIRM),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop(false);
                   },
-                  child: Text('Cancel·lar'),
+                  child: Text(AppStrings.CANCEL),
                 ),
               ],
             ),
@@ -777,7 +635,7 @@ class ToDoPage extends State<MyHomePageToDo> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Acceptar'),
+              child: Text(AppStrings.ACCEPT),
             ),
           ],
         );
@@ -925,11 +783,169 @@ class ToDoPage extends State<MyHomePageToDo> {
           );
   }
 
+  Future<String> usersRelatedWithTask(String taskId) async {
+    String str = await taskController.getUsersRelatedWithTask(taskId);
+    return str.replaceAll('\n', ' | ');
+  }
+
+  Future<void> taskAndUsers() async {
+    String users;
+    for (Task task in allTasks) {
+      users = await usersRelatedWithTask(task.id);
+
+      if (taskAndUsersMAP.containsKey(task.id)) {
+        print('WARNING: ID duplicado ${task.id}');
+      } else {
+        taskAndUsersMAP[task.id] = users;
+      }
+    }
+    //taskAndUsersMAP.;
+    //replaceAll('\n', ' | ')
+  }
+
   void addTask(Task newTask) {
     bool contains = allTasks.any((task) => task.id == newTask.id);
     if (!contains) {
       allTasks.add(newTask);
     }
+  }
+
+  taskFilter() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: PopupMenuButton(
+        tooltip: 'Sobre quin element voleu ordenar',
+
+        itemBuilder: (BuildContext context) => [
+          PopupMenuItem(
+            child: const Row(
+              children: [
+                Icon(Icons.error_outline_rounded, color: Colors.black54),
+                SizedBox(width: 8),
+                Text('Prioritat'),
+              ],
+            ),
+            onTap: () {
+              setState(() {
+                sortType = SortType.NONE;
+                allTasks.sort((task1, task2) {
+                  return Task.sortTask(sortType, task1, task2);
+                });
+              });
+            },
+          ),
+
+          PopupMenuItem(
+            child: const Row(
+              children: [
+                Icon(Icons.calendar_month_rounded, color: Colors.black54),
+                SizedBox(width: 8),
+                Text('Data'),
+              ],
+            ),
+            onTap: () {
+              setState(() {
+                sortType = SortType.DATE;
+                allTasks.sort((task1, task2) {
+                  return Task.sortTask(sortType, task1, task2);
+                });
+              });
+            },
+          ),
+
+          PopupMenuItem(
+            child: const Row(
+              children: [
+                Icon(Icons.text_fields_rounded, color: Colors.black54),
+                SizedBox(width: 8),
+                Text('Nom'),
+              ],
+            ),
+            onTap: () {
+              setState(() {
+                sortType = SortType.NAME;
+                allTasks.sort((task1, task2) {
+                  return Task.sortTask(sortType, task1, task2);
+                });
+              });
+            },
+          ),
+        ],
+        child: Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+
+          child: Text('Ordenar', style: TextStyle(fontSize: 17)),
+        ),
+      ),
+    );
+  }
+
+  userFilter() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: PopupMenuButton(
+        tooltip: 'Filtrar tasques per usuari',
+
+        itemBuilder: (BuildContext context) {
+          return allUserNames.map((String userName) {
+            return PopupMenuItem<String>(
+              value: userName,
+              child: Text(userName),
+            );
+          }).toList();
+        },
+
+        onSelected: (value) async {
+          //TaskController tc = TaskController.empty();
+          if (value == AppStrings.SHOWALL) {
+            await taskController.loadAllTasksFromDB(sortType);
+          } else {
+            await taskController.loadTasksFromDB(value, sortType);
+          }
+          setState(() {
+            allTasks = taskController.tasks;
+          });
+        },
+
+        child: Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+
+          child: Text('Filtrar', style: TextStyle(fontSize: 17)),
+        ),
+      ),
+    );
+  }
+
+  showHideTask() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: IconButton(
+        onPressed: () {
+          setState(() {
+            showAllTask = !showAllTask;
+            loadInitialData(showAllTask);
+          });
+        },
+        tooltip: showAllTask
+            ? 'Mostrar les mesves tasques'
+            : 'Mostrar totes les tasques',
+        icon: Icon(showAllTask ? Icons.visibility_off : Icons.visibility),
+      ),
+    );
   }
 }
 

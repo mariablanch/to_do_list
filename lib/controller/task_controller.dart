@@ -23,12 +23,12 @@ class TaskController {
           .where(DbConstants.USERNAME, isEqualTo: userName)
           .get();
 
-      List<String> taskIDs = db.docs
+      List<String> taskIds = db.docs
           .map((doc) => doc[DbConstants.TASKID] as String)
           .toList();
 
       //AGAFAR LES TASQUES A LA TAULA TASK A PARTIR DEL ID
-      for (String id in taskIDs) {
+      for (String id in taskIds) {
         final doc = await FirebaseFirestore.instance
             .collection(DbConstants.TASK)
             .doc(id)
@@ -77,11 +77,11 @@ class TaskController {
     }
   }
 
-  Future<Task> getTaskByID(String taskID) async {
+  Future<Task> getTaskByID(String taskId) async {
     Task task = Task.empty();
     final doc = await FirebaseFirestore.instance
         .collection(DbConstants.TASK)
-        .doc(taskID)
+        .doc(taskId)
         .get();
 
     if (doc.exists) {
@@ -191,13 +191,13 @@ class TaskController {
     }
   }
 
-  Future<String> getUsersRelatedWithTask(String taskID) async {
+  Future<String> getUsersRelatedWithTask(String taskId) async {
     List<String> userNames = [];
     String str = '';
 
     final db = await FirebaseFirestore.instance
         .collection(DbConstants.USERTASK)
-        .where(DbConstants.TASKID, isEqualTo: taskID)
+        .where(DbConstants.TASKID, isEqualTo: taskId)
         .get();
 
     for (var doc in db.docs) {

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 
 import 'package:to_do_list/utils/firebase_options.dart';
@@ -139,10 +140,11 @@ class ConfigPage extends State<ConfigHP> {
                   selectedIcon: Icon(Icons.settings, color: pageColor),
                 ),
 
-                if (isAdmin)
+                //if (isAdmin)
                   NavigationRailDestination(
                     icon: const Icon(Icons.people),
                     label: const Text('Usuaris'),
+                    disabled: !isAdmin,
                     selectedIcon: Icon(Icons.people, color: pageColor),
                   ),
 
@@ -157,9 +159,10 @@ class ConfigPage extends State<ConfigHP> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: isAdmin
+                child: adminPages[selectedIndex],
+                /*child: isAdmin
                     ? adminPages[selectedIndex]
-                    : pages[selectedIndex],
+                    : pages[selectedIndex],*/
               ),
             ),
           ],
@@ -434,7 +437,8 @@ class ConfigPage extends State<ConfigHP> {
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
-                      editUser.icon = Icon(User.iconMap[newValue!]);
+                      editUser = editUser.copyWith(icon: Icon(User.iconMap[newValue!]));
+                      //editUser.icon = Icon(User.iconMap[newValue!]);
                     });
                   },
                   selectedItemBuilder: (BuildContext context) {
@@ -587,13 +591,13 @@ class ConfigPage extends State<ConfigHP> {
                               }),
                         )
                       : null,
-                  child: Text('Confirmar'),
+                  child: Text(AppStrings.CONFIRM),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Cancel·lar'),
+                  child: Text(AppStrings.CANCEL),
                 ),
               ],
             ),
@@ -919,13 +923,13 @@ class ConfigPage extends State<ConfigHP> {
                       return Theme.of(context).colorScheme.primary;
                     }),
                   ),
-                  child: Text('Confirmar'),
+                  child: Text(AppStrings.CONFIRM),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Cancel·lar'),
+                  child: Text(AppStrings.CANCEL),
                 ),
               ],
             ),
