@@ -40,7 +40,7 @@ class MyAppConfig extends StatelessWidget {
       home: ConfigHP(user: user),
       theme: ThemeData(
         //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        colorScheme: (user.userRole == UserRole.USER)
+        colorScheme: (!UserRole.isAdmin(user.userRole))
             ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
             : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
@@ -89,7 +89,7 @@ class ConfigPage extends State<ConfigHP> {
   void initState() {
     super.initState();
     myUser = User.copy(widget.user);
-    isAdmin = myUser.userRole == UserRole.ADMIN;
+    isAdmin = UserRole.isAdmin(myUser.userRole);
     if (isAdmin) loadUsers();
   }
 
@@ -405,7 +405,7 @@ class ConfigPage extends State<ConfigHP> {
 
                 Switch(
                   //value: isUserAdmin,
-                  value: editUser.userRole == UserRole.ADMIN,
+                  value: UserRole.isAdmin(editUser.userRole),
                   onChanged: (bool value) async {
                     setState(() {
                       if (value) {
@@ -513,7 +513,7 @@ class ConfigPage extends State<ConfigHP> {
                         });
 
                         if (roleChanged) {
-                          final uR = editUser.userRole != UserRole.ADMIN
+                          final uR = !UserRole.isAdmin(editUser.userRole)
                               ? UserRole.USER
                               : UserRole.ADMIN;
                           await userController.giveAdmin(editUser, uR);
@@ -633,11 +633,17 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Future<bool> userNameExists(String userName) async {
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.USER)
-        .where(DbConstants.USERNAME, isEqualTo: userName)
-        .get();
-    return db.docs.length == 1;
+    bool ret = true;
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .get();
+      ret = db.docs.length == 1;
+    } catch (e) {
+      print('USER NAME EXISTS $e');
+    }
+    return ret;
   }
 
   Future<void> updateProfileDB(User updatedUser, User oldUser) async {
@@ -870,7 +876,7 @@ class ConfigPage extends State<ConfigHP> {
                   buildTableRow('Correu:', user.mail),
                   buildTableRow(
                     'Rol:',
-                    (user.userRole == UserRole.ADMIN)
+                    (UserRole.isAdmin(user.userRole))
                         ? 'Administrador'
                         : 'Usuari',
                   ),

@@ -1,4 +1,8 @@
 enum UserRole{
   USER, 
-  ADMIN
+  ADMIN;
+
+  static bool isAdmin(UserRole ur){
+    return ur == ADMIN;
+  }
 }

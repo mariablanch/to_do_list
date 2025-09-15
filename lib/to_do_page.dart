@@ -82,7 +82,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   void initState() {
     super.initState();
     myUser = widget.user;
-    loadInitialData(myUser.userRole == UserRole.ADMIN);
+    loadInitialData(UserRole.isAdmin(myUser.userRole));
   }
 
   Future<void> loadInitialData(bool allTask) async {
@@ -163,14 +163,16 @@ class ToDoPage extends State<MyHomePageToDo> {
                           );
 
                           if (updatedUser != null) {
-                            setState(() {
-                              myUser = User.copy(updatedUser);
-                            });
-                            taskController.loadTasksFromDB(
+                            /*await taskController.loadTasksFromDB(
                               myUser.userName,
                               sortType,
                             );
+                            await taskAndUsers();*/
+                            setState(() {
+                              myUser = User.copy(updatedUser);
+                            });
                           }
+                          loadInitialData(UserRole.isAdmin(myUser.userRole));
                         },
                       ),
                       PopupMenuItem(
@@ -202,7 +204,7 @@ class ToDoPage extends State<MyHomePageToDo> {
           children: [
             Row(
               children: [
-                taskFilter(),
+                taskSort(),
                 Container(width: 10),
                 if (myUser.userRole == UserRole.ADMIN) userFilter(),
                 Container(width: 10),
@@ -220,7 +222,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                         return Card(
                           child: ListTile(
-                            leading: getIconPriority(task),
+                            leading: Priorities.getIconPriority(task),
                             title: Text(
                               '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
                             ),
@@ -362,13 +364,17 @@ class ToDoPage extends State<MyHomePageToDo> {
             child: TaskForm(
               onTaskCreated: (Task task) async {
                 await taskController.addTaskToDataBase(task, myUser.userName);
+                addTask(task);
+                await taskAndUsers();
+
                 setState(() {
                   //tasks.add(task);
-                  addTask(task);
                   allTasks.sort((task1, task2) {
                     return Task.sortTask(sortType, task1, task2);
                   });
+                  taskAndUsersMAP;
                 });
+                //taskAndUsersMAP;
               },
               task: Task.empty(),
             ),
@@ -438,20 +444,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  Icon getIconPriority(Task task) {
-    Priorities priority = task.priority;
-    switch (priority) {
-      case Priorities.HIGH:
-        return Icon(Icons.arrow_upward, color: Colors.red);
-      case Priorities.MEDIUM:
-        return Icon(Icons.keyboard_arrow_up, color: Colors.orange);
-      case Priorities.LOW:
-        return Icon(Icons.arrow_drop_up, color: Colors.green);
-      default:
-        return Icon(Icons.help_outline, color: Colors.grey);
-    }
-  }
-
   openEditTask(Task taskToEdit, int index) {
     showModalBottomSheet(
       context: context,
@@ -496,7 +488,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             right: 20,
             top: 30,
           ),
-          child: viewTask(task, taskAndUsersMAP[task.id]!),
+          child: viewTask(task, taskAndUsersMAP[task.id] ?? ''),
         );
       },
     );
@@ -519,10 +511,7 @@ class ToDoPage extends State<MyHomePageToDo> {
           children: [
             //buildTableRow('Nom:', task.name),
             tableRow('Descripció:', task.description),
-            tableRow(
-              'Prioritat:',
-              TaskFormState().priorityToString(task.priority),
-            ),
+            tableRow('Prioritat:', Priorities.priorityToString(task.priority)),
             tableRow(
               'Data límit:',
               DateFormat('dd/MM/yyyy').format(task.limitDate),
@@ -599,9 +588,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                       descriptionController.text,
                     );
                     if (!invited) {
-                      await userNotFoundMessage(
-                        AppStrings.ALREADY_SHARED,
-                      );
+                      await userNotFoundMessage(AppStrings.ALREADY_SHARED);
                       return;
                     }
 
@@ -755,20 +742,19 @@ class ToDoPage extends State<MyHomePageToDo> {
                             await notController.deleteNotificationInDatabase(
                               index,
                             );
-                            setState(() {
-                              notifications = notController.notifications;
-                            });
                             await notController.loadNotificationsFromDB(
                               myUser.userName,
                             );
-                            setState(() {
-                              //tasks.add(newTask);
-                              addTask(newTask);
-                              allTasks.sort((task1, task2) {
-                                return Task.sortTask(sortType, task1, task2);
-                              });
-                              notifications = notController.notifications;
+                            notifications = notController.notifications;
+
+                            //tasks.add(newTask);
+                            addTask(newTask);
+                            allTasks.sort((task1, task2) {
+                              return Task.sortTask(sortType, task1, task2);
                             });
+
+                            await taskAndUsers();
+                            setState(() {});
 
                             Navigator.of(context).pop();
                           },
@@ -790,11 +776,12 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Future<void> taskAndUsers() async {
     String users;
+    taskAndUsersMAP.clear();
     for (Task task in allTasks) {
       users = await usersRelatedWithTask(task.id);
 
       if (taskAndUsersMAP.containsKey(task.id)) {
-        print('WARNING: ID duplicado ${task.id}');
+        print('WARNING: ID duplicat ${task.id}');
       } else {
         taskAndUsersMAP[task.id] = users;
       }
@@ -806,11 +793,14 @@ class ToDoPage extends State<MyHomePageToDo> {
   void addTask(Task newTask) {
     bool contains = allTasks.any((task) => task.id == newTask.id);
     if (!contains) {
-      allTasks.add(newTask);
+      setState(() {
+        allTasks.add(newTask);
+      });
     }
+    //taskAndUsersMAP[newTask.id] = myUser.userName;
   }
 
-  taskFilter() {
+  taskSort() {
     return Container(
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(bottom: 10),
@@ -982,7 +972,7 @@ class TaskFormState extends State<TaskForm> {
   void initState() {
     super.initState();
     selectedDate = widget.task.limitDate;
-    prioritySTR = priorityToString(widget.task.priority);
+    prioritySTR = Priorities.priorityToString(widget.task.priority);
     widget.onTaskCreated != null
         ? dateController = TextEditingController(text: null)
         : dateController = TextEditingController(
@@ -1050,8 +1040,10 @@ class TaskFormState extends State<TaskForm> {
             onTap: () async {
               DateTime? picked = await showDatePicker(
                 context: context,
-                initialDate: widget.task.limitDate,
-                firstDate: DateTime.now(),
+                //initialDate: widget.task.limitDate,
+                initialDate: newTask.limitDate,
+                //firstDate: DateTime.now(),
+                firstDate: newTask.limitDate,
                 lastDate: DateTime(2050),
               );
               if (picked != null) {
@@ -1095,7 +1087,7 @@ class TaskFormState extends State<TaskForm> {
                 Task updatedTask = widget.task.copyWith(
                   name: name,
                   description: description,
-                  priority: priorityFromString(prioritySTR!),
+                  priority: Priorities.priorityFromString(prioritySTR!),
                   limitDate: selectedDate!,
                 );
 
@@ -1114,31 +1106,5 @@ class TaskFormState extends State<TaskForm> {
         ],
       ),
     );
-  }
-
-  Priorities priorityFromString(String str) {
-    switch (str) {
-      case 'Alt':
-        return Priorities.HIGH;
-      case 'Mitjà':
-        return Priorities.MEDIUM;
-      case 'Baix':
-        return Priorities.LOW;
-      default:
-        return Priorities.NONE;
-    }
-  }
-
-  String priorityToString(Priorities priority) {
-    switch (priority) {
-      case Priorities.HIGH:
-        return 'Alt';
-      case Priorities.MEDIUM:
-        return 'Mitjà';
-      case Priorities.LOW:
-        return 'Baix';
-      default:
-        return '';
-    }
   }
 }
