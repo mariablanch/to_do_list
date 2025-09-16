@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/priorities.dart';
@@ -204,9 +205,9 @@ class ToDoPage extends State<MyHomePageToDo> {
               children: [
                 taskSort(),
                 Container(width: 10),
-                if (myUser.userRole == UserRole.ADMIN) userFilter(),
+                if (UserRole.isAdmin(myUser.userRole)) userFilter(),
                 Container(width: 10),
-                if (myUser.userRole == UserRole.ADMIN) showHideTask(),
+                if (UserRole.isAdmin(myUser.userRole)) showHideTask(),
               ],
             ),
 
@@ -759,7 +760,7 @@ class ToDoPage extends State<MyHomePageToDo> {
       users = await usersRelatedWithTask(task.id);
 
       if (taskAndUsersMAP.containsKey(task.id)) {
-        print('WARNING: ID duplicat ${task.id}');
+        logWarning('ID duplicat ${task.id}');
       } else {
         taskAndUsersMAP[task.id] = users;
       }

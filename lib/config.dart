@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/user_role.dart';
@@ -496,7 +497,7 @@ class ConfigPage extends State<ConfigHP> {
                         try {
                           await userController.updateProfileDB(updatedUser, editUser);
                         } catch (e) {
-                          print('EDIT ACCOUNT $e');
+                          logError('EDIT ACCOUNT configPage', e);
                         }
                         //user = updatedUser;
 

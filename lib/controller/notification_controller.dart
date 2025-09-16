@@ -4,11 +4,13 @@ import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 
 class NotificationController {
   List<Notifications> notifications;
 
-  NotificationController({List<Notifications>? notifications}) : this.notifications = notifications ?? [];
+  NotificationController({List<Notifications>? notifications})
+    : this.notifications = notifications ?? [];
 
   Future<void> loadNotificationsFromDB(String userName) async {
     Notifications notification;
@@ -36,7 +38,7 @@ class NotificationController {
       loadedNotifications.sort();
       this.notifications = loadedNotifications;
     } catch (e) {
-      print('LOAD NOTIFICATIONS FROM DATABASE $e');
+      logError('LOAD NOTIFICATIONS FROM DATABASE', e);
     }
   }
 
@@ -55,7 +57,7 @@ class NotificationController {
       loadedNotifications.sort();
       this.notifications = loadedNotifications;
     } catch (e) {
-      print('LOAD ALL NOTIFICATIONS FROM DB $e');
+      logError('LOAD ALL NOTIFICATIONS FROM DB', e);
     }
 
     return loadedNotifications;
@@ -71,7 +73,7 @@ class NotificationController {
 
       //notifications.removeAt(index);
     } catch (e) {
-      print('DELETE NOTIFICATION BY ID $e');
+      logError('DELETE NOTIFICATION BY ID', e);
     }
   }
 
@@ -86,12 +88,12 @@ class NotificationController {
         await doc.reference.delete();
       }
     } catch (e) {
-      print('DELETE NOTIFICATION BY USER $e');
+      logError('DELETE NOTIFICATION BY USER', e);
     }
   }
 
   Future<void> deleteNotificationByTask(String taskId) async {
-    try{
+    try {
       final notification = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
           .where(DbConstants.TASKID, isEqualTo: taskId)
@@ -100,9 +102,8 @@ class NotificationController {
       for (var doc in notification.docs) {
         await doc.reference.delete();
       }
-
-    } catch (e){
-      print('DELETE NOTIFICATION BY TASK $e');
+    } catch (e) {
+      logError('DELETE NOTIFICATION BY TASK', e);
     }
   }
 
@@ -122,34 +123,40 @@ class NotificationController {
       taskId: task.id,
     );
 
-    UserController uController = UserController();
-    bool notExists = await notificationExists(task.id, destinationUserName);
-    bool userHasTask = await uController.userHasTask(
-      destinationUserName,
-      task.id,
-    );
+    bool ret = false;
+    try {
+      bool notExists = await notificationExists(task.id, destinationUserName);
+      bool userHasTask = await UserController().userHasTask(
+        destinationUserName,
+        task.id,
+      );
 
-    //if (db.docs.isNotEmpty && db2.docs.isNotEmpty) {
-    if (notExists || userHasTask) {
-      return false;
-    } else {
-      await FirebaseFirestore.instance
-          .collection(DbConstants.NOTIFICATION)
-          .add(notification.toFirestore());
-      return true;
+      if (!(notExists || userHasTask)) {
+        await FirebaseFirestore.instance
+            .collection(DbConstants.NOTIFICATION)
+            .add(notification.toFirestore());
+        ret = true;
+      }
+    } catch (e) {
+      logError('TASK INVITATION', e);
     }
+    return ret;
   }
 
   Future<bool> notificationExists(String taskId, String userName) async {
     bool ret = false;
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.NOTIFICATION)
-        .where(DbConstants.TASKID, isEqualTo: taskId)
-        .where(DbConstants.USERNAME, isEqualTo: userName)
-        .get();
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.NOTIFICATION)
+          .where(DbConstants.TASKID, isEqualTo: taskId)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .get();
 
-    if (db.docs.isNotEmpty) {
-      ret = true;
+      if (db.docs.isNotEmpty) {
+        ret = true;
+      }
+    } catch (e) {
+      logError('NOTIFICATION EXISTS', e);
     }
     return ret;
   }

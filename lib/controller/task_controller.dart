@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/utils/db_constants.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/model/task.dart';
 
@@ -17,7 +18,6 @@ class TaskController {
       List<Task> loadedTasks = [];
 
       //AGAFAR TASQUES DE LA RELACIÓ
-      //print(myUser.toString());
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
           .where(DbConstants.USERNAME, isEqualTo: userName)
@@ -27,14 +27,13 @@ class TaskController {
           .map((doc) => doc[DbConstants.TASKID] as String)
           .toList();
 
-      //AGAFAR LES TASQUES A LA TAULA TASK A PARTIR DEL ID
-      for (String id in taskIds) {
-        final doc = await FirebaseFirestore.instance
+      if (taskIds.isNotEmpty) {
+        final query = await FirebaseFirestore.instance
             .collection(DbConstants.TASK)
-            .doc(id)
+            .where(FieldPath.documentId, whereIn: taskIds)
             .get();
 
-        if (doc.exists) {
+        for (var doc in query.docs) {
           task = Task.fromFirestore(doc, null);
           loadedTasks.add(task);
         }
@@ -46,7 +45,7 @@ class TaskController {
 
       this.tasks = loadedTasks;
     } catch (e) {
-      print('LOAD TASKS FROM DB $e');
+      logError('LOAD TASKS FROM DB', e);
     }
   }
 
@@ -73,19 +72,23 @@ class TaskController {
 
       this.tasks = loadedTasks;
     } catch (e) {
-      print('LOAD ALL TASKS FROM DB $e');
+      logError('LOAD ALL TASKS FROM DB', e);
     }
   }
 
   Future<Task> getTaskByID(String taskId) async {
     Task task = Task.empty();
-    final doc = await FirebaseFirestore.instance
-        .collection(DbConstants.TASK)
-        .doc(taskId)
-        .get();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(DbConstants.TASK)
+          .doc(taskId)
+          .get();
 
-    if (doc.exists) {
-      task = Task.fromFirestore(doc, null);
+      if (doc.exists) {
+        task = Task.fromFirestore(doc, null);
+      }
+    } catch (e) {
+      logError('GET TASK BY ID', e);
     }
     //this.tasks.add(task);
     return task;
@@ -98,7 +101,7 @@ class TaskController {
           .doc(id)
           .update(task.toFirestore());
     } catch (e) {
-      print('UPDATE TASK $e');
+      logError('UPDATE TASK', e);
     }
   }
 
@@ -112,21 +115,19 @@ class TaskController {
       newTask.id = taskId;
 
       createRelation(taskId, userName);
-
     } catch (e) {
-      print('ADD TASK TO DATABASE $e');
+      logError('ADD TASK TO DATABASE', e);
     }
   }
 
   Future<void> createRelation(String taskId, String userName) async {
     try {
-      
       await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add({
         DbConstants.USERNAME: userName,
         DbConstants.TASKID: taskId,
       });
     } catch (e) {
-      print('CREATE RELATION $e');
+      logError('CREATE RELATION', e);
     }
   }
 
@@ -137,7 +138,7 @@ class TaskController {
           .doc(taskId)
           .delete();
     } catch (e) {
-      print('DELETE TASK $e');
+      logError('DELETE TASK', e);
     }
   }
 
@@ -148,12 +149,13 @@ class TaskController {
           .where(DbConstants.USERNAME, isEqualTo: userName)
           .get();
 
-      for (var doc in db.docs) { //totes les task que te l'usuari
+      for (var doc in db.docs) {
+        //totes les task que te l'usuari
         await removeTask(doc.get(DbConstants.TASKID), userName);
         //await doc.reference.delete();
       }
     } catch (e) {
-      print('DELETE USER-TASK BY USER $e');
+      logError('DELETE USER-TASK BY USER', e);
     }
   }
 
@@ -168,7 +170,7 @@ class TaskController {
         await doc.reference.delete();
       }
     } catch (e) {
-      print('DELETE USER-TASK BY TASK $e');
+      logError('DELETE USER-TASK BY TASK', e);
     }
   }
 
@@ -183,7 +185,7 @@ class TaskController {
         await doc.reference.delete();
       }
     } catch (e) {
-      print('DELETE USER-TASK RELATION $e');
+      logError('DELETE USER-TASK RELATION', e);
     }
   }
 
@@ -203,7 +205,7 @@ class TaskController {
         await _deleteUserTaskRelation(userName, taskId);
       }
     } catch (e) {
-      print('REMOVE TASK $e');
+      logError('REMOVE TASK', e);
     }
   }
 
@@ -213,29 +215,32 @@ class TaskController {
       await _deleteUserTaskRelationsByTask(taskId);
       await NotificationController().deleteNotificationByTask(taskId);
     } catch (e) {
-      print('DELETE TASK WITH RELATION $e');
+      logError('DELETE TASK WITH RELATION', e);
     }
   }
 
   Future<String> getUsersRelatedWithTask(String taskId) async {
     List<String> userNames = [];
     String str = '';
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: taskId)
+          .get();
 
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.USERTASK)
-        .where(DbConstants.TASKID, isEqualTo: taskId)
-        .get();
-
-    for (var doc in db.docs) {
-      if (doc.data().containsKey(DbConstants.USERNAME)) {
-        final userName = doc.get(DbConstants.USERNAME);
-        if (userName is String) {
-          userNames.add(userName);
+      for (var doc in db.docs) {
+        if (doc.data().containsKey(DbConstants.USERNAME)) {
+          final userName = doc.get(DbConstants.USERNAME);
+          if (userName is String) {
+            userNames.add(userName);
+          }
         }
       }
-    }
 
-    str = userNames.join('\n');
+      str = userNames.join('\n');
+    } catch (e) {
+      logError('GET USERS RELATED WITH TASK', e);
+    }
 
     return str;
   }
