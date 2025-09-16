@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:to_do_list/controller/notification_controller.dart';
-import 'package:to_do_list/model/notification.dart';
-import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/sort.dart';
+import 'package:to_do_list/model/task.dart';
 
 class TaskController {
   List<Task> tasks;
 
-  TaskController.empty() : tasks = [];
-  TaskController(List<Task> tasks) : this.tasks = tasks;
+  TaskController({List<Task>? tasks}) : this.tasks = tasks ?? [];
+  //TaskController(List<Task> tasks) : this.tasks = tasks;
 
   Future<void> loadTasksFromDB(String userName, SortType sortType) async {
     Task task;
@@ -91,14 +91,14 @@ class TaskController {
     return task;
   }
 
-  Future<void> updateTaskInDatabase(Task task, String id) async {
+  Future<void> updateTask(Task task, String id) async {
     try {
       await FirebaseFirestore.instance
           .collection(DbConstants.TASK)
           .doc(id)
           .update(task.toFirestore());
     } catch (e) {
-      print('GET TASK BY ID $e');
+      print('UPDATE TASK $e');
     }
   }
 
@@ -111,81 +111,107 @@ class TaskController {
       String taskId = docRef.id;
       newTask.id = taskId;
 
-      await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add({
-        DbConstants.USERNAME: userName,
-        DbConstants.TASKID: taskId,
-      });
+      createRelation(taskId, userName);
+
     } catch (e) {
       print('ADD TASK TO DATABASE $e');
     }
   }
 
-  Future<void> deleteTaskInDatabase(String id, String userName) async {
-    String str = await getUsersRelatedWithTask(id);
-    List<String> usernames = str.split('\n');
-
+  Future<void> createRelation(String taskId, String userName) async {
     try {
-      if (usernames.length == 1) {
-        deleteTask(id);
-      }
-
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          .where(DbConstants.TASKID, isEqualTo: id)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
-          .get();
-
-      db.docs.first.reference.delete();
+      
+      await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add({
+        DbConstants.USERNAME: userName,
+        DbConstants.TASKID: taskId,
+      });
     } catch (e) {
-      print('DELETE TASK IN DB $e');
+      print('CREATE RELATION $e');
     }
   }
 
-  Future<void> deleteTask(String id) async {
+  Future<void> _deleteTask(String taskId) async {
     try {
       await FirebaseFirestore.instance
           .collection(DbConstants.TASK)
-          .doc(id)
+          .doc(taskId)
           .delete();
-
-      //BORRAR NOTIS Q ESTIGUIN RELACIONADES AMB LA TASCA
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.NOTIFICATION)
-          .where(DbConstants.TASKID, isEqualTo: id)
-          .get();
-      if (db.docs.isNotEmpty) {
-        await db.docs.first.reference.delete();
-      }
     } catch (e) {
       print('DELETE TASK $e');
     }
   }
 
-  Future<void> deleteTaskWithRelation(String id) async {
-    NotificationController notController = NotificationController.empty();
-    
+  Future<void> deleteUserTaskRelationsByUser(String userName) async {
     try {
-      await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .doc(id)
-          .delete();
-      final tableId = await FirebaseFirestore.instance
+      final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
-          .where(DbConstants.TASKID, isEqualTo: id)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
           .get();
 
-      for (var doc in tableId.docs) {
+      for (var doc in db.docs) { //totes les task que te l'usuari
+        await removeTask(doc.get(DbConstants.TASKID), userName);
+        //await doc.reference.delete();
+      }
+    } catch (e) {
+      print('DELETE USER-TASK BY USER $e');
+    }
+  }
+
+  Future<void> _deleteUserTaskRelationsByTask(String taskId) async {
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: taskId)
+          .get();
+
+      for (var doc in db.docs) {
         await doc.reference.delete();
       }
+    } catch (e) {
+      print('DELETE USER-TASK BY TASK $e');
+    }
+  }
 
-      List<Notifications> allNotifications = await notController
-          .loadALLNotificationsFromDB();
-
-      for (int pos = 0; pos < allNotifications.length; pos++) {
-        if (allNotifications[pos].taskId == id) {
-          await notController.deleteNotificationInDatabase(pos);
-        }
+  Future<void> _deleteUserTaskRelation(String userName, String taskId) async {
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: taskId)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .get();
+      for (var doc in db.docs) {
+        await doc.reference.delete();
       }
+    } catch (e) {
+      print('DELETE USER-TASK RELATION $e');
+    }
+  }
+
+  Future<void> removeTask(String taskId, String userName) async {
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: taskId)
+          .get();
+
+      if (db.docs.length == 1) {
+        await _deleteTask(taskId);
+        await _deleteUserTaskRelationsByTask(taskId);
+        await NotificationController().deleteNotificationByTask(taskId);
+        //borrar notis
+      } else {
+        await _deleteUserTaskRelation(userName, taskId);
+      }
+    } catch (e) {
+      print('REMOVE TASK $e');
+    }
+  }
+
+  Future<void> deleteTaskWithRelation(String taskId) async {
+    try {
+      await _deleteTask(taskId);
+      await _deleteUserTaskRelationsByTask(taskId);
+      await NotificationController().deleteNotificationByTask(taskId);
     } catch (e) {
       print('DELETE TASK WITH RELATION $e');
     }

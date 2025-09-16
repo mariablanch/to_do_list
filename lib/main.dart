@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/db_constants.dart';
+import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/to_do_page.dart';
-import 'package:to_do_list/utils/user_role.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

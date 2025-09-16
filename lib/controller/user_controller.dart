@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
-import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/db_constants.dart';
-import 'package:to_do_list/model/user.dart';
-import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/utils/user_role.dart';
+import 'package:to_do_list/utils/sort.dart';
+import 'package:to_do_list/model/user.dart';
 
 class UserController {
   List<User> users;
@@ -35,57 +36,35 @@ class UserController {
         .collection(DbConstants.USER)
         .where(DbConstants.USERNAME, isEqualTo: userName)
         .get();
-    return db.docs.length == 1;
+    //return db.docs.length == 1;
+    return db.docs.isNotEmpty;
   }
 
-  Future<void> deleteUser(User user) async {
-    String username = user.userName;
-    TaskController taskController = TaskController.empty();
-    await taskController.loadTasksFromDB(user.userName, SortType.NONE);
-
-    List<Task> tasks = taskController.tasks;
+  Future<void> deleteUser(String userName) async {
+    TaskController taskController = TaskController();
+    await taskController.loadTasksFromDB(userName, SortType.NONE);
 
     try {
-      //BORRAR LES TASQUES DEL USUARI
-      for (Task task in tasks) {
-        //taskController.deleteTask(task.id);
-        /*await FirebaseFirestore.instance
-            .collection(DbConstants.USERTASK)
-            .doc(task.id)
-            .delete();*/
-        taskController.deleteTaskInDatabase(task.id, user.userName);
-      }
+      await taskController.deleteUserTaskRelationsByUser(userName);
+      await _deleteUser(userName);
+      await NotificationController().deleteNotificationByUser(userName);
+    } catch (e) {
+      print('DELETE USER $e');
+    }
+  }
 
-      //BORRAR RELACIÓ
-      final usertasks = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: username)
-          .get();
-      for (var doc in usertasks.docs) {
-        await doc.reference.delete();
-      }
-
-      //BORRAR USUARI
+  Future<void> _deleteUser(String userName) async {
+    try {
       final fUser = await FirebaseFirestore.instance
           .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: username)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
           .get();
 
       if (fUser.docs.isNotEmpty) {
         await fUser.docs.first.reference.delete();
       }
-
-      //NOTIFICACIONS QUE TINGUI EL USUARI
-      final notification = await FirebaseFirestore.instance
-          .collection(DbConstants.NOTIFICATION)
-          .where(DbConstants.USERNAME, isEqualTo: username)
-          .get();
-
-      for (var doc in notification.docs) {
-        await doc.reference.delete();
-      }
     } catch (e) {
-      print('DELETE USER $e');
+      print('DELETE USER');
     }
   }
 
@@ -102,7 +81,6 @@ class UserController {
       if (doc.exists) {
         user = User.fromFirestore(doc, null);
         loadedUsers.add(user);
-        
       }
     }
 
@@ -112,50 +90,128 @@ class UserController {
   }
 
   Future<void> resetPswrd(User user) async {
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.USER)
-        .where(DbConstants.USERNAME, isEqualTo: user.userName)
-        .get();
-    if (db.docs.isNotEmpty) {
-      String id = db.docs.first.id;
-
-      user.password = User.hashPassword('123');
-
-      await FirebaseFirestore.instance
+    try {
+      final db = await FirebaseFirestore.instance
           .collection(DbConstants.USER)
-          .doc(id)
-          .update(user.toFirestore());
+          .where(DbConstants.USERNAME, isEqualTo: user.userName)
+          .get();
+      if (db.docs.isNotEmpty) {
+        String id = db.docs.first.id;
+
+        user.password = User.hashPassword('123');
+
+        await FirebaseFirestore.instance
+            .collection(DbConstants.USER)
+            .doc(id)
+            .update(user.toFirestore());
+      }
+    } catch (e) {
+      print('RESET PSWRD $e');
     }
   }
 
   Future<void> giveAdmin(User user, UserRole uR) async {
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.USER)
-        .where(DbConstants.USERNAME, isEqualTo: user.userName)
-        .get();
-    if (db.docs.isNotEmpty) {
-      String id = db.docs.first.id;
-
-      user = user.copyWith(userRole: uR);
-
-      await FirebaseFirestore.instance
+    try {
+      final db = await FirebaseFirestore.instance
           .collection(DbConstants.USER)
-          .doc(id)
-          .update(user.toFirestore());
+          .where(DbConstants.USERNAME, isEqualTo: user.userName)
+          .get();
+      if (db.docs.isNotEmpty) {
+        String id = db.docs.first.id;
+
+        user = user.copyWith(userRole: uR);
+
+        await FirebaseFirestore.instance
+            .collection(DbConstants.USER)
+            .doc(id)
+            .update(user.toFirestore());
+      }
+    } catch (e) {
+      print('GIVE ADMIN $e');
     }
   }
 
   Future<bool> userHasTask(String userName, String taskId) async {
     bool ret = false;
-    final db = await FirebaseFirestore.instance
-        .collection(DbConstants.USERTASK)
-        .where(DbConstants.TASKID, isEqualTo: taskId)
-        .where(DbConstants.USERNAME, isEqualTo: userName)
-        .get();
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          .where(DbConstants.TASKID, isEqualTo: taskId)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .get();
 
-    if (db.docs.isNotEmpty) {
-      ret = true;
+      if (db.docs.isNotEmpty) {
+        ret = true;
+      }
+    } catch (e) {
+      print('USER HAS TASK $e');
     }
+    return ret;
+  }
+
+  Future<void> updateProfileDB(User updatedUser, User oldUser) async {
+    String doc;
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .where(DbConstants.USERNAME, isEqualTo: oldUser.userName)
+          .get();
+      doc = db.docs.first.id;
+
+      await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .doc(doc)
+          .update(updatedUser.toFirestore());
+
+      if (oldUser.userName != updatedUser.userName) {
+        await _updateUserTask(oldUser.userName, updatedUser);
+      }
+    } catch (e) {
+      print('UPDATE PROFILE DB $e');
+    }
+  }
+
+  Future<void> _updateUserTask(String oldUserName, User updatedUser) async {
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTASK)
+          //.where(DbConstants.USERNAME, isEqualTo: myUser.userName)
+          .where(DbConstants.USERNAME, isEqualTo: oldUserName)
+          .get();
+
+      final docs = db.docs;
+
+      for (final doc in docs) {
+        final taskId = doc[DbConstants.TASKID] as String;
+
+        await FirebaseFirestore.instance
+            .collection(DbConstants.USERTASK)
+            .doc(doc.id)
+            .update({
+              DbConstants.USERNAME: updatedUser.userName,
+              DbConstants.TASKID: taskId,
+            });
+      }
+    } catch (e) {
+      print('UPDATE USER-TASK $e');
+    }
+  }
+  
+  Future<bool> isPasword(String userName, String pswrd) async {
+    bool ret = false;
+
+    try {
+      final lines = await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.PASSWORD, isEqualTo: User.hashPassword(pswrd))
+          .get();
+      ret = lines.docs.length == 1;
+    } catch (e) {
+      print('IS PASSWORD $e');
+      ret = false;
+    }
+
     return ret;
   }
 }

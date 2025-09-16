@@ -1,17 +1,12 @@
-//import 'dart:math';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:to_do_list/controller/user_controller.dart';
-import 'package:to_do_list/utils/app_strings.dart';
-import 'package:to_do_list/utils/db_constants.dart';
 
+import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
-//import 'package:to_do_list/model/task.dart';
+import 'package:to_do_list/utils/app_strings.dart';
+import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/main.dart';
-import 'package:to_do_list/utils/user_role.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -463,7 +458,7 @@ class ConfigPage extends State<ConfigHP> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
-                  bool usernameExists = await userNameExists(userName);
+                  bool usernameExists = await userController.userNameExists(userName);
 
                   if (isNew) {
                     if (!usernameExists) {
@@ -499,7 +494,7 @@ class ConfigPage extends State<ConfigHP> {
                           icon: Icon(User.iconMap[iconSelected]),
                         );
                         try {
-                          await updateProfileDB(updatedUser, editUser);
+                          await userController.updateProfileDB(updatedUser, editUser);
                         } catch (e) {
                           print('EDIT ACCOUNT $e');
                         }
@@ -583,7 +578,7 @@ class ConfigPage extends State<ConfigHP> {
               children: [
                 TextButton(
                   onPressed: () async {
-                    final isValid = await isPasword(passwordController.text);
+                    final isValid = await userController.isPasword(myUser.userName , passwordController.text);
                     Navigator.of(context).pop(isValid);
                   },
                   style: deleteAcc
@@ -614,86 +609,6 @@ class ConfigPage extends State<ConfigHP> {
     return result ?? false;
   }
 
-  Future<bool> isPasword(String pswrd) async {
-    bool ret = false;
-
-    try {
-      final lines = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: myUser.userName)
-          .where(DbConstants.PASSWORD, isEqualTo: User.hashPassword(pswrd))
-          .get();
-      ret = lines.docs.length == 1;
-    } catch (e) {
-      print('IS PASSWORD $e');
-      ret = false;
-    }
-
-    return ret;
-  }
-
-  Future<bool> userNameExists(String userName) async {
-    bool ret = true;
-    try {
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
-          .get();
-      ret = db.docs.length == 1;
-    } catch (e) {
-      print('USER NAME EXISTS $e');
-    }
-    return ret;
-  }
-
-  Future<void> updateProfileDB(User updatedUser, User oldUser) async {
-    String doc;
-    try {
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: oldUser.userName)
-          .get();
-      doc = db.docs.first.id;
-
-      await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .doc(doc)
-          .update(updatedUser.toFirestore());
-
-      if (oldUser.userName != updatedUser.userName) {
-        await updateUserTask(oldUser.userName, updatedUser);
-      }
-    } catch (e) {
-      print('UPDATE PROFILE DB $e');
-    }
-  }
-
-  Future<void> updateUserTask(String oldUserName, User updatedUser) async {
-    try {
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          //.where(DbConstants.USERNAME, isEqualTo: myUser.userName)
-          .where(DbConstants.USERNAME, isEqualTo: oldUserName)
-          .get();
-
-      final docs = db.docs;
-
-      for (final doc in docs) {
-        final taskId = doc[DbConstants.TASKID] as String;
-
-        await FirebaseFirestore.instance
-            .collection(DbConstants.USERTASK)
-            .doc(doc.id)
-            .update({
-              DbConstants.USERNAME: updatedUser.userName,
-              DbConstants.TASKID: taskId,
-            });
-      }
-    } catch (e) {
-      print('UPDATE USER-TASK $e');
-    }
-  }
-
   Widget deleteAccountPage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -710,7 +625,7 @@ class ConfigPage extends State<ConfigHP> {
           onPressed: () async {
             //confirmDelete();
             if (await confirmPasword(true)) {
-              await userController.deleteUser(widget.user);
+              await userController.deleteUser(widget.user.userName);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => MyApp()),
@@ -745,7 +660,7 @@ class ConfigPage extends State<ConfigHP> {
                 //icon: Icon(Icons.arrow_back, color: Colors.red),
               ),
             Text(
-              viewUserList ? 'USUARIS' : '${editUser.userName}',
+              viewUserList ? 'USUARIS' : editUser.userName,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontSize: 20,
@@ -772,19 +687,6 @@ class ConfigPage extends State<ConfigHP> {
               icon: Icon(Icons.add),
             ),
           ),
-
-        /*Row(
-          children: [
-            FloatingActionButton.extended(
-              heroTag: 'createUser',
-              onPressed: () {
-                openFormCreateUser();
-              },
-              label: Text('Crear Usuari'),
-              icon: Icon(Icons.add),
-            ),
-          ],
-        ),*/
       ],
     );
   }
@@ -841,16 +743,6 @@ class ConfigPage extends State<ConfigHP> {
                       },
                       icon: Icon(Icons.edit),
                     ),
-                    /*IconButton(
-                      onPressed: () async {
-                        final isUserName = await confirmUserName(user.userName);
-                        if (isUserName) {
-                          userController.resetPswrd(allUsers[index]);
-                        }
-                      },
-                      icon: Icon(Icons.password),
-                      tooltip: 'Reiniciar contrasenya',
-                    ),*/
                   ],
                 ),
               ),
@@ -900,7 +792,7 @@ class ConfigPage extends State<ConfigHP> {
               ElevatedButton(
                 onPressed: () async {
                   if (await confirmPasword(true)) {
-                    await userController.deleteUser(user);
+                    await userController.deleteUser(user.userName);
 
                     int pos = allUsers.indexOf((user));
 

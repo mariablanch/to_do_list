@@ -1,22 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
-import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
-import 'package:to_do_list/utils/db_constants.dart';
+import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/priorities.dart';
+import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/config.dart';
 import 'package:to_do_list/main.dart';
-import 'package:to_do_list/utils/user_role.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,8 +72,8 @@ class ToDoPage extends State<MyHomePageToDo> {
   List<String> usersFromTask = [];
   Map<String, String> taskAndUsersMAP = {};
 
-  NotificationController notController = NotificationController.empty();
-  TaskController taskController = TaskController.empty();
+  NotificationController notController = NotificationController();
+  TaskController taskController = TaskController();
   UserController userController = UserController();
 
   @override
@@ -227,27 +225,6 @@ class ToDoPage extends State<MyHomePageToDo> {
                               '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
                             ),
 
-                            /*subtitle: FutureBuilder<String>(
-                              future: taskController.getUsersRelatedWithTask(
-                                task.id,
-                              ),
-                              builder: (context, snapshot) {
-                                String str =
-                                    snapshot.data?.replaceAll('\n', ' | ') ??
-                                    '';
-
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return Text(task.description);
-                                } else if (snapshot.hasError) {
-                                  return Text(task.description);
-                                } else {
-                                  return Text(
-                                    '${task.description}\n--> Usuaris: $str',
-                                  );
-                                }
-                              },
-                            ),*/
                             subtitle: Text(
                               '${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}',
                             ),
@@ -305,7 +282,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                                       Task updatedTask = task.copyWith(
                                         completed: !task.completed,
                                       );
-                                      await taskController.updateTaskInDatabase(
+                                      await taskController.updateTask(
                                         updatedTask,
                                         task.id,
                                       );
@@ -384,7 +361,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  confirmDelete(int index, String id, bool isDone) {
+  confirmDelete(int index, String taskId, bool isDone) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -396,13 +373,10 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                if (myUser.userRole == UserRole.ADMIN && showAllTask) {
-                  await taskController.deleteTaskWithRelation(id);
+                if (UserRole.isAdmin(myUser.userRole) && showAllTask) {
+                  await taskController.deleteTaskWithRelation(taskId);
                 } else {
-                  await taskController.deleteTaskInDatabase(
-                    id,
-                    myUser.userName,
-                  );
+                  await taskController.removeTask(taskId, myUser.userName);
                 }
                 setState(() {
                   allTasks.removeAt(index);
@@ -460,7 +434,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             height: MediaQuery.of(context).size.height * 0.7,
             child: TaskForm(
               onTaskEdited: (Task task) async {
-                await taskController.updateTaskInDatabase(task, task.id);
+                await taskController.updateTask(task, task.id);
 
                 setState(() {
                   allTasks[index] = task;
@@ -710,9 +684,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                                 }),
                           ),
                           onPressed: () async {
-                            await notController.deleteNotificationInDatabase(
-                              index,
+                            await notController.deleteNotificationByID(
+                              notification.id,
                             );
+                            //await notController.deleteNotificationInDatabase(index);
                             setState(() {
                               notifications = notController.notifications;
                             });
@@ -729,23 +704,26 @@ class ToDoPage extends State<MyHomePageToDo> {
                           tooltip: 'Acceptar tasca',
                           icon: Icon(Icons.check_circle, color: Colors.black54),
                           onPressed: () async {
-                            await FirebaseFirestore.instance
+                            /*await FirebaseFirestore.instance
                                 .collection(DbConstants.USERTASK)
                                 .add({
                                   DbConstants.USERNAME: notification.userName,
                                   DbConstants.TASKID: notification.taskId,
-                                });
+                                });*/
+                            
+                            await taskController.createRelation(notification.taskId, notification.userName);
 
                             Task newTask = await taskController.getTaskByID(
                               notification.taskId,
                             );
-                            await notController.deleteNotificationInDatabase(
-                              index,
+                            //await notController.deleteNotificationInDatabase(index);
+                            await notController.deleteNotificationByID(
+                              notification.id,
                             );
-                            await notController.loadNotificationsFromDB(
-                              myUser.userName,
-                            );
-                            notifications = notController.notifications;
+                            //await notController.loadNotificationsFromDB(myUser.userName,);
+                            //notifications = notController.notifications;
+
+                            notifications.removeAt(index);
 
                             //tasks.add(newTask);
                             addTask(newTask);
