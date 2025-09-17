@@ -56,7 +56,7 @@ class LogInPage extends State<MyHomePage> {
       ),
       body: Container(
         margin: EdgeInsets.symmetric(horizontal: 50.0, vertical: 30.0),
-        child: Column(
+        child: SingleChildScrollView(padding: EdgeInsets.all(16), child:Column(
           children: [
             _hasAccount ? logInForm() : createAccountForm(),
             //Text(control),
@@ -74,7 +74,7 @@ class LogInPage extends State<MyHomePage> {
               ),
             ),
           ],
-        ),
+        ),)
       ),
     );
   }

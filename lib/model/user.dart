@@ -172,10 +172,7 @@ class User {
        _userRole = userRole,
        _icon = iconName;
 
-  factory User.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> snapshot,
-    SnapshotOptions? options,
-  ) {
+  factory User.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
     final data = snapshot.data();
     final iconName = data?['iconName'] ?? 'person';
 
@@ -186,9 +183,7 @@ class User {
       mail: data?['mail'] ?? '',
       password: data?['password'] ?? '',
       userRole: UserRole.values.firstWhere(
-        (uR) =>
-            uR.name.toLowerCase() ==
-            (data?[DbConstants.USERROLE] ?? '').toString().toLowerCase(),
+        (uR) => uR.name.toLowerCase() == (data?[DbConstants.USERROLE] ?? '').toString().toLowerCase(),
       ),
       iconName: Icon(iconMap[iconName] ?? Icons.person),
     );

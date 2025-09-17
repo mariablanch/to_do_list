@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Notifications implements Comparable<Notifications>{
+class Notifications implements Comparable<Notifications> {
   String _id;
   String _taskId;
   String _description;
@@ -21,13 +21,7 @@ class Notifications implements Comparable<Notifications>{
       this._userName = not.userName,
       this._message = not.message;
 
-  Notifications copyWith({
-    String? id,
-    String? taskId,
-    String? description,
-    String? userName,
-    String? message,
-  }) {
+  Notifications copyWith({String? id, String? taskId, String? description, String? userName, String? message}) {
     return Notifications(
       id: id ?? this._id,
       taskId: taskId ?? this._taskId,
@@ -75,7 +69,7 @@ class Notifications implements Comparable<Notifications>{
       message: data['message'] ?? '',
     );
   }
-  
+
   @override
   int compareTo(Notifications not) {
     return this.message.compareTo(not.message);

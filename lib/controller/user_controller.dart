@@ -18,9 +18,7 @@ class UserController {
 
     if (!await userNameExists(newUser.userName)) {
       try {
-        await FirebaseFirestore.instance
-            .collection(DbConstants.USER)
-            .add(newUser.toFirestore());
+        await FirebaseFirestore.instance.collection(DbConstants.USER).add(newUser.toFirestore());
         ret = DbConstants.USERNOTEXISTS;
       } catch (e) {
         logError('CREATE ACCOUNT', e);
@@ -67,9 +65,7 @@ class UserController {
     List<User> loadedUsers = [];
     User user;
     try {
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .get();
+      final db = await FirebaseFirestore.instance.collection(DbConstants.USER).get();
       final docs = db.docs;
 
       for (var doc in docs) {
@@ -156,13 +152,10 @@ class UserController {
       for (final doc in docs) {
         final taskId = doc[DbConstants.TASKID] as String;
 
-        await FirebaseFirestore.instance
-            .collection(DbConstants.USERTASK)
-            .doc(doc.id)
-            .update({
-              DbConstants.USERNAME: updatedUser.userName,
-              DbConstants.TASKID: taskId,
-            });
+        await FirebaseFirestore.instance.collection(DbConstants.USERTASK).doc(doc.id).update({
+          DbConstants.USERNAME: updatedUser.userName,
+          DbConstants.TASKID: taskId,
+        });
       }
     } catch (e) {
       logError('UPDATE USER', e);
@@ -195,10 +188,7 @@ class UserController {
   }
 
   Future<void> _updateUserById(String id, User user) async {
-    await FirebaseFirestore.instance
-        .collection(DbConstants.USER)
-        .doc(id)
-        .update(user.toFirestore());
+    await FirebaseFirestore.instance.collection(DbConstants.USER).doc(id).update(user.toFirestore());
   }
 
   Future<String?> _getUserIdByUserName(String userName) async {

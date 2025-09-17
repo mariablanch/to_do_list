@@ -66,17 +66,8 @@ class ConfigPage extends State<ConfigHP> {
 
   String iconSelected = 'person';
 
-  List<Widget> get pages => [
-    profilePage(),
-    editAccountPage(),
-    deleteAccountPage(),
-  ];
-  List<Widget> get adminPages => [
-    profilePage(),
-    editAccountPage(),
-    usersPage(),
-    deleteAccountPage(),
-  ];
+  List<Widget> get pages => [profilePage(), editAccountPage(), deleteAccountPage()];
+  List<Widget> get adminPages => [profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
 
   UserController userController = UserController();
   List<User> allUsers = [];
@@ -99,9 +90,7 @@ class ConfigPage extends State<ConfigHP> {
 
     setState(() {
       allUsers = users;
-      iconSelected = User.iconMap.entries
-          .firstWhere((e) => e.value == myUser.icon.icon)
-          .key;
+      iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     });
   }
 
@@ -172,19 +161,14 @@ class ConfigPage extends State<ConfigHP> {
     );*/
     return Scaffold(
       appBar: isWide
-          ? AppBar(
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-              title: Text('Configuració'),
-            )
+          ? AppBar(backgroundColor: Theme.of(context).colorScheme.inversePrimary, title: Text('Configuració'))
           : AppBar(
               title: Text('Configuració'),
               //title: Text(menuTitles[selectedIndex]),
               actions: [
                 Builder(
-                  builder: (context) => IconButton(
-                    icon: Icon(Icons.menu),
-                    onPressed: () => Scaffold.of(context).openEndDrawer(),
-                  ),
+                  builder: (context) =>
+                      IconButton(icon: Icon(Icons.menu), onPressed: () => Scaffold.of(context).openEndDrawer()),
                 ),
               ],
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -212,23 +196,10 @@ class ConfigPage extends State<ConfigHP> {
               },
               labelType: NavigationRailLabelType.all,
               destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.person),
-                  label: Text('Perfil'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.settings),
-                  label: Text('Configuració'),
-                ),
-                if (isAdmin)
-                  NavigationRailDestination(
-                    icon: Icon(Icons.people),
-                    label: Text('Usuaris'),
-                  ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.delete),
-                  label: Text('Eliminar\ncompte'),
-                ),
+                NavigationRailDestination(icon: Icon(Icons.person), label: Text('Perfil')),
+                NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Configuració')),
+                if (isAdmin) NavigationRailDestination(icon: Icon(Icons.people), label: Text('Usuaris')),
+                NavigationRailDestination(icon: Icon(Icons.delete), label: Text('Eliminar\ncompte')),
               ],
             ),
           if (isWide) VerticalDivider(width: 10),
@@ -258,13 +229,7 @@ class ConfigPage extends State<ConfigHP> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'PERFIL',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontSize: 20,
-          ),
-        ),
+        Text('PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
         SizedBox(height: 20),
         Table(
           columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
@@ -286,28 +251,22 @@ class ConfigPage extends State<ConfigHP> {
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-          child: Text(value),
-        ),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20), child: Text(value)),
       ],
     );
   }
 
   Widget editAccountPage() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'EDITAR PERFIL',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontSize: 20,
-          ),
-        ),
-        SizedBox(height: 20),
-        editAccount(myUser, false),
-      ],
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('EDITAR PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+          SizedBox(height: 20),
+          editAccount(myUser, false),
+        ],
+      ),
     );
   }
 
@@ -328,18 +287,10 @@ class ConfigPage extends State<ConfigHP> {
     String mail = editUser.mail;
     String password = editUser.password;
 
-    TextEditingController nameController = TextEditingController(
-      text: editUser.name,
-    );
-    TextEditingController surnameController = TextEditingController(
-      text: surname,
-    );
-    TextEditingController userNameController = TextEditingController(
-      text: editUser.userName,
-    );
-    TextEditingController mailController = TextEditingController(
-      text: editUser.mail,
-    );
+    TextEditingController nameController = TextEditingController(text: editUser.name);
+    TextEditingController surnameController = TextEditingController(text: surname);
+    TextEditingController userNameController = TextEditingController(text: editUser.userName);
+    TextEditingController mailController = TextEditingController(text: editUser.mail);
     //TextEditingController paswordController = TextEditingController();
 
     return Form(
@@ -350,10 +301,7 @@ class ConfigPage extends State<ConfigHP> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
               controller: nameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -369,10 +317,7 @@ class ConfigPage extends State<ConfigHP> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Cognom',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Cognom'),
               controller: surnameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -388,10 +333,7 @@ class ConfigPage extends State<ConfigHP> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom d\'usuari',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom d\'usuari'),
               controller: userNameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -407,10 +349,7 @@ class ConfigPage extends State<ConfigHP> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Correu',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Correu'),
               controller: mailController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -430,10 +369,7 @@ class ConfigPage extends State<ConfigHP> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nova contrasenya',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nova contrasenya'),
               obscureText: true,
               //readOnly: adminEdit,
               //controller: paswordController,
@@ -489,10 +425,7 @@ class ConfigPage extends State<ConfigHP> {
                   value: iconSelected,
                   hint: Icon(Icons.person),
                   items: User.iconMap.keys.map((String iconName) {
-                    return DropdownMenuItem<String>(
-                      value: iconName,
-                      child: Icon(User.iconMap[iconName]),
-                    );
+                    return DropdownMenuItem<String>(value: iconName, child: Icon(User.iconMap[iconName]));
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
@@ -518,9 +451,7 @@ class ConfigPage extends State<ConfigHP> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
-                  bool usernameExists = await userController.userNameExists(
-                    userName,
-                  );
+                  bool usernameExists = await userController.userNameExists(userName);
 
                   if (isNew) {
                     if (!usernameExists) {
@@ -550,16 +481,11 @@ class ConfigPage extends State<ConfigHP> {
                           surname: surname,
                           userName: userName,
                           mail: mail,
-                          password: !isEmpty
-                              ? User.hashPassword(password)
-                              : editUser.password,
+                          password: !isEmpty ? User.hashPassword(password) : editUser.password,
                           icon: Icon(User.iconMap[iconSelected]),
                         );
                         try {
-                          await userController.updateProfileDB(
-                            updatedUser,
-                            editUser,
-                          );
+                          await userController.updateProfileDB(updatedUser, editUser);
                         } catch (e) {
                           logError('EDIT ACCOUNT configPage', e);
                         }
@@ -573,9 +499,7 @@ class ConfigPage extends State<ConfigHP> {
                         });
 
                         if (roleChanged) {
-                          final uR = !UserRole.isAdmin(editUser.userRole)
-                              ? UserRole.USER
-                              : UserRole.ADMIN;
+                          final uR = !UserRole.isAdmin(editUser.userRole) ? UserRole.USER : UserRole.ADMIN;
                           await userController.giveAdmin(editUser, uR);
                         }
 
@@ -643,21 +567,17 @@ class ConfigPage extends State<ConfigHP> {
               children: [
                 TextButton(
                   onPressed: () async {
-                    final isValid = await userController.isPasword(
-                      myUser.userName,
-                      passwordController.text,
-                    );
+                    final isValid = await userController.isPasword(myUser.userName, passwordController.text);
                     Navigator.of(context).pop(isValid);
                   },
                   style: deleteAcc
                       ? ButtonStyle(
-                          foregroundColor:
-                              WidgetStateProperty.resolveWith<Color>((states) {
-                                if (states.contains(WidgetState.hovered)) {
-                                  return Colors.red;
-                                }
-                                return Theme.of(context).colorScheme.primary;
-                              }),
+                          foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return Colors.red;
+                            }
+                            return Theme.of(context).colorScheme.primary;
+                          }),
                         )
                       : null,
                   child: Text(AppStrings.CONFIRM),
@@ -694,10 +614,7 @@ class ConfigPage extends State<ConfigHP> {
             //confirmDelete();
             if (await confirmPasword(true)) {
               await userController.deleteUser(widget.user.userName);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyApp()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
             }
           },
           child: Text('ELIMINAR COMPTE', style: TextStyle(fontSize: 20)),
@@ -720,19 +637,13 @@ class ConfigPage extends State<ConfigHP> {
                     viewUserList = true;
                   });
                 },
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
 
                 //icon: Icon(Icons.arrow_back, color: Colors.red),
               ),
             Text(
               viewUserList ? 'USUARIS' : editUser.userName,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 20,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
             ),
           ],
         ),
@@ -769,9 +680,7 @@ class ConfigPage extends State<ConfigHP> {
           return Card(
             //color: Theme.of(context).colorScheme.inversePrimary,
             child: ListTile(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.all(5),
 
               //leading: Text('    ${index + 1}'),
@@ -804,9 +713,7 @@ class ConfigPage extends State<ConfigHP> {
                           userEdit = true;
                           editUser = allUsers[index];
                           //iconSelected = editUser.icon;
-                          iconSelected = User.iconMap.entries
-                              .firstWhere((e) => e.value == editUser.icon.icon)
-                              .key;
+                          iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
                         });
                       },
                       icon: Icon(Icons.edit),
@@ -834,12 +741,7 @@ class ConfigPage extends State<ConfigHP> {
                   buildTableRow('Cognom:', user.surname),
                   buildTableRow('Nom d\'usuari:', user.userName),
                   buildTableRow('Correu:', user.mail),
-                  buildTableRow(
-                    'Rol:',
-                    (UserRole.isAdmin(user.userRole))
-                        ? 'Administrador'
-                        : 'Usuari',
-                  ),
+                  buildTableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
                 ],
               ),
 
@@ -898,14 +800,11 @@ class ConfigPage extends State<ConfigHP> {
                 TextButton(
                   onPressed: () {
                     //final isValid = await isUserName(userNameController.text);
-                    final isValid =
-                        userNameController.text.compareTo(userName) == 0;
+                    final isValid = userNameController.text.compareTo(userName) == 0;
                     Navigator.of(context).pop(isValid);
                   },
                   style: ButtonStyle(
-                    foregroundColor: WidgetStateProperty.resolveWith<Color>((
-                      states,
-                    ) {
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
                       if (states.contains(WidgetState.hovered)) {
                         return Colors.red;
                       }
@@ -935,17 +834,9 @@ class ConfigPage extends State<ConfigHP> {
       isScrollControlled: true,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 30,
-          ),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
 
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: editAccount(User.empty(), true),
-          ),
+          child: SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: editAccount(User.empty(), true)),
         );
       },
     );

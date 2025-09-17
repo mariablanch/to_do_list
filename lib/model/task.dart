@@ -98,9 +98,7 @@ class Task implements Comparable<Task> {
       name: data['name'] ?? '',
       description: data['description'] ?? '',
       priority: Priorities.values.firstWhere(
-        (p) =>
-            p.name.toLowerCase() ==
-            (data['priority'] ?? '').toString().toLowerCase(),
+        (p) => p.name.toLowerCase() == (data['priority'] ?? '').toString().toLowerCase(),
       ),
       limitDate: (data['limitDate'] as Timestamp).toDate(),
       completed: data['completed'] ?? false,
@@ -113,5 +111,4 @@ class Task implements Comparable<Task> {
     if (comp == 0) comp = this._name.compareTo(task._name);
     return comp;
   }
-
 }

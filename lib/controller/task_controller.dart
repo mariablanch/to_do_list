@@ -23,9 +23,7 @@ class TaskController {
           .where(DbConstants.USERNAME, isEqualTo: userName)
           .get();
 
-      List<String> taskIds = db.docs
-          .map((doc) => doc[DbConstants.TASKID] as String)
-          .toList();
+      List<String> taskIds = db.docs.map((doc) => doc[DbConstants.TASKID] as String).toList();
 
       if (taskIds.isNotEmpty) {
         final query = await FirebaseFirestore.instance
@@ -54,9 +52,7 @@ class TaskController {
     try {
       List<Task> loadedTasks = [];
 
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .get();
+      final db = await FirebaseFirestore.instance.collection(DbConstants.TASK).get();
       final docs = db.docs;
 
       for (var doc in docs) {
@@ -79,10 +75,7 @@ class TaskController {
   Future<Task> getTaskByID(String taskId) async {
     Task task = Task.empty();
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .doc(taskId)
-          .get();
+      final doc = await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(taskId).get();
 
       if (doc.exists) {
         task = Task.fromFirestore(doc, null);
@@ -96,10 +89,7 @@ class TaskController {
 
   Future<void> updateTask(Task task, String id) async {
     try {
-      await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .doc(id)
-          .update(task.toFirestore());
+      await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(id).update(task.toFirestore());
     } catch (e) {
       logError('UPDATE TASK', e);
     }
@@ -107,9 +97,7 @@ class TaskController {
 
   Future<void> addTaskToDataBase(Task newTask, String userName) async {
     try {
-      final docRef = await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .add(newTask.toFirestore());
+      final docRef = await FirebaseFirestore.instance.collection(DbConstants.TASK).add(newTask.toFirestore());
 
       String taskId = docRef.id;
       newTask.id = taskId;
@@ -133,10 +121,7 @@ class TaskController {
 
   Future<void> _deleteTask(String taskId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection(DbConstants.TASK)
-          .doc(taskId)
-          .delete();
+      await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(taskId).delete();
     } catch (e) {
       logError('DELETE TASK', e);
     }
@@ -245,12 +230,7 @@ class TaskController {
     return str;
   }
 
-  static int sortTask(
-    SortType type,
-    Task task1,
-    Task task2,
-    Map<String, String> usersMAP,
-  ) {
+  static int sortTask(SortType type, Task task1, Task task2, Map<String, String> usersMAP) {
     switch (type) {
       case SortType.NONE:
         return task1.compareTo(task2);

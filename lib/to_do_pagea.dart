@@ -208,142 +208,65 @@ class ToDoPage extends State<MyHomePageToDo> {
                       itemBuilder: (context, index) {
                         final task = allTasks[index];
 
-                        return LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isCompact = constraints.maxWidth < 500;
+                        return Card(
+                          child: ListTile(
+                            leading: Priorities.getIconPriority(task),
+                            title: Text('${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}'),
 
-                            if (isCompact) {
-                              return Card(
-                                child: Container(
-                                  padding: const EdgeInsets.all(8.0),
-                                  width: double.infinity,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Priorities.getIconPriority(task),
-                                          SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
-                                                  style: Theme.of(context).textTheme.titleMedium,
-                                                ),
-                                                SizedBox(height: 5),
-                                                Text(
-                                                  '${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}',
-                                                  //style: Theme.of(context,).textTheme.bodySmall,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(height: 10),
-                                          Column(
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                children: [
-                                                  IconButton(
-                                                    tooltip: 'Editar',
-                                                    onPressed: () => openEditTask(task, index),
-                                                    icon: Icon(Icons.edit),
-                                                  ),
-                                                  IconButton(
-                                                    tooltip: 'Eliminar',
-                                                    onPressed: () => confirmDelete(index, task.id, false),
-                                                    icon: Icon(Icons.delete),
-                                                    style: ButtonStyle(
-                                                      foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                                        if (states.contains(WidgetState.hovered)) {
-                                                          return Colors.red;
-                                                        }
-                                                        return Colors.black54;
-                                                      }),
-                                                    ),
-                                                  ),
-                                                  IconButton(
-                                                    tooltip: 'Marcar com a feta',
-                                                    icon: Icon(
-                                                      Icons.check_circle,
-                                                      color: task.completed ? Colors.green : Colors.grey,
-                                                    ),
-                                                    onPressed: () async {
-                                                      Task updatedTask = task.copyWith(completed: !task.completed);
-                                                      await taskController.updateTask(updatedTask, task.id);
-                                                      setState(() => allTasks[index] = updatedTask);
-                                                      if (updatedTask.completed) {
-                                                        await confirmDelete(index, task.id, true);
-                                                      }
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                            subtitle: Text('${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}'),
+
+                            textColor: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
+                            trailing: SizedBox(
+                              width: 150,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Editar',
+                                    onPressed: () => openEditTask(task, index),
+                                    icon: Icon(Icons.edit),
                                   ),
-                                ),
-                              );
-                            } else {
-                              return Card(
-                                child: ListTile(
-                                  leading: Priorities.getIconPriority(task),
-                                  title: Text('${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}'),
-                                  subtitle: Text('${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}'),
-                                  textColor: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
-                                  trailing: SizedBox(
-                                    width: 150,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          tooltip: 'Editar',
-                                          onPressed: () => openEditTask(task, index),
-                                          icon: Icon(Icons.edit),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Eliminar',
-                                          onPressed: () => confirmDelete(index, task.id, false),
-                                          icon: Icon(Icons.delete),
-                                          style: ButtonStyle(
-                                            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                              if (states.contains(WidgetState.hovered)) {
-                                                return Colors.red;
-                                              }
-                                              return Colors.black54;
-                                            }),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Marcar com a feta',
-                                          icon: Icon(
-                                            Icons.check_circle,
-                                            color: task.completed ? Colors.green : Colors.grey,
-                                          ),
-                                          onPressed: () async {
-                                            Task updatedTask = task.copyWith(completed: !task.completed);
-                                            await taskController.updateTask(updatedTask, task.id);
-                                            setState(() => allTasks[index] = updatedTask);
-                                            if (updatedTask.completed) {
-                                              await confirmDelete(index, task.id, true);
-                                            }
-                                          },
-                                        ),
-                                      ],
+
+                                  //BOTO PER A ELIMINAR
+                                  IconButton(
+                                    tooltip: 'Eliminar',
+                                    onPressed: () async {
+                                      await confirmDelete(index, task.id, false);
+                                    },
+                                    icon: Icon(Icons.delete),
+                                    style: ButtonStyle(
+                                      foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                                        if (states.contains(WidgetState.hovered)) {
+                                          return Colors.red;
+                                        }
+                                        return Colors.black54;
+                                      }),
                                     ),
                                   ),
-                                  onTap: () => openShowTask(task),
-                                ),
-                              );
-                            }
-                          },
+
+                                  //BOTO MARCAR FETA
+                                  IconButton(
+                                    tooltip: 'Marcar com a feta',
+                                    icon: Icon(Icons.check_circle, color: task.completed ? Colors.green : Colors.grey),
+                                    onPressed: () async {
+                                      Task updatedTask = task.copyWith(completed: !task.completed);
+                                      await taskController.updateTask(updatedTask, task.id);
+                                      setState(() {
+                                        allTasks[index] = updatedTask;
+                                      });
+                                      if (updatedTask.completed) {
+                                        await confirmDelete(index, task.id, true);
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onTap: () async {
+                              //String str = await taskController.getUsersRelatedWithTask(task.id);
+                              openShowTask(task);
+                            },
+                          ),
                         );
                       },
                     ),

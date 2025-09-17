@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_list/model/task.dart';
 
-enum Priorities{
+enum Priorities {
   NONE,
   HIGH,
   MEDIUM,
@@ -46,5 +46,4 @@ enum Priorities{
         return '';
     }
   }
-
 }
