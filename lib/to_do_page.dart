@@ -872,8 +872,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  
-
   userFilter() {
     return Container(
       alignment: Alignment.centerLeft,
@@ -891,12 +889,12 @@ class ToDoPage extends State<MyHomePageToDo> {
           }).toList();
         },
 
-        onSelected: (value) async {
+        onSelected: (userSelected) async {
           //TaskController tc = TaskController.empty();
-          if (value == AppStrings.SHOWALL) {
+          if (userSelected == AppStrings.SHOWALL) {
             await taskController.loadAllTasksFromDB();
           } else {
-            await taskController.loadTasksFromDB(value);
+            await taskController.loadTasksFromDB(userSelected);
           }
           setState(() {
             allTasks = taskController.tasks;

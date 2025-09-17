@@ -107,9 +107,10 @@ class ConfigPage extends State<ConfigHP> {
 
   @override
   Widget build(BuildContext context) {
-    final Color pageColor = Theme.of(context).colorScheme.primary;
+    //final Color pageColor = Theme.of(context).colorScheme.primary;
+    final isWide = MediaQuery.of(context).size.width > 600;
 
-    return Scaffold(
+    /*return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text('Configuració'),
@@ -119,42 +120,43 @@ class ConfigPage extends State<ConfigHP> {
         margin: const EdgeInsets.all(15),
         child: Row(
           children: [
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (int index) {
-                setState(() {
-                  selectedIndex = index;
-                });
-              },
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                NavigationRailDestination(
-                  icon: const Icon(Icons.person),
-                  label: const Text('Perfil'),
-                  selectedIcon: Icon(Icons.person, color: pageColor),
-                ),
-                NavigationRailDestination(
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Configuració'),
-                  selectedIcon: Icon(Icons.settings, color: pageColor),
-                ),
-
-                if (isAdmin)
+            if (isWideScreen)
+              NavigationRail(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (int index) {
+                  setState(() {
+                    selectedIndex = index;
+                  });
+                },
+                labelType: NavigationRailLabelType.all,
+                destinations: [
                   NavigationRailDestination(
-                    icon: const Icon(Icons.people),
-                    label: const Text('Usuaris'),
-                    disabled: !isAdmin,
-                    selectedIcon: Icon(Icons.people, color: pageColor),
+                    icon: const Icon(Icons.person),
+                    label: const Text('Perfil'),
+                    selectedIcon: Icon(Icons.person, color: pageColor),
+                  ),
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.settings),
+                    label: const Text('Configuració'),
+                    selectedIcon: Icon(Icons.settings, color: pageColor),
                   ),
 
-                const NavigationRailDestination(
-                  icon: Icon(Icons.delete),
-                  label: Text('Eliminar\ncompte'),
-                  selectedIcon: Icon(Icons.delete, color: Colors.red),
-                ),
-              ],
-            ),
-            VerticalDivider(width: 30),
+                  if (isAdmin)
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.people),
+                      label: const Text('Usuaris'),
+                      disabled: !isAdmin,
+                      selectedIcon: Icon(Icons.people, color: pageColor),
+                    ),
+
+                  const NavigationRailDestination(
+                    icon: Icon(Icons.delete),
+                    label: Text('Eliminar\ncompte'),
+                    selectedIcon: Icon(Icons.delete, color: Colors.red),
+                  ),
+                ],
+              ),
+            if (isWideScreen) VerticalDivider(width: 30),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -167,6 +169,88 @@ class ConfigPage extends State<ConfigHP> {
           ],
         ),
       ),
+    );*/
+    return Scaffold(
+      appBar: isWide
+          ? AppBar(
+              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+              title: Text('Configuració'),
+            )
+          : AppBar(
+              title: Text('Configuració'),
+              //title: Text(menuTitles[selectedIndex]),
+              actions: [
+                Builder(
+                  builder: (context) => IconButton(
+                    icon: Icon(Icons.menu),
+                    onPressed: () => Scaffold.of(context).openEndDrawer(),
+                  ),
+                ),
+              ],
+              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            ),
+      endDrawer: isWide
+          ? null
+          : Drawer(
+              child: ListView(
+                children: [
+                  //DrawerHeader(child: Text('Menú')),
+                  _drawerItem('Perfil', 0),
+                  _drawerItem('Configuració', 1),
+                  if (isAdmin) _drawerItem('Usuaris', 2),
+                  _drawerItem('Eliminar compte', isAdmin ? 3 : 2),
+                ],
+              ),
+            ),
+      body: Row(
+        children: [
+          if (isWide)
+            NavigationRail(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (int index) {
+                setState(() => selectedIndex = index);
+              },
+              labelType: NavigationRailLabelType.all,
+              destinations: [
+                NavigationRailDestination(
+                  icon: Icon(Icons.person),
+                  label: Text('Perfil'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.settings),
+                  label: Text('Configuració'),
+                ),
+                if (isAdmin)
+                  NavigationRailDestination(
+                    icon: Icon(Icons.people),
+                    label: Text('Usuaris'),
+                  ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.delete),
+                  label: Text('Eliminar\ncompte'),
+                ),
+              ],
+            ),
+          if (isWide) VerticalDivider(width: 10),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: isAdmin ? adminPages[selectedIndex] : pages[selectedIndex],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ListTile _drawerItem(String title, int index) {
+    return ListTile(
+      title: Text(title),
+      selected: selectedIndex == index,
+      onTap: () {
+        Navigator.of(context).pop(); // Cierra el drawer
+        setState(() => selectedIndex = index);
+      },
     );
   }
 
@@ -222,32 +306,7 @@ class ConfigPage extends State<ConfigHP> {
           ),
         ),
         SizedBox(height: 20),
-        /*editMode
-            ? */
         editAccount(myUser, false),
-        /*: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        editMode = true;
-                      });
-                    },
-                    label: Text('Editar perfil'),
-                    icon: Icon(Icons.edit),
-                  ),
-                  /*TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        editPswrd = true;
-                      });
-                    },
-                    label: Text('Editar contrasenya'),
-                    icon: Icon(Icons.password),
-                  ),*/
-                ],
-              ),*/
       ],
     );
   }
@@ -459,7 +518,9 @@ class ConfigPage extends State<ConfigHP> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
-                  bool usernameExists = await userController.userNameExists(userName);
+                  bool usernameExists = await userController.userNameExists(
+                    userName,
+                  );
 
                   if (isNew) {
                     if (!usernameExists) {
@@ -495,7 +556,10 @@ class ConfigPage extends State<ConfigHP> {
                           icon: Icon(User.iconMap[iconSelected]),
                         );
                         try {
-                          await userController.updateProfileDB(updatedUser, editUser);
+                          await userController.updateProfileDB(
+                            updatedUser,
+                            editUser,
+                          );
                         } catch (e) {
                           logError('EDIT ACCOUNT configPage', e);
                         }
@@ -579,7 +643,10 @@ class ConfigPage extends State<ConfigHP> {
               children: [
                 TextButton(
                   onPressed: () async {
-                    final isValid = await userController.isPasword(myUser.userName , passwordController.text);
+                    final isValid = await userController.isPasword(
+                      myUser.userName,
+                      passwordController.text,
+                    );
                     Navigator.of(context).pop(isValid);
                   },
                   style: deleteAcc
