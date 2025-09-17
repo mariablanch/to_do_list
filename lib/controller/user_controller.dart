@@ -5,7 +5,6 @@ import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
-import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/model/user.dart';
 
 class UserController {
@@ -43,7 +42,7 @@ class UserController {
     TaskController taskController = TaskController();
 
     try {
-      await taskController.loadTasksFromDB(userName, SortType.NONE);
+      //await taskController.loadTasksFromDB(userName, SortType.NONE);
       await taskController.deleteUserTaskRelationsByUser(userName);
       await _deleteUser(userName);
       await NotificationController().deleteNotificationByUser(userName);

@@ -12,7 +12,7 @@ class TaskController {
   TaskController({List<Task>? tasks}) : this.tasks = tasks ?? [];
   //TaskController(List<Task> tasks) : this.tasks = tasks;
 
-  Future<void> loadTasksFromDB(String userName, SortType sortType) async {
+  Future<void> loadTasksFromDB(String userName) async {
     Task task;
     try {
       List<Task> loadedTasks = [];
@@ -40,7 +40,7 @@ class TaskController {
       }
 
       loadedTasks.sort((task1, task2) {
-        return Task.sortTask(sortType, task1, task2);
+        return TaskController.sortTask(SortType.NONE, task1, task2, {});
       });
 
       this.tasks = loadedTasks;
@@ -49,7 +49,7 @@ class TaskController {
     }
   }
 
-  Future<void> loadAllTasksFromDB(SortType sortType) async {
+  Future<void> loadAllTasksFromDB() async {
     Task task;
     try {
       List<Task> loadedTasks = [];
@@ -67,7 +67,7 @@ class TaskController {
       }
 
       loadedTasks.sort((task1, task2) {
-        return Task.sortTask(sortType, task1, task2);
+        return TaskController.sortTask(SortType.NONE, task1, task2, {});
       });
 
       this.tasks = loadedTasks;
@@ -237,11 +237,31 @@ class TaskController {
         }
       }
 
-      str = userNames.join('\n');
+      str = userNames.join(' | ');
     } catch (e) {
       logError('GET USERS RELATED WITH TASK', e);
     }
 
     return str;
+  }
+
+  static int sortTask(
+    SortType type,
+    Task task1,
+    Task task2,
+    Map<String, String> usersMAP,
+  ) {
+    switch (type) {
+      case SortType.NONE:
+        return task1.compareTo(task2);
+      case SortType.DATE:
+        return task1.limitDate.compareTo(task2.limitDate);
+      case SortType.NAME:
+        return task1.name.compareTo(task2.name);
+      case SortType.USER:
+        String str1 = usersMAP[task1.id] ?? '';
+        String str2 = usersMAP[task2.id] ?? '';
+        return str1.compareTo(str2);
+    }
   }
 }

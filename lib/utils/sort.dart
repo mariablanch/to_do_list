@@ -1,5 +1,6 @@
 enum SortType {
-  NONE,
-  DATE,
-  NAME
+  NONE, //prioritat
+  DATE, //data limit
+  NAME, //nom tasca
+  USER, //usuaris relacionats
 }

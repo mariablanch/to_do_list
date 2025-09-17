@@ -86,10 +86,10 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Future<void> loadInitialData(bool allTask) async {
     if (allTask) {
-      await taskController.loadAllTasksFromDB(sortType);
+      await taskController.loadAllTasksFromDB();
       await notController.loadALLNotificationsFromDB();
     } else {
-      await taskController.loadTasksFromDB(myUser.userName, sortType);
+      await taskController.loadTasksFromDB(myUser.userName);
       await notController.loadNotificationsFromDB(myUser.userName);
     }
     final users = await userController.loadAllUsers();
@@ -348,7 +348,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 setState(() {
                   //tasks.add(task);
                   allTasks.sort((task1, task2) {
-                    return Task.sortTask(sortType, task1, task2);
+                    return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                   });
                   taskAndUsersMAP;
                 });
@@ -440,7 +440,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 setState(() {
                   allTasks[index] = task;
                   allTasks.sort((task1, task2) {
-                    return Task.sortTask(sortType, task1, task2);
+                    return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                   });
                 });
               },
@@ -729,7 +729,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                             //tasks.add(newTask);
                             addTask(newTask);
                             allTasks.sort((task1, task2) {
-                              return Task.sortTask(sortType, task1, task2);
+                              return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                             });
 
                             await taskAndUsers();
@@ -748,16 +748,16 @@ class ToDoPage extends State<MyHomePageToDo> {
           );
   }
 
-  Future<String> usersRelatedWithTask(String taskId) async {
+  /*Future<String> usersRelatedWithTask(String taskId) async {
     String str = await taskController.getUsersRelatedWithTask(taskId);
-    return str.replaceAll('\n', ' | ');
-  }
+    return str;
+  }*/
 
   Future<void> taskAndUsers() async {
     String users;
     taskAndUsersMAP.clear();
     for (Task task in allTasks) {
-      users = await usersRelatedWithTask(task.id);
+      users = await taskController.getUsersRelatedWithTask(task.id);
 
       if (taskAndUsersMAP.containsKey(task.id)) {
         logWarning('ID duplicat ${task.id}');
@@ -800,7 +800,7 @@ class ToDoPage extends State<MyHomePageToDo> {
               setState(() {
                 sortType = SortType.NONE;
                 allTasks.sort((task1, task2) {
-                  return Task.sortTask(sortType, task1, task2);
+                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                 });
               });
             },
@@ -818,7 +818,7 @@ class ToDoPage extends State<MyHomePageToDo> {
               setState(() {
                 sortType = SortType.DATE;
                 allTasks.sort((task1, task2) {
-                  return Task.sortTask(sortType, task1, task2);
+                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                 });
               });
             },
@@ -836,7 +836,24 @@ class ToDoPage extends State<MyHomePageToDo> {
               setState(() {
                 sortType = SortType.NAME;
                 allTasks.sort((task1, task2) {
-                  return Task.sortTask(sortType, task1, task2);
+                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+                });
+              });
+            },
+          ),
+          PopupMenuItem(
+            child: const Row(
+              children: [
+                Icon(Icons.supervised_user_circle_rounded, color: Colors.black54),
+                SizedBox(width: 8),
+                Text('Usuari'),
+              ],
+            ),
+            onTap: () {
+              setState(() {
+                sortType = SortType.USER;
+                allTasks.sort((task1, task2) {
+                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                 });
               });
             },
@@ -854,6 +871,8 @@ class ToDoPage extends State<MyHomePageToDo> {
       ),
     );
   }
+
+  
 
   userFilter() {
     return Container(
@@ -875,9 +894,9 @@ class ToDoPage extends State<MyHomePageToDo> {
         onSelected: (value) async {
           //TaskController tc = TaskController.empty();
           if (value == AppStrings.SHOWALL) {
-            await taskController.loadAllTasksFromDB(sortType);
+            await taskController.loadAllTasksFromDB();
           } else {
-            await taskController.loadTasksFromDB(value, sortType);
+            await taskController.loadTasksFromDB(value);
           }
           setState(() {
             allTasks = taskController.tasks;

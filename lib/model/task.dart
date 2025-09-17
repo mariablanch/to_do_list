@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_list/utils/priorities.dart';
-import 'package:to_do_list/utils/sort.dart';
 
 class Task implements Comparable<Task> {
   String _id;
@@ -115,14 +114,4 @@ class Task implements Comparable<Task> {
     return comp;
   }
 
-  static int sortTask(SortType type, Task task1, Task task2) {
-    switch (type) {
-      case SortType.NONE:
-        return task1.compareTo(task2);
-      case SortType.DATE:
-        return task1._limitDate.compareTo(task2._limitDate);
-      case SortType.NAME:
-        return task1._name.compareTo(task2._name);
-    }
-  }
 }
