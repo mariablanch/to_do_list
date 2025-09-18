@@ -56,7 +56,6 @@ class ConfigHP extends StatefulWidget {
 class ConfigPage extends State<ConfigHP> {
   int selectedIndex = 0;
   late User myUser;
-  //bool editMode = false;
   bool viewUserList = true;
   bool userEdit = false;
   late bool isAdmin;
@@ -96,75 +95,13 @@ class ConfigPage extends State<ConfigHP> {
 
   @override
   Widget build(BuildContext context) {
-    //final Color pageColor = Theme.of(context).colorScheme.primary;
     final isWide = MediaQuery.of(context).size.width > 600;
 
-    /*return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text('Configuració'),
-      ),
-
-      body: Container(
-        margin: const EdgeInsets.all(15),
-        child: Row(
-          children: [
-            if (isWideScreen)
-              NavigationRail(
-                selectedIndex: selectedIndex,
-                onDestinationSelected: (int index) {
-                  setState(() {
-                    selectedIndex = index;
-                  });
-                },
-                labelType: NavigationRailLabelType.all,
-                destinations: [
-                  NavigationRailDestination(
-                    icon: const Icon(Icons.person),
-                    label: const Text('Perfil'),
-                    selectedIcon: Icon(Icons.person, color: pageColor),
-                  ),
-                  NavigationRailDestination(
-                    icon: const Icon(Icons.settings),
-                    label: const Text('Configuració'),
-                    selectedIcon: Icon(Icons.settings, color: pageColor),
-                  ),
-
-                  if (isAdmin)
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.people),
-                      label: const Text('Usuaris'),
-                      disabled: !isAdmin,
-                      selectedIcon: Icon(Icons.people, color: pageColor),
-                    ),
-
-                  const NavigationRailDestination(
-                    icon: Icon(Icons.delete),
-                    label: Text('Eliminar\ncompte'),
-                    selectedIcon: Icon(Icons.delete, color: Colors.red),
-                  ),
-                ],
-              ),
-            if (isWideScreen) VerticalDivider(width: 30),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                //child: adminPages[selectedIndex],
-                child: isAdmin
-                    ? adminPages[selectedIndex]
-                    : pages[selectedIndex],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );*/
     return Scaffold(
       appBar: isWide
           ? AppBar(backgroundColor: Theme.of(context).colorScheme.inversePrimary, title: Text('Configuració'))
           : AppBar(
               title: Text('Configuració'),
-              //title: Text(menuTitles[selectedIndex]),
               actions: [
                 Builder(
                   builder: (context) =>
@@ -178,7 +115,6 @@ class ConfigPage extends State<ConfigHP> {
           : Drawer(
               child: ListView(
                 children: [
-                  //DrawerHeader(child: Text('Menú')),
                   _drawerItem('Perfil', 0),
                   _drawerItem('Configuració', 1),
                   if (isAdmin) _drawerItem('Usuaris', 2),
@@ -189,23 +125,34 @@ class ConfigPage extends State<ConfigHP> {
       body: Row(
         children: [
           if (isWide)
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (int index) {
-                setState(() => selectedIndex = index);
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final rail = NavigationRail(
+                  selectedIndex: selectedIndex,
+                  onDestinationSelected: (int index) {
+                    setState(() => selectedIndex = index);
+                  },
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    _railItem(Icons.person, 'Perfil'),
+                    _railItem(Icons.settings, 'Configuració'),
+                    if(isAdmin) _railItem(Icons.people, 'Usuaris'),
+                    _railItem(Icons.delete, 'Eliminar\ncompte'),
+                  ],
+                );
+
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(child: rail),
+                  ),
+                );
               },
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                NavigationRailDestination(icon: Icon(Icons.person), label: Text('Perfil')),
-                NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Configuració')),
-                if (isAdmin) NavigationRailDestination(icon: Icon(Icons.people), label: Text('Usuaris')),
-                NavigationRailDestination(icon: Icon(Icons.delete), label: Text('Eliminar\ncompte')),
-              ],
             ),
           if (isWide) VerticalDivider(width: 10),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(30),
               child: isAdmin ? adminPages[selectedIndex] : pages[selectedIndex],
             ),
           ),
@@ -225,8 +172,12 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
+  NavigationRailDestination _railItem (IconData icon, String label){
+    return NavigationRailDestination(icon: Icon(icon), label: Text(label));
+  }
+
   Widget profilePage() {
-    return Column(
+    return Align(alignment: Alignment.topCenter, child: SingleChildScrollView(child:  Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
@@ -241,7 +192,7 @@ class ConfigPage extends State<ConfigHP> {
           ],
         ),
       ],
-    );
+    )));
   }
 
   TableRow buildTableRow(String label, String value) {
@@ -257,23 +208,24 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget editAccountPage() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('EDITAR PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
-          SizedBox(height: 20),
-          editAccount(myUser, false),
-        ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SingleChildScrollView(
+        //padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('EDITAR PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+            SizedBox(height: 20),
+            editAccount(myUser, false),
+          ],
+        ),
       ),
     );
   }
 
   editAccount(User editUser, bool isNew) {
     final formKey = GlobalKey<FormState>();
-
-    //isUserAdmin = editUser.userRole == UserRole.ADMIN;
 
     // false si el usuari es igual (s edita a ell mateix)
     // true si es diferent (edita a algu altre ==> restablir contrasenya)
@@ -291,127 +243,128 @@ class ConfigPage extends State<ConfigHP> {
     TextEditingController surnameController = TextEditingController(text: surname);
     TextEditingController userNameController = TextEditingController(text: editUser.userName);
     TextEditingController mailController = TextEditingController(text: editUser.mail);
-    //TextEditingController paswordController = TextEditingController();
 
     return Form(
       key: formKey,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
-              controller: nameController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                name = value!;
-              },
+      child: SingleChildScrollView(
+        //padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
+                controller: nameController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  name = value!;
+                },
+              ),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Cognom'),
-              controller: surnameController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                surname = value!;
-              },
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Cognom'),
+                controller: surnameController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  surname = value!;
+                },
+              ),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom d\'usuari'),
-              controller: userNameController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                userName = value!;
-              },
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom d\'usuari'),
+                controller: userNameController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  userName = value!;
+                },
+              ),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Correu'),
-              controller: mailController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                mail = value!;
-              },
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Correu'),
+                controller: mailController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  mail = value!;
+                },
+              ),
             ),
-          ),
 
-          /*?adminEdit
-              ? null
-              : */
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
-            child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nova contrasenya'),
-              obscureText: true,
-              //readOnly: adminEdit,
-              //controller: paswordController,
-              validator: (value) {
-                if (isNew && (value == null || value.isEmpty)) {
-                  return 'Aquest camp és obligatori';
-                }
-                return null;
-              },
-              onSaved: (value) {
-                password = value!;
-              },
-            ),
-          ),
-
-          Container(height: 5),
-
-          if (isAdmin && editUser.userName != myUser.userName)
-            Row(
-              children: [
-                Text('Permisos d\'administrador'),
-
-                Container(width: 10),
-
-                Switch(
-                  //value: isUserAdmin,
-                  value: UserRole.isAdmin(editUser.userRole),
-                  onChanged: (bool value) async {
-                    setState(() {
-                      if (value) {
-                        editUser.userRole = UserRole.ADMIN;
-                      } else {
-                        editUser.userRole = UserRole.USER;
-                      }
-                      roleChanged = !roleChanged;
-                    });
-                  },
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: isNew ? 'Contrasenya' : 'Nova contrasenya',
                 ),
-              ],
+                obscureText: true,
+                readOnly: adminEdit,
+                //controller: paswordController,
+                validator: (value) {
+                  if (isNew && (value == null || value.isEmpty)) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  password = value!;
+                },
+              ),
             ),
 
-          if (isAdmin)
+            Container(height: 5),
+
+            if (isAdmin && editUser.userName != myUser.userName)
+              Row(
+                children: [
+                  Text('Permisos d\'administrador'),
+
+                  Container(width: 10),
+
+                  Switch(
+                    //value: isUserAdmin,
+                    value: UserRole.isAdmin(editUser.userRole),
+                    onChanged: (bool value) async {
+                      setState(() {
+                        if (value) {
+                          editUser.userRole = UserRole.ADMIN;
+                        } else {
+                          editUser.userRole = UserRole.USER;
+                        }
+                        roleChanged = !roleChanged;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+            //if (isAdmin)
             Row(
               children: [
                 Text('Icona'),
@@ -419,9 +372,6 @@ class ConfigPage extends State<ConfigHP> {
                 Container(width: 10),
 
                 DropdownButton<String>(
-                  /*value: User.iconMap.entries
-                      .firstWhere((e) => e.value == editUser.icon.icon)
-                      .key,*/
                   value: iconSelected,
                   hint: Icon(Icons.person),
                   items: User.iconMap.keys.map((String iconName) {
@@ -429,8 +379,6 @@ class ConfigPage extends State<ConfigHP> {
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
-                      //editUser = editUser.copyWith(icon: Icon(User.iconMap[newValue!]));
-                      //editUser.icon = Icon(User.iconMap[newValue!]);
                       iconSelected = newValue!;
                     });
                   },
@@ -444,85 +392,80 @@ class ConfigPage extends State<ConfigHP> {
               ],
             ),
 
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 20),
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 20),
 
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  bool usernameExists = await userController.userNameExists(userName);
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    formKey.currentState!.save();
+                    bool usernameExists = await userController.userNameExists(userName);
 
-                  if (isNew) {
-                    if (!usernameExists) {
-                      User user = editUser.copyWith(
-                        name: name,
-                        surname: surname,
-                        userName: userName,
-                        mail: mail,
-                        password: User.hashPassword(password),
-                      );
-                      await userController.createAccountDB(user);
-                      await loadUsers();
-
-                      Navigator.pop(context, user);
-                    }
-                  } else {
-                    if (userName != editUser.userName && usernameExists) {
-                      userNotAviableMessage();
-                    } else {
-                      bool confirmPswrd = await confirmPasword(false);
-
-                      if (confirmPswrd) {
-                        bool isEmpty = password.isEmpty;
-
-                        User updatedUser = editUser.copyWith(
+                    if (isNew) {
+                      if (!usernameExists) {
+                        User user = editUser.copyWith(
                           name: name,
                           surname: surname,
                           userName: userName,
                           mail: mail,
-                          password: !isEmpty ? User.hashPassword(password) : editUser.password,
-                          icon: Icon(User.iconMap[iconSelected]),
+                          password: User.hashPassword(password),
                         );
-                        try {
-                          await userController.updateProfileDB(updatedUser, editUser);
-                        } catch (e) {
-                          logError('EDIT ACCOUNT configPage', e);
-                        }
-                        //user = updatedUser;
+                        await userController.createAccountDB(user);
+                        await loadUsers();
 
-                        setState(() {
-                          //selectedIndex = 0;
-                          viewUserList = true;
-                          userEdit = false;
-                          //editMode = false;
-                        });
+                        Navigator.pop(context, user);
+                      }
+                    } else {
+                      if (userName != editUser.userName && usernameExists) {
+                        userNotAviableMessage();
+                      } else {
+                        bool confirmPswrd = await confirmPasword(false);
 
-                        if (roleChanged) {
-                          final uR = !UserRole.isAdmin(editUser.userRole) ? UserRole.USER : UserRole.ADMIN;
-                          await userController.giveAdmin(editUser, uR);
-                        }
+                        if (confirmPswrd) {
+                          bool isEmpty = password.isEmpty;
 
-                        if (!adminEdit) {
-                          Navigator.pop(context, updatedUser);
-                        } else {
-                          await loadUsers();
+                          User updatedUser = editUser.copyWith(
+                            name: name,
+                            surname: surname,
+                            userName: userName,
+                            mail: mail,
+                            password: !isEmpty ? User.hashPassword(password) : editUser.password,
+                            icon: Icon(User.iconMap[iconSelected]),
+                          );
+                          try {
+                            await userController.updateProfileDB(updatedUser, editUser);
+                          } catch (e) {
+                            logError('EDIT ACCOUNT configPage', e);
+                          }
+                          //user = updatedUser;
+
+                          setState(() {
+                            //selectedIndex = 0;
+                            viewUserList = true;
+                            userEdit = false;
+                            //editMode = false;
+                          });
+
+                          if (roleChanged) {
+                            final uR = !UserRole.isAdmin(editUser.userRole) ? UserRole.USER : UserRole.ADMIN;
+                            await userController.giveAdmin(editUser, uR);
+                          }
+
+                          if (!adminEdit) {
+                            Navigator.pop(context, updatedUser);
+                          } else {
+                            await loadUsers();
+                          }
                         }
                       }
-
-                      /*nameController.clear();
-                    surnameController.clear();
-                    userNameController.clear();
-                    mailController.clear();
-                    paswordController.clear();*/
                     }
                   }
-                }
-              },
-              label: Text(!isNew ? 'Guardar canvis' : 'Crear compte'),
+                },
+                label: Text(!isNew ? 'Guardar canvis' : 'Crear compte'),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -638,8 +581,6 @@ class ConfigPage extends State<ConfigHP> {
                   });
                 },
                 icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
-
-                //icon: Icon(Icons.arrow_back, color: Colors.red),
               ),
             Text(
               viewUserList ? 'USUARIS' : editUser.userName,
@@ -650,7 +591,7 @@ class ConfigPage extends State<ConfigHP> {
 
         SizedBox(height: 20),
 
-        viewUserList ? userList() : viewUser(userEdit, editUser),
+        viewUserList ? userList() : Expanded(child: viewUser(userEdit, editUser)),
 
         if (viewUserList)
           Container(
@@ -678,13 +619,10 @@ class ConfigPage extends State<ConfigHP> {
           final user = allUsers[index];
 
           return Card(
-            //color: Theme.of(context).colorScheme.inversePrimary,
             child: ListTile(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.all(5),
 
-              //leading: Text('    ${index + 1}'),
-              //leading: user.icon,
               leading: SizedBox(width: 35, child: user.icon),
               title: Text(user.userName),
               subtitle: Text('${user.name} ${user.surname}'),
@@ -731,51 +669,52 @@ class ConfigPage extends State<ConfigHP> {
   viewUser(bool edit, User user) {
     return edit
         ? editAccount(user, false)
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Table(
-                columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
-                children: [
-                  buildTableRow('Nom:', user.name),
-                  buildTableRow('Cognom:', user.surname),
-                  buildTableRow('Nom d\'usuari:', user.userName),
-                  buildTableRow('Correu:', user.mail),
-                  buildTableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
-                ],
-              ),
+        : SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Table(
+                  columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+                  children: [
+                    buildTableRow('Nom:', user.name),
+                    buildTableRow('Cognom:', user.surname),
+                    buildTableRow('Nom d\'usuari:', user.userName),
+                    buildTableRow('Correu:', user.mail),
+                    buildTableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
+                  ],
+                ),
 
-              Container(height: 30),
+                Container(height: 30),
 
-              ElevatedButton(
-                onPressed: () async {
-                  final isUserName = await confirmUserName(user.userName);
-                  if (isUserName) {
-                    userController.resetPswrd(user);
-                  }
-                },
-                child: Text('Reiniciar contrasenya'),
-              ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final isUserName = await confirmUserName(user.userName);
+                    if (isUserName) {
+                      userController.resetPswrd(user);
+                    }
+                  },
+                  child: Text('Reiniciar contrasenya'),
+                ),
 
-              Container(height: 15),
+                Container(height: 15),
 
-              ElevatedButton(
-                onPressed: () async {
-                  if (await confirmPasword(true)) {
-                    await userController.deleteUser(user.userName);
+                ElevatedButton(
+                  onPressed: () async {
+                    if (await confirmPasword(true)) {
+                      await userController.deleteUser(user.userName);
 
-                    int pos = allUsers.indexOf((user));
+                      int pos = allUsers.indexOf((user));
 
-                    setState(() {
-                      allUsers.removeAt(pos);
-                      viewUserList = true;
-                    });
-                  }
-                },
-                child: Text('Eliminar usuari'),
-                //child: Text('Donar permís d\'administrador'),
-              ),
-            ],
+                      setState(() {
+                        allUsers.removeAt(pos);
+                        viewUserList = true;
+                      });
+                    }
+                  },
+                  child: Text('Eliminar usuari'),
+                ),
+              ],
+            ),
           );
   }
 

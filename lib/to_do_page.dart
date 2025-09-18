@@ -44,7 +44,7 @@ class MyAppToDo extends StatelessWidget {
       title: 'ToDoList',
       home: MyHomePageToDo(user: user),
       theme: ThemeData(
-        colorScheme: (user.userRole == UserRole.USER)
+        colorScheme: (!UserRole.isAdmin(user.userRole))
             ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
             : ColorScheme.fromSeed(seedColor: Colors.amber),
       ),
@@ -963,100 +963,102 @@ class TaskFormState extends State<TaskForm> {
 
     return Form(
       key: _formKey,
-      child: Column(
-        children: [
-          //NOM
-          TextFormField(
-            controller: nameController,
-            decoration: InputDecoration(labelText: 'Nom', border: OutlineInputBorder()),
-            validator: (value) => (value == null || value.isEmpty) ? 'El nom no pot ser buit' : null,
-            onSaved: (value) => name = value!,
-          ),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            //NOM
+            TextFormField(
+              controller: nameController,
+              decoration: InputDecoration(labelText: 'Nom', border: OutlineInputBorder()),
+              validator: (value) => (value == null || value.isEmpty) ? 'El nom no pot ser buit' : null,
+              onSaved: (value) => name = value!,
+            ),
 
-          SizedBox(height: 10),
+            SizedBox(height: 10),
 
-          //DESCRIPCIÓ
-          TextFormField(
-            controller: descriptionController,
-            decoration: InputDecoration(labelText: 'Descripció', border: OutlineInputBorder()),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Es requereix de la descripció';
-              }
-              return null;
-            },
-            onSaved: (value) => description = value!,
-          ),
-
-          SizedBox(height: 10),
-
-          //DATA LIMIT
-          TextFormField(
-            controller: dateController,
-            decoration: InputDecoration(labelText: 'Data límit', border: OutlineInputBorder()),
-            readOnly: true,
-            onTap: () async {
-              DateTime? picked = await showDatePicker(
-                context: context,
-                //initialDate: widget.task.limitDate,
-                initialDate: newTask.limitDate,
-                //firstDate: DateTime.now(),
-                firstDate: newTask.limitDate,
-                lastDate: DateTime(2050),
-              );
-              if (picked != null) {
-                setState(() {
-                  selectedDate = picked;
-                  dateController.text = DateFormat('dd/MM/yyyy').format(picked);
-                });
-              }
-            },
-            validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
-          ),
-
-          SizedBox(height: 10),
-
-          //PRIORITAT
-          DropdownButtonFormField<String>(
-            decoration: InputDecoration(border: OutlineInputBorder()),
-            hint: Text('Selecciona nivell de prioritat'),
-            value: prioritySTR!.isNotEmpty ? prioritySTR : null,
-            items: priorities.map((line) => DropdownMenuItem(value: line, child: Text(line))).toList(),
-            onChanged: (value) {
-              setState(() {
-                prioritySTR = value;
-              });
-            },
-            validator: (value) => value == null ? 'Siusplau, seleccioneu una prioritat' : null,
-          ),
-
-          SizedBox(height: 20),
-
-          ElevatedButton.icon(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                _formKey.currentState!.save();
-
-                Task updatedTask = widget.task.copyWith(
-                  name: name,
-                  description: description,
-                  priority: Priorities.priorityFromString(prioritySTR!),
-                  limitDate: selectedDate!,
-                );
-
-                if (widget.onTaskCreated != null) {
-                  widget.onTaskCreated!(updatedTask.copyWith(id: ''));
-                } else if (widget.onTaskEdited != null) {
-                  widget.onTaskEdited!(updatedTask);
+            //DESCRIPCIÓ
+            TextFormField(
+              controller: descriptionController,
+              decoration: InputDecoration(labelText: 'Descripció', border: OutlineInputBorder()),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Es requereix de la descripció';
                 }
+                return null;
+              },
+              onSaved: (value) => description = value!,
+            ),
 
-                Navigator.of(context).pop();
-              }
-            },
-            icon: Icon(widget.onTaskCreated != null ? Icons.add : Icons.edit),
-            label: Text(widget.onTaskCreated != null ? 'Crear' : 'Editar'),
-          ),
-        ],
+            SizedBox(height: 10),
+
+            //DATA LIMIT
+            TextFormField(
+              controller: dateController,
+              decoration: InputDecoration(labelText: 'Data límit', border: OutlineInputBorder()),
+              readOnly: true,
+              onTap: () async {
+                DateTime? picked = await showDatePicker(
+                  context: context,
+                  //initialDate: widget.task.limitDate,
+                  initialDate: newTask.limitDate,
+                  //firstDate: DateTime.now(),
+                  firstDate: newTask.limitDate,
+                  lastDate: DateTime(2050),
+                );
+                if (picked != null) {
+                  setState(() {
+                    selectedDate = picked;
+                    dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                  });
+                }
+              },
+              validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
+            ),
+
+            SizedBox(height: 10),
+
+            //PRIORITAT
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(border: OutlineInputBorder()),
+              hint: Text('Selecciona nivell de prioritat'),
+              value: prioritySTR!.isNotEmpty ? prioritySTR : null,
+              items: priorities.map((line) => DropdownMenuItem(value: line, child: Text(line))).toList(),
+              onChanged: (value) {
+                setState(() {
+                  prioritySTR = value;
+                });
+              },
+              validator: (value) => value == null ? 'Siusplau, seleccioneu una prioritat' : null,
+            ),
+
+            SizedBox(height: 20),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+
+                  Task updatedTask = widget.task.copyWith(
+                    name: name,
+                    description: description,
+                    priority: Priorities.priorityFromString(prioritySTR!),
+                    limitDate: selectedDate!,
+                  );
+
+                  if (widget.onTaskCreated != null) {
+                    widget.onTaskCreated!(updatedTask.copyWith(id: ''));
+                  } else if (widget.onTaskEdited != null) {
+                    widget.onTaskEdited!(updatedTask);
+                  }
+
+                  Navigator.of(context).pop();
+                }
+              },
+              icon: Icon(widget.onTaskCreated != null ? Icons.add : Icons.edit),
+              label: Text(widget.onTaskCreated != null ? 'Crear' : 'Editar'),
+            ),
+          ],
+        ),
       ),
     );
   }

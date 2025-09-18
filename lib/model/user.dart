@@ -38,7 +38,7 @@ class User {
     'check': Icons.check,
   };
 
-  static Icon getRandomIcon() {
+  static IconData getRandomIcon() {
     Random random = Random();
 
     final icons = <IconData>[
@@ -66,7 +66,7 @@ class User {
 
     final randomIconData = icons[random.nextInt(icons.length)];
 
-    return Icon(randomIconData);
+    return randomIconData;
   }
 
   User.empty()
@@ -76,7 +76,7 @@ class User {
       this._mail = '',
       this._password = '',
       this._userRole = UserRole.USER,
-      this._icon = getRandomIcon();
+      this._icon = Icon(getRandomIcon());
   User.parameter(
     String name,
     String surname,
@@ -92,7 +92,7 @@ class User {
       this._password = password,
       this._userRole = role,
       //this._icon = icon;
-      this._icon = getRandomIcon();
+      this._icon = Icon(getRandomIcon());
   User.copy(User user)
     : this._name = user.name,
       this._surname = user.surname,
