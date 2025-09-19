@@ -85,6 +85,8 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) {
       loadUsers();
     }
+    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    setState(() {});
   }
 
   Future<void> loadUsers() async {

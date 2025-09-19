@@ -64,12 +64,12 @@ class ToDoPage extends State<MyHomePageToDo> {
   SortType sortType = SortType.NONE;
   late User myUser;
 
-  bool showAllTask = true;
+  //bool showAllTask = true;
 
   List<Task> allTasks = [];
   List<Notifications> notifications = [];
   List<String> allUserNames = [];
-  List<String> usersFromTask = [];
+  //List<String> usersFromTask = [];
   Map<String, String> taskAndUsersMAP = {};
 
   NotificationController notController = NotificationController();
@@ -196,7 +196,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 Container(width: 10),
                 if (UserRole.isAdmin(myUser.userRole)) userFilter(),
                 Container(width: 10),
-                if (UserRole.isAdmin(myUser.userRole)) showHideTask(),
+                //if (UserRole.isAdmin(myUser.userRole)) showHideTask(),
               ],
             ),
 
@@ -374,8 +374,20 @@ class ToDoPage extends State<MyHomePageToDo> {
             child: SingleChildScrollView(
               padding: EdgeInsets.all(16),
               child: TaskForm(
-                onTaskCreated: (Task task) async {
-                  await taskController.addTaskToDataBase(task, myUser.userName);
+                isAdmin: UserRole.isAdmin(myUser.userRole),
+                onTaskCreated: (Task task, Set<String> users) async {
+                  if (UserRole.isAdmin(myUser.userRole)) {
+                    await taskController.addTaskToDataBase(task, users.first);
+                    users.remove(users.first);
+                    if (users.length > 1) {
+                      for (String userName in users) {
+                        taskController.createRelation(task.id, userName);
+                      }
+                    }
+                  } else {
+                    await taskController.addTaskToDataBase(task, myUser.userName);
+                  }
+
                   addTask(task);
                   await taskAndUsers();
 
@@ -407,11 +419,11 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                if (UserRole.isAdmin(myUser.userRole) && showAllTask) {
+                /*if (UserRole.isAdmin(myUser.userRole) && showAllTask) {
                   await taskController.deleteTaskWithRelation(taskId);
                 } else {
-                  await taskController.removeTask(taskId, myUser.userName);
-                }
+                }*/
+                await taskController.removeTask(taskId, myUser.userName);
                 setState(() {
                   allTasks.removeAt(index);
                 });
@@ -872,7 +884,12 @@ class ToDoPage extends State<MyHomePageToDo> {
 
         itemBuilder: (BuildContext context) {
           return allUserNames.map((String userName) {
-            return PopupMenuItem<String>(value: userName, child: Text(userName));
+            String str = userName;
+            if (userName == myUser.userName) {
+              str = 'Veure les meves';
+            }
+
+            return PopupMenuItem<String>(value: userName, child: Text(str));
           }).toList();
         },
 
@@ -901,7 +918,14 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  showHideTask() {
+  /*ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('S\'ha de seleccionar mínim un usuari'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );*/
+
+  /*showHideTask() {
     return Container(
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(bottom: 10),
@@ -917,16 +941,24 @@ class ToDoPage extends State<MyHomePageToDo> {
         icon: Icon(showAllTask ? Icons.visibility_off : Icons.visibility),
       ),
     );
-  }
+  }*/
 }
 
 class TaskForm extends StatefulWidget {
-  final Function(Task)? onTaskCreated;
+  final Function(Task, Set<String>)? onTaskCreated;
   final Function(Task)? onTaskEdited;
   final Task task;
+  final bool? isAdmin;
 
-  const TaskForm({super.key, this.onTaskCreated, required this.task, this.onTaskEdited})
-    : assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited');
+  //const TaskForm({super.key, this.onTaskCreated, required this.task, this.onTaskEdited, required this.isAdmin})
+  //: assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited');
+
+  const TaskForm({super.key, this.onTaskCreated, this.onTaskEdited, required this.task, this.isAdmin})
+    : assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited'),
+      assert(
+        (onTaskCreated != null && isAdmin != null) || (onTaskEdited != null),
+        'es requereix isAdmin, ja que s\'utilitza onTaskCreated',
+      );
 
   @override
   TaskFormState createState() => TaskFormState();
@@ -942,6 +974,13 @@ class TaskFormState extends State<TaskForm> {
   late TextEditingController nameController;
   late TextEditingController descriptionController;
 
+  late bool isAdmin = false;
+
+  List<User> users = [];
+  Set<String> selectedUserIds = {};
+
+  String validator = '';
+
   @override
   void initState() {
     super.initState();
@@ -952,6 +991,19 @@ class TaskFormState extends State<TaskForm> {
         : dateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.limitDate));
     nameController = TextEditingController(text: widget.task.name);
     descriptionController = TextEditingController(text: widget.task.description);
+    if (widget.isAdmin != null && widget.isAdmin == true) {
+      isAdmin = true;
+      usersFromTask();
+    }
+    //setState(() {});
+  }
+
+  Future<void> usersFromTask() async {
+    UserController uc = UserController();
+    users = await uc.loadAllUsers();
+    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+    setState(() {});
+    //users = usersList.map((User user) => user.userName).toList();
   }
 
   @override
@@ -1034,8 +1086,57 @@ class TaskFormState extends State<TaskForm> {
 
             SizedBox(height: 20),
 
+            if (isAdmin)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Usuaris que tindran aquesta tasca:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.inverseSurface,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+
+            if (isAdmin)
+              Column(
+                children: [
+                  for (User user in users)
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: selectedUserIds.contains(user.userName),
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                selectedUserIds.add(user.userName);
+                              } else {
+                                selectedUserIds.remove(user.userName);
+                              }
+                            });
+                          },
+                        ),
+                        Text(user.userName),
+                      ],
+                    ),
+                ],
+              ),
+
+            SizedBox(height: 5),
+            Text(validator),
+            SizedBox(height: 10),
+
             ElevatedButton.icon(
               onPressed: () {
+                if (widget.onTaskCreated != null && selectedUserIds.isEmpty) {
+                  validator = 'S\'ha de seleccionar mínim un usuari';
+                  setState(() {});
+                  return; // Detiene el flujo si no hay usuarios seleccionados
+                }
+                validator = '';
+                setState(() {});
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
 
@@ -1047,7 +1148,7 @@ class TaskFormState extends State<TaskForm> {
                   );
 
                   if (widget.onTaskCreated != null) {
-                    widget.onTaskCreated!(updatedTask.copyWith(id: ''));
+                    widget.onTaskCreated!(updatedTask.copyWith(id: ''), selectedUserIds);
                   } else if (widget.onTaskEdited != null) {
                     widget.onTaskEdited!(updatedTask);
                   }
