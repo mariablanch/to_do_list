@@ -742,7 +742,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     return str;
   }*/
 
-  Future<void> taskAndUsers() async {
+  Future<Map<String, String>> taskAndUsers() async {
     String users;
     taskAndUsersMAP.clear();
     for (Task task in allTasks) {
@@ -754,6 +754,7 @@ class ToDoPage extends State<MyHomePageToDo> {
         taskAndUsersMAP[task.id] = users;
       }
     }
+    return taskAndUsersMAP;
     //taskAndUsersMAP.;
     //replaceAll('\n', ' | ')
   }

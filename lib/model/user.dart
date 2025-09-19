@@ -36,6 +36,8 @@ class User {
     'local_play_sharp': Icons.local_play_sharp,
     'theater_comedy': Icons.theater_comedy,
     'check': Icons.check,
+    'mood_rounded': Icons.mood_rounded,
+    'nightlight_round': Icons.nightlight_round,
   };
 
   static IconData getRandomIcon() {
@@ -62,6 +64,8 @@ class User {
       Icons.local_play_sharp,
       Icons.theater_comedy,
       Icons.check,
+      Icons.mood_rounded,
+      Icons.nightlight_round,
     ];
 
     final randomIconData = icons[random.nextInt(icons.length)];

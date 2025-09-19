@@ -23,9 +23,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ToDoList',
       home: MyHomePage(),
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
     );
   }
 }
@@ -56,25 +54,24 @@ class LogInPage extends State<MyHomePage> {
       ),
       body: Container(
         margin: EdgeInsets.symmetric(horizontal: 50.0, vertical: 30.0),
-        child: SingleChildScrollView(padding: EdgeInsets.all(16), child:Column(
-          children: [
-            _hasAccount ? logInForm() : createAccountForm(),
-            //Text(control),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _hasAccount = !_hasAccount;
-                  control = '';
-                });
-              },
-              child: Text(
-                _hasAccount
-                    ? 'No tens compte? Registra\'t'
-                    : 'Ja tens compte? Inicia sessió',
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _hasAccount ? logInForm() : createAccountForm(),
+              //Text(control),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _hasAccount = !_hasAccount;
+                    control = '';
+                  });
+                },
+                child: Text(_hasAccount ? 'No tens compte? Registra\'t' : 'Ja tens compte? Inicia sessió'),
               ),
-            ),
-          ],
-        ),)
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -91,10 +88,7 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 10),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom usuari',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom usuari'),
               controller: nameController,
 
               validator: (value) {
@@ -111,10 +105,7 @@ class LogInPage extends State<MyHomePage> {
 
           TextFormField(
             controller: pswrdController,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Contrasenya',
-            ),
+            decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Contrasenya'),
 
             obscureText: true,
             validator: (value) {
@@ -145,16 +136,10 @@ class LogInPage extends State<MyHomePage> {
                         //control = 'Entrant a la pàgina';
                         control = '';
                       });
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MyAppToDo(user: retUser),
-                        ),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => MyAppToDo(user: retUser)));
                     } else {
                       setState(() {
-                        control =
-                            'L\'usuari no s\'ha trobat, reviseu les dades';
+                        control = 'L\'usuari no s\'ha trobat, reviseu les dades';
                       });
                     }
                   } catch (e) {
@@ -194,10 +179,7 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
               controller: nameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -213,10 +195,7 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Cognom',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Cognom'),
               controller: surnameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -232,10 +211,7 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nom d\'usuari',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom d\'usuari'),
               controller: userNameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -251,10 +227,7 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Correu',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Correu'),
               controller: mailController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -270,10 +243,7 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Contrasenya',
-              ),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Contrasenya'),
               controller: paswordController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -294,14 +264,7 @@ class LogInPage extends State<MyHomePage> {
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
-                  user = User.parameter(
-                    name,
-                    surname,
-                    userName,
-                    mail,
-                    password,
-                    UserRole.USER,
-                  );
+                  user = User.parameter(name, surname, userName, mail, password, UserRole.USER);
                   nameController.clear();
                   surnameController.clear();
                   userNameController.clear();
@@ -318,13 +281,11 @@ class LogInPage extends State<MyHomePage> {
                       });
                     } else if (accountError == DbConstants.USEREXISTS) {
                       setState(() {
-                        control =
-                            'El nom d\'usuari ja existeix, prova a fer-ne un altre';
+                        control = 'El nom d\'usuari ja existeix, prova a fer-ne un altre';
                       });
                     } else {
                       setState(() {
-                        control =
-                            'Ha hagut un problema amb la base de dades, torna-ho a provar més tard';
+                        control = 'Ha hagut un problema amb la base de dades, torna-ho a provar més tard';
                       });
                     }
                   } catch (e) {
@@ -361,12 +322,11 @@ class LogInPage extends State<MyHomePage> {
       print('LOG IN $e');
       ret = false;
     }
-    
+
     setState(() {
       retUser = user;
     });
 
     return ret;
   }
-
 }

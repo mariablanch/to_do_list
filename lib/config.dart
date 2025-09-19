@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:to_do_list/controller/task_controller.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/model/task.dart';
+//import 'package:to_do_list/to_do_page.dart';
 import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/app_strings.dart';
@@ -69,14 +72,19 @@ class ConfigPage extends State<ConfigHP> {
   List<Widget> get adminPages => [profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
 
   UserController userController = UserController();
+  //TaskController taskController = TaskController();
   List<User> allUsers = [];
+
+  Map<String, List<Task>> tasksFromUsers = {};
 
   @override
   void initState() {
     super.initState();
     myUser = User.copy(widget.user);
     isAdmin = UserRole.isAdmin(myUser.userRole);
-    if (isAdmin) loadUsers();
+    if (isAdmin) {
+      loadUsers();
+    }
   }
 
   Future<void> loadUsers() async {
@@ -91,6 +99,15 @@ class ConfigPage extends State<ConfigHP> {
       allUsers = users;
       iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     });
+    await loadTask();
+  }
+
+  Future<void> loadTask() async {
+    TaskController tk = TaskController();
+    for (User user in allUsers) {
+      await tk.loadTasksFromDB(user.userName);
+      tasksFromUsers[user.userName] = tk.tasks;
+    }
   }
 
   @override
@@ -136,7 +153,7 @@ class ConfigPage extends State<ConfigHP> {
                   destinations: [
                     _railItem(Icons.person, 'Perfil'),
                     _railItem(Icons.settings, 'Configuració'),
-                    if(isAdmin) _railItem(Icons.people, 'Usuaris'),
+                    if (isAdmin) _railItem(Icons.people, 'Usuaris'),
                     _railItem(Icons.delete, 'Eliminar\ncompte'),
                   ],
                 );
@@ -172,30 +189,35 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  NavigationRailDestination _railItem (IconData icon, String label){
+  NavigationRailDestination _railItem(IconData icon, String label) {
     return NavigationRailDestination(icon: Icon(icon), label: Text(label));
   }
 
   Widget profilePage() {
-    return Align(alignment: Alignment.topCenter, child: SingleChildScrollView(child:  Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
-        SizedBox(height: 20),
-        Table(
-          columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            buildTableRow('Nom:', myUser.name),
-            buildTableRow('Cognom:', myUser.surname),
-            buildTableRow('Nom d\'usuari:', myUser.userName),
-            buildTableRow('Correu:', myUser.mail),
+            Text('PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+            SizedBox(height: 20),
+            Table(
+              columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+              children: [
+                _buildTableRow('Nom:', myUser.name),
+                _buildTableRow('Cognom:', myUser.surname),
+                _buildTableRow('Nom d\'usuari:', myUser.userName),
+                _buildTableRow('Correu:', myUser.mail),
+              ],
+            ),
           ],
         ),
-      ],
-    )));
+      ),
+    );
   }
 
-  TableRow buildTableRow(String label, String value) {
+  TableRow _buildTableRow(String label, String value) {
     return TableRow(
       children: [
         Padding(
@@ -567,7 +589,6 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget usersPage() {
-    //loadUsers();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -634,7 +655,8 @@ class ConfigPage extends State<ConfigHP> {
                   children: [
                     IconButton(
                       tooltip: 'Veure dades',
-                      onPressed: () {
+                      onPressed: () async {
+                        //await taskController.loadTasksFromDB(allUsers[index].userName);
                         setState(() {
                           viewUserList = false;
                           userEdit = false;
@@ -667,6 +689,7 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   viewUser(bool edit, User user) {
+    List<Task> tasks = tasksFromUsers[user.userName]!;
     return edit
         ? editAccount(user, false)
         : SingleChildScrollView(
@@ -676,11 +699,25 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    buildTableRow('Nom:', user.name),
-                    buildTableRow('Cognom:', user.surname),
-                    buildTableRow('Nom d\'usuari:', user.userName),
-                    buildTableRow('Correu:', user.mail),
-                    buildTableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
+                    _buildTableRow('Nom:', user.name),
+                    _buildTableRow('Cognom:', user.surname),
+                    _buildTableRow('Nom d\'usuari:', user.userName),
+                    _buildTableRow('Correu:', user.mail),
+                    _buildTableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
+                  ],
+                ),
+
+                Container(height: 10),
+                Text('------------------------------------------------', style: TextStyle(fontWeight: FontWeight.bold)),
+                Container(height: 10),
+
+                Table(
+                  columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+                  children: [
+                    //for (var entry in usersMap.entries) _buildTableRow('Tasca1 ${entry.key}', '${entry.value}'),
+                    //_buildTableRow('--------------------', '---------------'),
+                    _buildTableRow('Tasques de l\'usuari:', tasks.first.name),
+                    for (Task task in tasks.skip(1).toList()) _buildTableRow('', task.name),
                   ],
                 ),
 
