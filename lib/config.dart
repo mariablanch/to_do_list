@@ -364,7 +364,7 @@ class ConfigPage extends State<ConfigHP> {
 
             Container(height: 5),
 
-            if (isAdmin && editUser.userName != myUser.userName)
+            if (isAdmin && editUser.userName != myUser.userName && !isNew)
               Row(
                 children: [
                   Text('Permisos d\'administrador'),
@@ -388,7 +388,7 @@ class ConfigPage extends State<ConfigHP> {
                 ],
               ),
 
-            //if (isAdmin)
+            if (!isNew)
             Row(
               children: [
                 Text('Icona'),

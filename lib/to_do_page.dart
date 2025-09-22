@@ -313,7 +313,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                     if (users.isNotEmpty) {
                       for (String userName in users) {
                         taskController.createRelation(task.id, userName);
-                        usersToAdd += 'AppStrings.USER_SEPARATOR$userName';
+                        usersToAdd += '${AppStrings.USER_SEPARATOR}$userName';
                       }
                     }
                     taskAndUsersMAP[task.id] = usersToAdd;
@@ -785,7 +785,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     }
     return taskAndUsersMAP;
     //taskAndUsersMAP.;
-    //replaceAll('\n', AppStrings.USER_SEPARATOR)
+    //replaceAll('\n', ${AppStrings.USER_SEPARATOR})
   }
 
   void addTask(Task newTask) {
