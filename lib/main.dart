@@ -147,7 +147,7 @@ class LogInPage extends State<MyHomePage> {
                   }
                 }
               },
-              label: Text('Inicia sessió'),
+              label: Text('Iniciar sessió'),
               //icon: Icon(Icons.login),
             ),
           ),

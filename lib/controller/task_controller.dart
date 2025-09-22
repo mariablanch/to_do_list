@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
+import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/sort.dart';
@@ -222,7 +223,7 @@ class TaskController {
         }
       }
 
-      str = userNames.join(' | ');
+      str = userNames.join(AppStrings.USER_SEPARATOR);
     } catch (e) {
       logError('GET USERS RELATED WITH TASK', e);
     }

@@ -10,4 +10,5 @@ class AppStrings {
   static final String CANCEL = 'Cancel·lar';
 
   static final String USERS = '\u2794 Usuaris:';
+  static final String USER_SEPARATOR = ' | ';
 }

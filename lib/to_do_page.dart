@@ -305,21 +305,25 @@ class ToDoPage extends State<MyHomePageToDo> {
               child: TaskForm(
                 isAdmin: UserRole.isAdmin(myUser.userRole),
                 onTaskCreated: (Task task, Set<String> users) async {
+                  String usersToAdd = '';
                   if (UserRole.isAdmin(myUser.userRole)) {
                     await taskController.addTaskToDataBase(task, users.first);
+                    usersToAdd += users.first;
                     users.remove(users.first);
-                    if (users.length > 1) {
+                    if (users.isNotEmpty) {
                       for (String userName in users) {
                         taskController.createRelation(task.id, userName);
+                        usersToAdd += 'AppStrings.USER_SEPARATOR$userName';
                       }
                     }
+                    taskAndUsersMAP[task.id] = usersToAdd;
                   } else {
                     await taskController.addTaskToDataBase(task, myUser.userName);
+                    taskAndUsersMAP[task.id] = myUser.userName;
                   }
 
                   addTask(task);
-                  await taskAndUsers();
-
+                  //await taskAndUsers();
                   setState(() {
                     //tasks.add(task);
                     allTasks.sort((task1, task2) {
@@ -358,7 +362,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   bool confirmed = await selectUsersToDeleteTask(taskId);
                   if (confirmed) {
                     await taskAndUsers();
-                    if(taskAndUsersMAP[taskId]!.isEmpty){
+                    if (taskAndUsersMAP[taskId]!.isEmpty) {
                       allTasks.removeAt(index);
                       taskAndUsersMAP.remove(taskId);
                     }
@@ -402,7 +406,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Future<bool> selectUsersToDeleteTask(String taskId) async {
     usersSelected.clear();
-    List<String> allUsers = taskAndUsersMAP[taskId]!.split(' | ');
+    List<String> allUsers = taskAndUsersMAP[taskId]!.split(AppStrings.USER_SEPARATOR);
 
     allUsers = allUsers.map((e) => e.trim()).toList();
     allUsers.sort();
@@ -781,7 +785,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     }
     return taskAndUsersMAP;
     //taskAndUsersMAP.;
-    //replaceAll('\n', ' | ')
+    //replaceAll('\n', AppStrings.USER_SEPARATOR)
   }
 
   void addTask(Task newTask) {
@@ -1177,13 +1181,10 @@ class TaskFormState extends State<TaskForm> {
 
             ElevatedButton.icon(
               onPressed: () {
-                if (!isAdmin) {
-                } else {
-                  if (widget.onTaskCreated != null && selectedUserIds.isEmpty) {
-                    validator = 'S\'ha de seleccionar mínim un usuari';
-                    setState(() {});
-                    return;
-                  }
+                if (widget.onTaskCreated != null && selectedUserIds.isEmpty && isAdmin) {
+                  validator = 'S\'ha de seleccionar mínim un usuari';
+                  setState(() {});
+                  return;
                 }
 
                 validator = '';

@@ -348,7 +348,7 @@ class ConfigPage extends State<ConfigHP> {
                   labelText: isNew ? 'Contrasenya' : 'Nova contrasenya',
                 ),
                 obscureText: true,
-                readOnly: adminEdit,
+                //readOnly: adminEdit,
                 //controller: paswordController,
                 validator: (value) {
                   if (isNew && (value == null || value.isEmpty)) {
@@ -432,7 +432,7 @@ class ConfigPage extends State<ConfigHP> {
                           surname: surname,
                           userName: userName,
                           mail: mail,
-                          password: User.hashPassword(password),
+                          password: password,
                         );
                         await userController.createAccountDB(user);
                         await loadUsers();
@@ -718,7 +718,7 @@ class ConfigPage extends State<ConfigHP> {
                   children: [
                     //for (var entry in usersMap.entries) _buildTableRow('Tasca1 ${entry.key}', '${entry.value}'),
                     //_buildTableRow('--------------------', '---------------'),
-                    _buildTableRow('Tasques de l\'usuari:', tasks.first.name),
+                    _buildTableRow('Tasques de l\'usuari:', tasks.isEmpty ? 'aquest usuari no té tasques assignades' : tasks.first.name),
                     for (Task task in tasks.skip(1).toList()) _buildTableRow('', task.name),
                   ],
                 ),
