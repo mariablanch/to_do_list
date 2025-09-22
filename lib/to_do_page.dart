@@ -76,6 +76,8 @@ class ToDoPage extends State<MyHomePageToDo> {
   TaskController taskController = TaskController();
   UserController userController = UserController();
 
+  Set<String> usersSelected = {};
+
   @override
   void initState() {
     super.initState();
@@ -232,59 +234,24 @@ class ToDoPage extends State<MyHomePageToDo> {
                                               children: [
                                                 Text(
                                                   '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
-                                                  style: Theme.of(context).textTheme.titleMedium,
+                                                  style: TextStyle(
+                                                    color: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
+                                                    fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
+                                                    fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
+                                                  ),
                                                 ),
                                                 SizedBox(height: 5),
                                                 Text(
-                                                  '${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}',
-                                                  //style: Theme.of(context,).textTheme.bodySmall,
+                                                  '${task.description}\n${AppStrings.USERS} ${taskAndUsersMAP[task.id] ?? ''}',
+                                                  style: TextStyle(
+                                                    color: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
+                                                  ),
                                                 ),
                                               ],
                                             ),
                                           ),
                                           SizedBox(height: 10),
-                                          Column(
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                children: [
-                                                  IconButton(
-                                                    tooltip: 'Editar',
-                                                    onPressed: () => openEditTask(task, index),
-                                                    icon: Icon(Icons.edit),
-                                                  ),
-                                                  IconButton(
-                                                    tooltip: 'Eliminar',
-                                                    onPressed: () => confirmDelete(index, task.id, false),
-                                                    icon: Icon(Icons.delete),
-                                                    style: ButtonStyle(
-                                                      foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                                        if (states.contains(WidgetState.hovered)) {
-                                                          return Colors.red;
-                                                        }
-                                                        return Colors.black54;
-                                                      }),
-                                                    ),
-                                                  ),
-                                                  IconButton(
-                                                    tooltip: 'Marcar com a feta',
-                                                    icon: Icon(
-                                                      Icons.check_circle,
-                                                      color: task.completed ? Colors.green : Colors.grey,
-                                                    ),
-                                                    onPressed: () async {
-                                                      Task updatedTask = task.copyWith(completed: !task.completed);
-                                                      await taskController.updateTask(updatedTask, task.id);
-                                                      setState(() => allTasks[index] = updatedTask);
-                                                      if (updatedTask.completed) {
-                                                        await confirmDelete(index, task.id, true);
-                                                      }
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
+                                          Column(children: [buttons(task, index)]),
                                         ],
                                       ),
                                     ],
@@ -296,49 +263,11 @@ class ToDoPage extends State<MyHomePageToDo> {
                                 child: ListTile(
                                   leading: Priorities.getIconPriority(task),
                                   title: Text('${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}'),
-                                  subtitle: Text('${task.description}\n--> Usuaris: ${taskAndUsersMAP[task.id] ?? ''}'),
-                                  textColor: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
-                                  trailing: SizedBox(
-                                    width: 150,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          tooltip: 'Editar',
-                                          onPressed: () => openEditTask(task, index),
-                                          icon: Icon(Icons.edit),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Eliminar',
-                                          onPressed: () => confirmDelete(index, task.id, false),
-                                          icon: Icon(Icons.delete),
-                                          style: ButtonStyle(
-                                            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                              if (states.contains(WidgetState.hovered)) {
-                                                return Colors.red;
-                                              }
-                                              return Colors.black54;
-                                            }),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Marcar com a feta',
-                                          icon: Icon(
-                                            Icons.check_circle,
-                                            color: task.completed ? Colors.green : Colors.grey,
-                                          ),
-                                          onPressed: () async {
-                                            Task updatedTask = task.copyWith(completed: !task.completed);
-                                            await taskController.updateTask(updatedTask, task.id);
-                                            setState(() => allTasks[index] = updatedTask);
-                                            if (updatedTask.completed) {
-                                              await confirmDelete(index, task.id, true);
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
+                                  subtitle: Text(
+                                    '${task.description}\n${AppStrings.USERS} ${taskAndUsersMAP[task.id] ?? ''}',
                                   ),
+                                  textColor: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
+                                  trailing: SizedBox(width: 150, child: buttons(task, index)),
                                   onTap: () => openShowTask(task),
                                 ),
                               );
@@ -419,15 +348,26 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                /*if (UserRole.isAdmin(myUser.userRole) && showAllTask) {
-                  await taskController.deleteTaskWithRelation(taskId);
+                if (!UserRole.isAdmin(myUser.userRole)) {
+                  await taskController.removeTask(taskId, myUser.userName);
+                  setState(() {
+                    allTasks.removeAt(index);
+                  });
+                  Navigator.of(context).pop();
                 } else {
-                }*/
-                await taskController.removeTask(taskId, myUser.userName);
-                setState(() {
-                  allTasks.removeAt(index);
-                });
-                Navigator.of(context).pop();
+                  bool confirmed = await selectUsersToDeleteTask(taskId);
+                  if (confirmed) {
+                    await taskAndUsers();
+                    if(taskAndUsersMAP[taskId]!.isEmpty){
+                      allTasks.removeAt(index);
+                      taskAndUsersMAP.remove(taskId);
+                    }
+                    //loadInitialData(true);
+                    setState(() {});
+                    Navigator.of(context).pop();
+                  }
+                  //await selectUsersToDeleteTask(taskId);
+                }
               },
               style: ButtonStyle(
                 foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
@@ -458,6 +398,79 @@ class ToDoPage extends State<MyHomePageToDo> {
         );
       },
     );
+  }
+
+  Future<bool> selectUsersToDeleteTask(String taskId) async {
+    usersSelected.clear();
+    List<String> allUsers = taskAndUsersMAP[taskId]!.split(' | ');
+
+    allUsers = allUsers.map((e) => e.trim()).toList();
+    allUsers.sort();
+
+    bool ret = false;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setStateDialog) {
+            return AlertDialog(
+              title: Text('Usuaris'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Seleccioneu els usuaris als que voleu eliminar la tasca'),
+                    for (String userName in allUsers)
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: usersSelected.contains(userName),
+                            onChanged: (value) {
+                              setStateDialog(() {
+                                if (value == true) {
+                                  usersSelected.add(userName);
+                                } else {
+                                  usersSelected.remove(userName);
+                                }
+                              });
+                            },
+                          ),
+                          Text(userName),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () async {
+                    if (usersSelected.isNotEmpty) {
+                      for (String userName in usersSelected) {
+                        await taskController.removeTask(taskId, userName);
+                      }
+                      ret = true;
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(AppStrings.CONFIRM),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ret = false;
+                    Navigator.of(context).pop();
+                    //Navigator.of(context).pop();
+                  },
+                  child: Text(AppStrings.CANCEL),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    return ret;
   }
 
   openEditTask(Task taskToEdit, int index) {
@@ -942,6 +955,40 @@ class ToDoPage extends State<MyHomePageToDo> {
       ),
     );
   }*/
+
+  Row buttons(Task task, int index) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(tooltip: 'Editar', onPressed: () => openEditTask(task, index), icon: Icon(Icons.edit)),
+        IconButton(
+          tooltip: 'Eliminar',
+          onPressed: () => confirmDelete(index, task.id, false),
+          icon: Icon(Icons.delete),
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.red;
+              }
+              return Colors.black54;
+            }),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Marcar com a feta',
+          icon: Icon(Icons.check_circle, color: task.completed ? Colors.green : Colors.grey),
+          onPressed: () async {
+            Task updatedTask = task.copyWith(completed: !task.completed);
+            await taskController.updateTask(updatedTask, task.id);
+            setState(() => allTasks[index] = updatedTask);
+            if (updatedTask.completed) {
+              await confirmDelete(index, task.id, true);
+            }
+          },
+        ),
+      ],
+    );
+  }
 }
 
 class TaskForm extends StatefulWidget {
@@ -1130,11 +1177,15 @@ class TaskFormState extends State<TaskForm> {
 
             ElevatedButton.icon(
               onPressed: () {
-                if (widget.onTaskCreated != null && selectedUserIds.isEmpty) {
-                  validator = 'S\'ha de seleccionar mínim un usuari';
-                  setState(() {});
-                  return; // Detiene el flujo si no hay usuarios seleccionados
+                if (!isAdmin) {
+                } else {
+                  if (widget.onTaskCreated != null && selectedUserIds.isEmpty) {
+                    validator = 'S\'ha de seleccionar mínim un usuari';
+                    setState(() {});
+                    return;
+                  }
                 }
+
                 validator = '';
                 setState(() {});
                 if (_formKey.currentState!.validate()) {

@@ -182,10 +182,10 @@ class TaskController {
           .get();
 
       if (db.docs.length == 1) {
-        await _deleteTask(taskId);
+        /*await _deleteTask(taskId);
         await _deleteUserTaskRelationsByTask(taskId);
-        await NotificationController().deleteNotificationByTask(taskId);
-        //borrar notis
+        await NotificationController().deleteNotificationByTask(taskId);*/
+        await deleteTaskWithRelation(taskId);
       } else {
         await _deleteUserTaskRelation(userName, taskId);
       }
