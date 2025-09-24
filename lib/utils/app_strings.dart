@@ -11,4 +11,12 @@ class AppStrings {
 
   static final String USERS = '\u2794 Usuaris:';
   static final String USER_SEPARATOR = ' | ';
+
+  static final String COMPLETED = 'Completada';
+  static final String PENDING = 'Pendent';
+
+  static final String CONFIG = 'Configuració';
+  static final String PROFILE = 'Perfil';
+  static final String USERS_LABEL = 'Usuaris';
+  static final String DELETEACC = 'Eliminar compte';
 }

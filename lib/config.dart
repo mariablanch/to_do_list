@@ -118,9 +118,9 @@ class ConfigPage extends State<ConfigHP> {
 
     return Scaffold(
       appBar: isWide
-          ? AppBar(backgroundColor: Theme.of(context).colorScheme.inversePrimary, title: Text('Configuració'))
+          ? AppBar(backgroundColor: Theme.of(context).colorScheme.inversePrimary, title: Text(AppStrings.CONFIG))
           : AppBar(
-              title: Text('Configuració'),
+              title: Text(AppStrings.CONFIG),
               actions: [
                 Builder(
                   builder: (context) =>
@@ -134,10 +134,10 @@ class ConfigPage extends State<ConfigHP> {
           : Drawer(
               child: ListView(
                 children: [
-                  _drawerItem('Perfil', 0),
-                  _drawerItem('Configuració', 1),
-                  if (isAdmin) _drawerItem('Usuaris', 2),
-                  _drawerItem('Eliminar compte', isAdmin ? 3 : 2),
+                  _drawerItem(AppStrings.PROFILE, 0),
+                  _drawerItem(AppStrings.CONFIG, 1),
+                  if (isAdmin) _drawerItem(AppStrings.USERS_LABEL, 2),
+                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 3 : 2),
                 ],
               ),
             ),
@@ -153,10 +153,10 @@ class ConfigPage extends State<ConfigHP> {
                   },
                   labelType: NavigationRailLabelType.all,
                   destinations: [
-                    _railItem(Icons.person, 'Perfil'),
-                    _railItem(Icons.settings, 'Configuració'),
-                    if (isAdmin) _railItem(Icons.people, 'Usuaris'),
-                    _railItem(Icons.delete, 'Eliminar\ncompte'),
+                    _railItem(Icons.person, AppStrings.PROFILE),
+                    _railItem(Icons.settings, AppStrings.CONFIG),
+                    if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL),
+                    _railItem(Icons.delete, AppStrings.DELETEACC),
                   ],
                 );
 
@@ -202,7 +202,10 @@ class ConfigPage extends State<ConfigHP> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+            Text(
+              AppStrings.PROFILE.toUpperCase(),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
+            ),
             SizedBox(height: 20),
             Table(
               columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
@@ -348,7 +351,7 @@ class ConfigPage extends State<ConfigHP> {
                   labelText: isNew ? 'Contrasenya' : 'Nova contrasenya',
                 ),
                 obscureText: true,
-                //readOnly: adminEdit,
+                readOnly: adminEdit && !isNew,
                 //controller: paswordController,
                 validator: (value) {
                   if (isNew && (value == null || value.isEmpty)) {
@@ -389,32 +392,32 @@ class ConfigPage extends State<ConfigHP> {
               ),
 
             if (!isNew)
-            Row(
-              children: [
-                Text('Icona'),
+              Row(
+                children: [
+                  Text('Icona'),
 
-                Container(width: 10),
+                  Container(width: 10),
 
-                DropdownButton<String>(
-                  value: iconSelected,
-                  hint: Icon(Icons.person),
-                  items: User.iconMap.keys.map((String iconName) {
-                    return DropdownMenuItem<String>(value: iconName, child: Icon(User.iconMap[iconName]));
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      iconSelected = newValue!;
-                    });
-                  },
-                  selectedItemBuilder: (BuildContext context) {
-                    return User.iconMap.keys.map((String iconName) {
-                      return Icon(User.iconMap[iconName]);
-                    }).toList();
-                  },
-                  menuMaxHeight: 300,
-                ),
-              ],
-            ),
+                  DropdownButton<String>(
+                    value: iconSelected,
+                    hint: Icon(Icons.person),
+                    items: User.iconMap.keys.map((String iconName) {
+                      return DropdownMenuItem<String>(value: iconName, child: Icon(User.iconMap[iconName]));
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        iconSelected = newValue!;
+                      });
+                    },
+                    selectedItemBuilder: (BuildContext context) {
+                      return User.iconMap.keys.map((String iconName) {
+                        return Icon(User.iconMap[iconName]);
+                      }).toList();
+                    },
+                    menuMaxHeight: 300,
+                  ),
+                ],
+              ),
 
             Container(
               margin: EdgeInsets.symmetric(vertical: 20),
@@ -584,7 +587,7 @@ class ConfigPage extends State<ConfigHP> {
               Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
             }
           },
-          child: Text('ELIMINAR COMPTE', style: TextStyle(fontSize: 20)),
+          child: Text(AppStrings.DELETEACC.toUpperCase(), style: TextStyle(fontSize: 20)),
         ),
       ],
     );
@@ -606,7 +609,7 @@ class ConfigPage extends State<ConfigHP> {
                 icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
               ),
             Text(
-              viewUserList ? 'USUARIS' : editUser.userName,
+              viewUserList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName,
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
             ),
           ],
@@ -716,9 +719,10 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    //for (var entry in usersMap.entries) _buildTableRow('Tasca1 ${entry.key}', '${entry.value}'),
-                    //_buildTableRow('--------------------', '---------------'),
-                    _buildTableRow('Tasques de l\'usuari:', tasks.isEmpty ? 'aquest usuari no té tasques assignades' : tasks.first.name),
+                    _buildTableRow(
+                      'Tasques de l\'usuari:',
+                      tasks.isEmpty ? 'Aquest usuari no té tasques assignades.' : tasks.first.name,
+                    ),
                     for (Task task in tasks.skip(1).toList()) _buildTableRow('', task.name),
                   ],
                 ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:to_do_list/model/task.dart';
 
 enum Priorities {
   NONE,
@@ -7,8 +6,8 @@ enum Priorities {
   MEDIUM,
   LOW;
 
-  static Icon getIconPriority(Task task) {
-    Priorities priority = task.priority;
+  static Icon getIconPriority(Priorities priority){
+    //Priorities priority = task.priority;
     switch (priority) {
       case Priorities.HIGH:
         return Icon(Icons.arrow_upward, color: Colors.red);
@@ -42,7 +41,7 @@ enum Priorities {
         return 'Mitjà';
       case Priorities.LOW:
         return 'Baix';
-      default:
+      case Priorities.NONE:
         return '';
     }
   }

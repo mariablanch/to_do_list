@@ -23,7 +23,7 @@ class Task implements Comparable<Task> {
       this._description = task.description,
       this._priority = task.priority,
       this._limitDate = task.limitDate,
-      this._completed = task.completed,
+      this._completed = task.isCompleted,
       this._id = task.id;
 
   Task copyWith({
@@ -62,7 +62,7 @@ class Task implements Comparable<Task> {
   String get description => this._description;
   Priorities get priority => this._priority;
   DateTime get limitDate => this._limitDate;
-  bool get completed => this._completed;
+  bool get isCompleted => this._completed;
   String get id => this._id;
 
   set id(String newId) => _id = newId;

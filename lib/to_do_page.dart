@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
-import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/user_role.dart';
@@ -72,11 +72,14 @@ class ToDoPage extends State<MyHomePageToDo> {
   //List<String> usersFromTask = [];
   Map<String, String> taskAndUsersMAP = {};
 
+  List<Task> taskToDelete = [];
+
   NotificationController notController = NotificationController();
   TaskController taskController = TaskController();
   UserController userController = UserController();
 
   Set<String> usersSelected = {};
+  Set<String> taskSelected = {};
 
   @override
   void initState() {
@@ -102,10 +105,113 @@ class ToDoPage extends State<MyHomePageToDo> {
     allUserNames.sort();
     allUserNames.insert(0, AppStrings.SHOWALL);
 
-    taskAndUsersMAP.clear();
     await taskAndUsers();
 
+    loadTasksToDelete();
+
     setState(() {});
+  }
+
+  loadTasksToDelete() {
+    taskToDelete.clear();
+    for (Task task in allTasks) {
+      //if (task.limitDate.isBefore(DateTime.now().add(Duration(days: 2))) && task.limitDate.isAfter(DateTime.now())) {
+      //if (task.limitDate.isBefore(DateTime.now())) {
+      if(task.isCompleted){
+        taskToDelete.add(task);
+      }
+    }
+    if (taskToDelete.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Hi ha algunes tasques completades'),
+              TextButton(
+                onPressed: () async {
+                  await deleteCompletedTasks();
+                  //Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                child: Text('Veure tasques'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+    setState(() {});
+  }
+
+  Future<bool> deleteCompletedTasks() async {
+    taskSelected.clear();
+    bool ret = false;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setStateDialog) {
+            return AlertDialog(
+              title: Text('Tasques completades'),
+
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Selecciona les tasques que vol eliminar'),
+                    SizedBox(height: 10),
+
+                    for (Task task in taskToDelete)
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: taskSelected.contains(task.id),
+                            onChanged: (value) {
+                              setStateDialog(() {
+                                if (value == true) {
+                                  taskSelected.add(task.id);
+                                } else {
+                                  taskSelected.remove(task.id);
+                                }
+                              });
+                            },
+                          ),
+                          Text(task.name),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () async {
+                    for (String taskId in taskSelected) {
+                      allTasks.removeWhere((Task task) => task.id == taskId);
+                      await taskController.deleteTaskWithRelation(taskId);
+                    }
+                    setState(() {});
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(AppStrings.CONFIRM),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+
+                  child: Text(AppStrings.CANCEL),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    return ret;
   }
 
   @override
@@ -127,7 +233,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   //viewNotifications(),
                   IconButton(
                     tooltip: 'Notificacions',
-                    onPressed: () async {
+                    onPressed: () {
                       openNotifications();
                     },
                     icon: (notifications.isEmpty)
@@ -226,7 +332,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Priorities.getIconPriority(task),
+                                          Priorities.getIconPriority(task.priority),
                                           SizedBox(width: 10),
                                           Expanded(
                                             child: Column(
@@ -261,7 +367,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                             } else {
                               return Card(
                                 child: ListTile(
-                                  leading: Priorities.getIconPriority(task),
+                                  leading: Priorities.getIconPriority(task.priority),
                                   title: Text('${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}'),
                                   subtitle: Text(
                                     '${task.description}\n${AppStrings.USERS} ${taskAndUsersMAP[task.id] ?? ''}',
@@ -352,13 +458,9 @@ class ToDoPage extends State<MyHomePageToDo> {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                if (!UserRole.isAdmin(myUser.userRole)) {
-                  await taskController.removeTask(taskId, myUser.userName);
-                  setState(() {
-                    allTasks.removeAt(index);
-                  });
-                  Navigator.of(context).pop();
-                } else {
+                List<String> allUsers = taskAndUsersMAP[taskId]!.split(AppStrings.USER_SEPARATOR);
+
+                if (UserRole.isAdmin(myUser.userRole) && allUsers.length > 1) {
                   bool confirmed = await selectUsersToDeleteTask(taskId);
                   if (confirmed) {
                     await taskAndUsers();
@@ -371,6 +473,12 @@ class ToDoPage extends State<MyHomePageToDo> {
                     Navigator.of(context).pop();
                   }
                   //await selectUsersToDeleteTask(taskId);
+                } else {
+                  await taskController.removeTask(taskId, myUser.userName);
+                  setState(() {
+                    allTasks.removeAt(index);
+                  });
+                  Navigator.of(context).pop();
                 }
               },
               style: ButtonStyle(
@@ -526,6 +634,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Widget viewTask(Task task, String users) {
+    users = users.replaceAll(AppStrings.USER_SEPARATOR, '\n');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -538,7 +647,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             tableRow('Descripció:', task.description),
             tableRow('Prioritat:', Priorities.priorityToString(task.priority)),
             tableRow('Data límit:', DateFormat('dd/MM/yyyy').format(task.limitDate)),
-            tableRow('', task.completed ? 'Completada' : 'Pendent'),
+            tableRow('', task.isCompleted ? AppStrings.COMPLETED : AppStrings.PENDING),
           ],
         ),
 
@@ -689,8 +798,6 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                   leading: Text('    ${index + 1}'),
                   title: Text(notification.message),
-                  //tileColor: Colors.deepPurple.shade50,
-                  //tileColor: Theme.of(context).colorScheme.inversePrimary,
                   subtitle: Text(notification.description),
 
                   trailing: SizedBox(
@@ -713,11 +820,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                           onPressed: () async {
                             await notController.deleteNotificationByID(notification.id);
                             //await notController.deleteNotificationInDatabase(index);
-                            setState(() {
-                              notifications = notController.notifications;
-                            });
                             await notController.loadNotificationsFromDB(myUser.userName);
                             notifications = notController.notifications;
+                            setState(() {});
                             Navigator.of(context).pop();
                           },
                         ),
@@ -727,20 +832,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                           tooltip: 'Acceptar tasca',
                           icon: Icon(Icons.check_circle, color: Colors.black54),
                           onPressed: () async {
-                            /*await FirebaseFirestore.instance
-                                .collection(DbConstants.USERTASK)
-                                .add({
-                                  DbConstants.USERNAME: notification.userName,
-                                  DbConstants.TASKID: notification.taskId,
-                                });*/
-
                             await taskController.createRelation(notification.taskId, notification.userName);
 
                             Task newTask = await taskController.getTaskByID(notification.taskId);
-                            //await notController.deleteNotificationInDatabase(index);
                             await notController.deleteNotificationByID(notification.id);
-                            //await notController.loadNotificationsFromDB(myUser.userName,);
-                            //notifications = notController.notifications;
 
                             notifications.removeAt(index);
 
@@ -766,11 +861,6 @@ class ToDoPage extends State<MyHomePageToDo> {
           );
   }
 
-  /*Future<String> usersRelatedWithTask(String taskId) async {
-    String str = await taskController.getUsersRelatedWithTask(taskId);
-    return str;
-  }*/
-
   Future<Map<String, String>> taskAndUsers() async {
     String users;
     taskAndUsersMAP.clear();
@@ -784,8 +874,6 @@ class ToDoPage extends State<MyHomePageToDo> {
       }
     }
     return taskAndUsersMAP;
-    //taskAndUsersMAP.;
-    //replaceAll('\n', ${AppStrings.USER_SEPARATOR})
   }
 
   void addTask(Task newTask) {
@@ -935,31 +1023,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  /*ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('S\'ha de seleccionar mínim un usuari'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );*/
-
-  /*showHideTask() {
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 10),
-
-      child: IconButton(
-        onPressed: () {
-          setState(() {
-            showAllTask = !showAllTask;
-            loadInitialData(showAllTask);
-          });
-        },
-        tooltip: showAllTask ? 'Mostrar les mesves tasques' : 'Mostrar totes les tasques',
-        icon: Icon(showAllTask ? Icons.visibility_off : Icons.visibility),
-      ),
-    );
-  }*/
-
   Row buttons(Task task, int index) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -980,12 +1043,12 @@ class ToDoPage extends State<MyHomePageToDo> {
         ),
         IconButton(
           tooltip: 'Marcar com a feta',
-          icon: Icon(Icons.check_circle, color: task.completed ? Colors.green : Colors.grey),
+          icon: Icon(Icons.check_circle, color: task.isCompleted ? Colors.green : Colors.grey),
           onPressed: () async {
-            Task updatedTask = task.copyWith(completed: !task.completed);
+            Task updatedTask = task.copyWith(completed: !task.isCompleted);
             await taskController.updateTask(updatedTask, task.id);
             setState(() => allTasks[index] = updatedTask);
-            if (updatedTask.completed) {
+            if (updatedTask.isCompleted) {
               await confirmDelete(index, task.id, true);
             }
           },
@@ -1106,7 +1169,7 @@ class TaskFormState extends State<TaskForm> {
                   //initialDate: widget.task.limitDate,
                   initialDate: newTask.limitDate,
                   //firstDate: DateTime.now(),
-                  firstDate: newTask.limitDate,
+                  firstDate: newTask.limitDate.isBefore(DateTime.now()) ? newTask.limitDate : DateTime.now(),
                   lastDate: DateTime(2050),
                 );
                 if (picked != null) {

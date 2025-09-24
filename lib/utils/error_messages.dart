@@ -1,5 +1,6 @@
 void logError(String context, dynamic e) {
-  print('$context \nERROR: $e');
+  String str = '~~~~~~~~~~~~~~~~~~~~~~~~~~';
+  print('$str\n$context \nERROR: $e \n$str');
 }
 
 void logInfo(String message) {

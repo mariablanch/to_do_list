@@ -98,6 +98,12 @@ class NotificationController {
     }
   }
 
+  Future<void> _notificationToDb(Notifications not)async {
+    await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).add(not.toFirestore());
+  }
+  
+  
+
   Future<bool> taskInvitation(String destinationUserName, Task task, String userName, String userDescription) async {
     String message = 'L\'usuari $userName t\'ha compartit una tasca (${task.name})';
     Notifications notification = Notifications(
@@ -114,7 +120,8 @@ class NotificationController {
       bool userHasTask = await UserController().userHasTask(destinationUserName, task.id);
 
       if (!(notExists || userHasTask)) {
-        await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).add(notification.toFirestore());
+        //await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).add(notification.toFirestore());
+        _notificationToDb(notification);
         ret = true;
       }
     } catch (e) {

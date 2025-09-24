@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
@@ -143,7 +144,7 @@ class LogInPage extends State<MyHomePage> {
                       });
                     }
                   } catch (e) {
-                    print('LOG IN FORM $e');
+                    logError('LOG IN FORM', e);
                   }
                 }
               },
@@ -289,7 +290,7 @@ class LogInPage extends State<MyHomePage> {
                       });
                     }
                   } catch (e) {
-                    print('CREATE ACCOUNT FORM $e');
+                    logError('CREATE ACCOUNT FORM', e);
                   }
                 }
               },
@@ -319,7 +320,7 @@ class LogInPage extends State<MyHomePage> {
 
       ret = lines.docs.length == 1;
     } catch (e) {
-      print('LOG IN $e');
+      logError('LOG IN', e);
       ret = false;
     }
 
