@@ -6,7 +6,7 @@ enum Priorities {
   MEDIUM,
   LOW;
 
-  static Icon getIconPriority(Priorities priority){
+  static Icon getIconPriority(Priorities priority) {
     //Priorities priority = task.priority;
     switch (priority) {
       case Priorities.HIGH:

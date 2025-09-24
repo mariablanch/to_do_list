@@ -117,7 +117,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     for (Task task in allTasks) {
       //if (task.limitDate.isBefore(DateTime.now().add(Duration(days: 2))) && task.limitDate.isAfter(DateTime.now())) {
       //if (task.limitDate.isBefore(DateTime.now())) {
-      if(task.isCompleted){
+      if (task.isCompleted) {
         taskToDelete.add(task);
       }
     }
@@ -651,8 +651,8 @@ class ToDoPage extends State<MyHomePageToDo> {
           ],
         ),
 
-        SizedBox(height: 20),
-        Divider(),
+        Divider(height: 20),
+
         Text('Usuaris relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
         Text(users),
         SizedBox(height: 20),
@@ -676,7 +676,6 @@ class ToDoPage extends State<MyHomePageToDo> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Compartir Tasca'),
-          //content: Text('Nom d\'usuari a qui es vol compartir'),
           actions: <Widget>[
             Row(children: [Text('Nom d\'usuari a qui es vol compartir')]),
 
@@ -756,18 +755,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  TableRow tableRow(String label, String value) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20), child: Text(value)),
-      ],
-    );
-  }
-
   openNotifications() {
     showModalBottomSheet(
       context: context,
@@ -782,7 +769,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  viewNotifications() {
+  Widget viewNotifications() {
     return (notifications.isEmpty)
         ? Center(child: Text('No hi ha notificacions.'))
         : ListView.builder(
@@ -861,7 +848,7 @@ class ToDoPage extends State<MyHomePageToDo> {
           );
   }
 
-  Future<Map<String, String>> taskAndUsers() async {
+  Future<void> taskAndUsers() async {
     String users;
     taskAndUsersMAP.clear();
     for (Task task in allTasks) {
@@ -873,7 +860,6 @@ class ToDoPage extends State<MyHomePageToDo> {
         taskAndUsersMAP[task.id] = users;
       }
     }
-    return taskAndUsersMAP;
   }
 
   void addTask(Task newTask) {
@@ -886,7 +872,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     //taskAndUsersMAP[newTask.id] = myUser.userName;
   }
 
-  taskSort() {
+  Container taskSort() {
     return Container(
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(bottom: 10),
@@ -895,76 +881,10 @@ class ToDoPage extends State<MyHomePageToDo> {
         tooltip: 'Sobre quin element voleu ordenar',
 
         itemBuilder: (BuildContext context) => [
-          PopupMenuItem(
-            child: const Row(
-              children: [
-                Icon(Icons.error_outline_rounded, color: Colors.black54),
-                SizedBox(width: 8),
-                Text('Prioritat'),
-              ],
-            ),
-            onTap: () {
-              setState(() {
-                sortType = SortType.NONE;
-                allTasks.sort((task1, task2) {
-                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-                });
-              });
-            },
-          ),
-
-          PopupMenuItem(
-            child: const Row(
-              children: [
-                Icon(Icons.calendar_month_rounded, color: Colors.black54),
-                SizedBox(width: 8),
-                Text('Data'),
-              ],
-            ),
-            onTap: () {
-              setState(() {
-                sortType = SortType.DATE;
-                allTasks.sort((task1, task2) {
-                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-                });
-              });
-            },
-          ),
-
-          PopupMenuItem(
-            child: const Row(
-              children: [
-                Icon(Icons.text_fields_rounded, color: Colors.black54),
-                SizedBox(width: 8),
-                Text('Nom'),
-              ],
-            ),
-            onTap: () {
-              setState(() {
-                sortType = SortType.NAME;
-                allTasks.sort((task1, task2) {
-                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-                });
-              });
-            },
-          ),
-          PopupMenuItem(
-            child: const Row(
-              children: [
-                Icon(Icons.supervised_user_circle_rounded, color: Colors.black54),
-                SizedBox(width: 8),
-                Text('Usuari'),
-              ],
-            ),
-            onTap: () {
-              setState(() {
-                sortType = SortType.USER;
-                allTasks.sort((task1, task2) {
-                  return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-                });
-              });
-            },
-          ),
+          menuItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
+          menuItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
+          menuItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
+          menuItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
         ],
         child: Container(
           padding: EdgeInsets.all(10),
@@ -979,7 +899,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  userFilter() {
+  Container userFilter() {
     return Container(
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(bottom: 10),
@@ -987,19 +907,12 @@ class ToDoPage extends State<MyHomePageToDo> {
       child: PopupMenuButton(
         tooltip: 'Filtrar tasques per usuari',
 
-        itemBuilder: (BuildContext context) {
-          return allUserNames.map((String userName) {
-            String str = userName;
-            if (userName == myUser.userName) {
-              str = 'Veure les meves';
-            }
-
-            return PopupMenuItem<String>(value: userName, child: Text(str));
-          }).toList();
-        },
+        itemBuilder: (BuildContext context) => [
+          for (String userName in allUserNames)
+            PopupMenuItem(value: userName, child: Text(userName == myUser.userName ? 'Veure les meves' : userName)),
+        ],
 
         onSelected: (userSelected) async {
-          //TaskController tc = TaskController.empty();
           if (userSelected == AppStrings.SHOWALL) {
             await taskController.loadAllTasksFromDB();
           } else {
@@ -1020,6 +933,38 @@ class ToDoPage extends State<MyHomePageToDo> {
           child: Text('Filtrar', style: TextStyle(fontSize: 17)),
         ),
       ),
+    );
+  }
+
+  TableRow tableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20), child: Text(value)),
+      ],
+    );
+  }
+
+  PopupMenuItem menuItem(IconData icon, String label, SortType st) {
+    return PopupMenuItem(
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.black54),
+          SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+      onTap: () {
+        setState(() {
+          sortType = st;
+          allTasks.sort((task1, task2) {
+            return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+          });
+        });
+      },
     );
   }
 

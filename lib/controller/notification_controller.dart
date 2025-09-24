@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/utils/error_messages.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
-import 'package:to_do_list/utils/error_messages.dart';
 
 class NotificationController {
   List<Notifications> notifications;
@@ -98,11 +98,9 @@ class NotificationController {
     }
   }
 
-  Future<void> _notificationToDb(Notifications not)async {
+  Future<void> _notificationToDb(Notifications not) async {
     await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).add(not.toFirestore());
   }
-  
-  
 
   Future<bool> taskInvitation(String destinationUserName, Task task, String userName, String userDescription) async {
     String message = 'L\'usuari $userName t\'ha compartit una tasca (${task.name})';

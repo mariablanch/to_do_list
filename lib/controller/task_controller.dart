@@ -136,9 +136,8 @@ class TaskController {
           .get();
 
       for (var doc in db.docs) {
-        //totes les task que te l'usuari
-        await removeTask(doc.get(DbConstants.TASKID), userName);
-        //await doc.reference.delete();
+        final taskId = doc.get(DbConstants.TASKID);
+        await removeTask(taskId, userName);
       }
     } catch (e) {
       logError('DELETE USER-TASK BY USER', e);
@@ -183,9 +182,6 @@ class TaskController {
           .get();
 
       if (db.docs.length == 1) {
-        /*await _deleteTask(taskId);
-        await _deleteUserTaskRelationsByTask(taskId);
-        await NotificationController().deleteNotificationByTask(taskId);*/
         await deleteTaskWithRelation(taskId);
       } else {
         await _deleteUserTaskRelation(userName, taskId);
@@ -208,6 +204,7 @@ class TaskController {
   Future<String> getUsersRelatedWithTask(String taskId) async {
     List<String> userNames = [];
     String str = '';
+    String userName = '';
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
@@ -215,12 +212,8 @@ class TaskController {
           .get();
 
       for (var doc in db.docs) {
-        if (doc.data().containsKey(DbConstants.USERNAME)) {
-          final userName = doc.get(DbConstants.USERNAME);
-          if (userName is String) {
-            userNames.add(userName);
-          }
-        }
+        userName = doc.get(DbConstants.USERNAME);
+        userNames.add(userName);
       }
 
       str = userNames.join(AppStrings.USER_SEPARATOR);
@@ -233,7 +226,7 @@ class TaskController {
 
   static int sortTask(SortType type, Task task1, Task task2, Map<String, String> usersMAP) {
     switch (type) {
-      case SortType.NONE:
+      case SortType.NONE: //PRIORITAT
         return task1.compareTo(task2);
       case SortType.DATE:
         return task1.limitDate.compareTo(task2.limitDate);
@@ -242,7 +235,9 @@ class TaskController {
       case SortType.USER:
         String str1 = usersMAP[task1.id] ?? '';
         String str2 = usersMAP[task2.id] ?? '';
-        return str1.compareTo(str2);
+        int len1 = str1.split(AppStrings.USER_SEPARATOR).length;
+        int len2 = str2.split(AppStrings.USER_SEPARATOR).length;
+        return len2 - len1;
     }
   }
 }
