@@ -6,7 +6,7 @@ import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
-import 'package:to_do_list/utils/error_messages.dart';
+import 'package:to_do_list/utils/messages.dart';
 import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/user_role.dart';
@@ -115,8 +115,6 @@ class ToDoPage extends State<MyHomePageToDo> {
   loadTasksToDelete() {
     taskToDelete.clear();
     for (Task task in allTasks) {
-      //if (task.limitDate.isBefore(DateTime.now().add(Duration(days: 2))) && task.limitDate.isAfter(DateTime.now())) {
-      //if (task.limitDate.isBefore(DateTime.now())) {
       if (task.isCompleted) {
         taskToDelete.add(task);
       }
@@ -139,6 +137,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             ],
           ),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 10),
         ),
       );
     }
@@ -230,7 +229,6 @@ class ToDoPage extends State<MyHomePageToDo> {
 
               Row(
                 children: [
-                  //viewNotifications(),
                   IconButton(
                     tooltip: 'Notificacions',
                     onPressed: () {
@@ -255,17 +253,14 @@ class ToDoPage extends State<MyHomePageToDo> {
                         ),
 
                         onTap: () async {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
                           final updatedUser = await Navigator.push<User>(
                             context,
                             MaterialPageRoute(builder: (context) => ConfigHP(user: myUser)),
                           );
 
                           if (updatedUser != null) {
-                            /*await taskController.loadTasksFromDB(
-                              myUser.userName,
-                              sortType,
-                            );
-                            await taskAndUsers();*/
                             setState(() {
                               myUser = User.copy(updatedUser);
                             });
@@ -283,8 +278,6 @@ class ToDoPage extends State<MyHomePageToDo> {
                         ),
                         onTap: () =>
                             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MyApp())),
-
-                        //onTap: () =>  Navigator.of(context).pop(),
                       ),
                     ],
                   ),
@@ -304,7 +297,6 @@ class ToDoPage extends State<MyHomePageToDo> {
                 Container(width: 10),
                 if (UserRole.isAdmin(myUser.userRole)) userFilter(),
                 Container(width: 10),
-                //if (UserRole.isAdmin(myUser.userRole)) showHideTask(),
               ],
             ),
 
@@ -348,7 +340,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                                                 ),
                                                 SizedBox(height: 5),
                                                 Text(
-                                                  '${task.description}\n${AppStrings.USERS} ${taskAndUsersMAP[task.id] ?? ''}',
+                                                  AppStrings.subtitleText(
+                                                    task.description,
+                                                    taskAndUsersMAP[task.id] ?? '',
+                                                  ),
                                                   style: TextStyle(
                                                     color: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
                                                   ),
@@ -370,9 +365,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                                   leading: Priorities.getIconPriority(task.priority),
                                   title: Text('${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}'),
                                   subtitle: Text(
-                                    '${task.description}\n${AppStrings.USERS} ${taskAndUsersMAP[task.id] ?? ''}',
+                                    AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
                                   ),
-                                  textColor: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
+
+                                  textColor: textColor(task),
                                   trailing: SizedBox(width: 150, child: buttons(task, index)),
                                   onTap: () => openShowTask(task),
                                 ),
@@ -395,6 +391,13 @@ class ToDoPage extends State<MyHomePageToDo> {
         icon: Icon(Icons.add),
       ),
     );
+  }
+
+  Color? textColor(Task task) {
+    if (task.isCompleted) {
+      return Colors.green.shade700;
+    }
+    return task.limitDate.isBefore(DateTime.now()) ? Colors.red : null;
   }
 
   openForm() {

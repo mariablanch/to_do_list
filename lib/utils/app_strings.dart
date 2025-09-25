@@ -19,4 +19,8 @@ class AppStrings {
   static final String PROFILE = 'Perfil';
   static final String USERS_LABEL = 'Usuaris';
   static final String DELETEACC = 'Eliminar compte';
+
+  static String subtitleText(String description, String ids) {
+    return '$description\n${AppStrings.USERS} $ids';
+  }
 }

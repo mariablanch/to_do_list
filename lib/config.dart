@@ -5,7 +5,7 @@ import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/task.dart';
 //import 'package:to_do_list/to_do_page.dart';
-import 'package:to_do_list/utils/error_messages.dart';
+import 'package:to_do_list/utils/messages.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
 import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/user_role.dart';
@@ -65,7 +65,6 @@ class ConfigPage extends State<ConfigHP> {
   User editUser = User.empty();
 
   bool isUserAdmin = false;
-
   String iconSelected = 'person';
 
   List<Widget> get pages => [profilePage(), editAccountPage(), deleteAccountPage()];
@@ -86,6 +85,7 @@ class ConfigPage extends State<ConfigHP> {
       loadUsers();
     }
     iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    isUserAdmin = isAdmin;
     setState(() {});
   }
 
@@ -185,7 +185,7 @@ class ConfigPage extends State<ConfigHP> {
       title: Text(title),
       selected: selectedIndex == index,
       onTap: () {
-        Navigator.of(context).pop(); // Cierra el drawer
+        Navigator.of(context).pop();
         setState(() => selectedIndex = index);
       },
     );
@@ -257,8 +257,6 @@ class ConfigPage extends State<ConfigHP> {
     // false si el usuari es igual (s edita a ell mateix)
     // true si es diferent (edita a algu altre ==> restablir contrasenya)
     bool adminEdit = editUser.userName.compareTo(myUser.userName) != 0;
-
-    bool roleChanged = false;
 
     String name = editUser.name;
     String surname = editUser.surname;
@@ -375,17 +373,16 @@ class ConfigPage extends State<ConfigHP> {
                   Container(width: 10),
 
                   Switch(
-                    //value: isUserAdmin,
-                    value: UserRole.isAdmin(editUser.userRole),
+                    //value: UserRole.isAdmin(editUser.userRole),
+                    value: isUserAdmin,
                     onChanged: (bool value) async {
-                      setState(() {
-                        if (value) {
-                          editUser.userRole = UserRole.ADMIN;
-                        } else {
-                          editUser.userRole = UserRole.USER;
-                        }
-                        roleChanged = !roleChanged;
-                      });
+                      /*if (value) {
+                        editUser.userRole = UserRole.ADMIN;
+                      } else {
+                        editUser.userRole = UserRole.USER;
+                      }*/
+                      isUserAdmin = value;
+                      setState(() {});
                     },
                   ),
                 ],
@@ -440,7 +437,7 @@ class ConfigPage extends State<ConfigHP> {
                         await userController.createAccountDB(user);
                         await loadUsers();
 
-                        Navigator.pop(context, user);
+                        Navigator.pop(context);
                       }
                     } else {
                       if (userName != editUser.userName && usernameExists) {
@@ -457,6 +454,7 @@ class ConfigPage extends State<ConfigHP> {
                             userName: userName,
                             mail: mail,
                             password: !isEmpty ? User.hashPassword(password) : editUser.password,
+                            userRole: UserRole.getUserRole(isUserAdmin),
                             icon: Icon(User.iconMap[iconSelected]),
                           );
                           try {
@@ -473,10 +471,10 @@ class ConfigPage extends State<ConfigHP> {
                             //editMode = false;
                           });
 
-                          if (roleChanged) {
+                          /*if (roleChanged) {
                             final uR = !UserRole.isAdmin(editUser.userRole) ? UserRole.USER : UserRole.ADMIN;
                             await userController.giveAdmin(editUser, uR);
-                          }
+                          }*/
 
                           if (!adminEdit) {
                             Navigator.pop(context, updatedUser);
@@ -679,6 +677,7 @@ class ConfigPage extends State<ConfigHP> {
                           editUser = allUsers[index];
                           //iconSelected = editUser.icon;
                           iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
+                          isUserAdmin = UserRole.isAdmin(editUser.userRole);
                         });
                       },
                       icon: Icon(Icons.edit),
