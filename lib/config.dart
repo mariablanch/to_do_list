@@ -341,27 +341,32 @@ class ConfigPage extends State<ConfigHP> {
               ),
             ),
 
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 5),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: isNew ? 'Contrasenya' : 'Nova contrasenya',
+            if ((!adminEdit && !isNew))
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 5),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: !(!adminEdit && !isNew) ? 'Contrasenya' : 'Nova contrasenya',
+                  ),
+                  obscureText: true,
+                  readOnly: !(!adminEdit && !isNew),
+                  //controller: paswordController,
+                  validator: (value) {
+                    if (isNew && (value == null || value.isEmpty)) {
+                      return 'Aquest camp és obligatori';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    password = value!;
+                  },
                 ),
-                obscureText: true,
-                readOnly: adminEdit && !isNew,
-                //controller: paswordController,
-                validator: (value) {
-                  if (isNew && (value == null || value.isEmpty)) {
-                    return 'Aquest camp és obligatori';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  password = value!;
-                },
               ),
-            ),
+            Container(height: 5),
+
+            if (!(!adminEdit && !isNew) && isNew)
+              Text('La contrasenya és generada automaticament', style: TextStyle(fontSize: 14)),
 
             Container(height: 5),
 
@@ -376,11 +381,6 @@ class ConfigPage extends State<ConfigHP> {
                     //value: UserRole.isAdmin(editUser.userRole),
                     value: isUserAdmin,
                     onChanged: (bool value) async {
-                      /*if (value) {
-                        editUser.userRole = UserRole.ADMIN;
-                      } else {
-                        editUser.userRole = UserRole.USER;
-                      }*/
                       isUserAdmin = value;
                       setState(() {});
                     },
@@ -432,7 +432,7 @@ class ConfigPage extends State<ConfigHP> {
                           surname: surname,
                           userName: userName,
                           mail: mail,
-                          password: password,
+                          password: AppStrings.DEFAULT_PSWRD,
                         );
                         await userController.createAccountDB(user);
                         await loadUsers();
@@ -465,16 +465,9 @@ class ConfigPage extends State<ConfigHP> {
                           //user = updatedUser;
 
                           setState(() {
-                            //selectedIndex = 0;
                             viewUserList = true;
                             userEdit = false;
-                            //editMode = false;
                           });
-
-                          /*if (roleChanged) {
-                            final uR = !UserRole.isAdmin(editUser.userRole) ? UserRole.USER : UserRole.ADMIN;
-                            await userController.giveAdmin(editUser, uR);
-                          }*/
 
                           if (!adminEdit) {
                             Navigator.pop(context, updatedUser);

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
+import 'package:to_do_list/utils/app_strings.dart';
 import 'package:to_do_list/utils/messages.dart';
 import 'package:to_do_list/utils/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
@@ -87,7 +88,7 @@ class UserController {
     try {
       final id = await _getUserIdByUserName(user.userName);
       if (id != null) {
-        user.password = User.hashPassword('123');
+        user.password = User.hashPassword(AppStrings.DEFAULT_PSWRD);
         await _updateUserById(id, user);
       }
     } catch (e) {

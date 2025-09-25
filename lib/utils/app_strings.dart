@@ -11,6 +11,7 @@ class AppStrings {
 
   static final String USERS = '\u2794 Usuaris:';
   static final String USER_SEPARATOR = ' | ';
+  static final String DEFAULT_PSWRD = '123';
 
   static final String COMPLETED = 'Completada';
   static final String PENDING = 'Pendent';
