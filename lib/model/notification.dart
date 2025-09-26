@@ -51,7 +51,6 @@ class Notifications implements Comparable<Notifications> {
 
   Map<String, dynamic> toFirestore() {
     return {
-      //'id': id,
       'taskId': _taskId,
       'description': _description,
       'userName': _userName,

@@ -216,6 +216,8 @@ class TaskController {
         userNames.add(userName);
       }
 
+      userNames.sort();
+
       str = userNames.join(AppStrings.USER_SEPARATOR);
     } catch (e) {
       logError('GET USERS RELATED WITH TASK', e);
@@ -237,7 +239,11 @@ class TaskController {
         String str2 = usersMAP[task2.id] ?? '';
         int len1 = str1.split(AppStrings.USER_SEPARATOR).length;
         int len2 = str2.split(AppStrings.USER_SEPARATOR).length;
-        return len2 - len1;
+        int ret = len2 - len1;
+        if (ret == 0) {
+          ret = str1.compareTo(str2);
+        }
+        return ret;
     }
   }
 }

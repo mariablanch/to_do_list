@@ -1,19 +1,19 @@
 class DbConstants {
   //COLLECTION
-  static final String TASK = 'task';
-  static final String USER = 'user';
-  static final String USERTASK = 'usertask';
-  static final String NOTIFICATION = 'notification';
+  static const String TASK = 'task';
+  static const String USER = 'user';
+  static const String USERTASK = 'usertask';
+  static const String NOTIFICATION = 'notification';
 
   //FIELD
-  static final String USERNAME = 'userName';
-  static final String PASSWORD = 'password';
-  static final String USERROLE = 'userRole';
-  static final String TASKID = 'taskId';
-  static final String PFP = 'iconName';
+  static const String USERNAME = 'userName';
+  static const String PASSWORD = 'password';
+  static const String USERROLE = 'userRole';
+  static const String TASKID = 'taskId';
+  static const String PFP = 'iconName';
 
   //COMPROVACIÓ ERROR BASE DE DADES
-  static final int USEREXISTS = 0;
-  static final int USERNOTEXISTS = 1;
-  static final int DATABASEERROR = 2;
+  static const int USEREXISTS = 0;
+  static const int USERNOTEXISTS = 1;
+  static const int DATABASEERROR = 2;
 }

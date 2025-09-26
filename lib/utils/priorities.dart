@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_list/utils/app_strings.dart';
 
 enum Priorities {
   NONE,
@@ -22,11 +23,11 @@ enum Priorities {
 
   static Priorities priorityFromString(String str) {
     switch (str) {
-      case 'Alt':
+      case AppStrings.PR_HIGH:
         return Priorities.HIGH;
-      case 'Mitjà':
+      case AppStrings.PR_MEDIUM:
         return Priorities.MEDIUM;
-      case 'Baix':
+      case AppStrings.PR_LOW:
         return Priorities.LOW;
       default:
         return Priorities.NONE;
@@ -36,11 +37,11 @@ enum Priorities {
   static String priorityToString(Priorities priority) {
     switch (priority) {
       case Priorities.HIGH:
-        return 'Alt';
+        return AppStrings.PR_HIGH;
       case Priorities.MEDIUM:
-        return 'Mitjà';
+        return AppStrings.PR_MEDIUM;
       case Priorities.LOW:
-        return 'Baix';
+        return AppStrings.PR_LOW;
       case Priorities.NONE:
         return '';
     }

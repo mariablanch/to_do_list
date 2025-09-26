@@ -112,7 +112,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     setState(() {});
   }
 
-  loadTasksToDelete() {
+  void loadTasksToDelete() {
     taskToDelete.clear();
     for (Task task in allTasks) {
       if (task.isCompleted) {
@@ -331,9 +331,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}',
+                                                  AppStrings.titleText(task),
                                                   style: TextStyle(
-                                                    color: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
+                                                    color: textColor(task),
                                                     fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
                                                     fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
                                                   ),
@@ -344,9 +344,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                                                     task.description,
                                                     taskAndUsersMAP[task.id] ?? '',
                                                   ),
-                                                  style: TextStyle(
-                                                    color: task.limitDate.isBefore(DateTime.now()) ? Colors.red : null,
-                                                  ),
+                                                  style: TextStyle(color: textColor(task)),
                                                 ),
                                               ],
                                             ),
@@ -363,7 +361,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                               return Card(
                                 child: ListTile(
                                   leading: Priorities.getIconPriority(task.priority),
-                                  title: Text('${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}'),
+                                  title: Text(AppStrings.titleText(task)),
                                   subtitle: Text(
                                     AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
                                   ),
@@ -972,10 +970,23 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Row buttons(Task task, int index) {
+    Color defaultColor = Colors.black54;
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        IconButton(tooltip: 'Editar', onPressed: () => openEditTask(task, index), icon: Icon(Icons.edit)),
+        IconButton(
+          tooltip: 'Editar',
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.blue.shade700;
+              }
+              return defaultColor;
+            }),
+          ),
+          onPressed: () => openEditTask(task, index),
+          icon: Icon(Icons.edit),
+        ),
         IconButton(
           tooltip: 'Eliminar',
           onPressed: () => confirmDelete(index, task.id, false),
@@ -985,13 +996,21 @@ class ToDoPage extends State<MyHomePageToDo> {
               if (states.contains(WidgetState.hovered)) {
                 return Colors.red;
               }
-              return Colors.black54;
+              return defaultColor;
             }),
           ),
         ),
         IconButton(
           tooltip: 'Marcar com a feta',
-          icon: Icon(Icons.check_circle, color: task.isCompleted ? Colors.green : Colors.grey),
+          icon: Icon(Icons.check_circle, color: task.isCompleted ? Colors.green : null),
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.green.shade700;
+              }
+              return defaultColor;
+            }),
+          ),
           onPressed: () async {
             Task updatedTask = task.copyWith(completed: !task.isCompleted);
             await taskController.updateTask(updatedTask, task.id);
@@ -1070,7 +1089,6 @@ class TaskFormState extends State<TaskForm> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> priorities = ['Alt', 'Mitjà', 'Baix'];
     Task newTask = Task.copy(widget.task);
 
     String name = newTask.name;
@@ -1137,7 +1155,7 @@ class TaskFormState extends State<TaskForm> {
               decoration: InputDecoration(border: OutlineInputBorder()),
               hint: Text('Selecciona nivell de prioritat'),
               value: prioritySTR!.isNotEmpty ? prioritySTR : null,
-              items: priorities.map((line) => DropdownMenuItem(value: line, child: Text(line))).toList(),
+              items: AppStrings.prioritiesSTR.map((line) => DropdownMenuItem(value: line, child: Text(line))).toList(),
               onChanged: (value) {
                 setState(() {
                   prioritySTR = value;

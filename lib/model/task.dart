@@ -82,7 +82,6 @@ class Task implements Comparable<Task> {
 
   Map<String, dynamic> toFirestore() {
     return {
-      //'id': id,
       'name': _name,
       'description': _description,
       'priority': _priority.name,

@@ -4,6 +4,7 @@ import 'package:to_do_list/controller/task_controller.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/task.dart';
+import 'package:to_do_list/to_do_page.dart';
 //import 'package:to_do_list/to_do_page.dart';
 import 'package:to_do_list/utils/messages.dart';
 import 'package:to_do_list/utils/firebase_options.dart';
@@ -210,27 +211,15 @@ class ConfigPage extends State<ConfigHP> {
             Table(
               columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
               children: [
-                _buildTableRow('Nom:', myUser.name),
-                _buildTableRow('Cognom:', myUser.surname),
-                _buildTableRow('Nom d\'usuari:', myUser.userName),
-                _buildTableRow('Correu:', myUser.mail),
+                ToDoPage().tableRow('Nom:', myUser.name),
+                ToDoPage().tableRow('Cognom:', myUser.surname),
+                ToDoPage().tableRow('Nom d\'usuari:', myUser.userName),
+                ToDoPage().tableRow('Correu:', myUser.mail),
               ],
             ),
           ],
         ),
       ),
-    );
-  }
-
-  TableRow _buildTableRow(String label, String value) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20), child: Text(value)),
-      ],
     );
   }
 
@@ -696,11 +685,11 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    _buildTableRow('Nom:', user.name),
-                    _buildTableRow('Cognom:', user.surname),
-                    _buildTableRow('Nom d\'usuari:', user.userName),
-                    _buildTableRow('Correu:', user.mail),
-                    _buildTableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
+                    ToDoPage().tableRow('Nom:', user.name),
+                    ToDoPage().tableRow('Cognom:', user.surname),
+                    ToDoPage().tableRow('Nom d\'usuari:', user.userName),
+                    ToDoPage().tableRow('Correu:', user.mail),
+                    ToDoPage().tableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
                   ],
                 ),
 
@@ -711,11 +700,11 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    _buildTableRow(
+                    ToDoPage().tableRow(
                       'Tasques de l\'usuari:',
                       tasks.isEmpty ? 'Aquest usuari no té tasques assignades.' : tasks.first.name,
                     ),
-                    for (Task task in tasks.skip(1).toList()) _buildTableRow('', task.name),
+                    for (Task task in tasks.skip(1).toList()) ToDoPage().tableRow('', task.name),
                   ],
                 ),
 

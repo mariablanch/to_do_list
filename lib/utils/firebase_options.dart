@@ -15,13 +15,12 @@ class DefaultFirebaseOptions {
         return ios;
       case TargetPlatform.macOS:
         return macos;
+      case TargetPlatform.windows:
+        return windows;
       case TargetPlatform.fuchsia:
         // TODO: Handle this case.
         throw UnimplementedError();
       case TargetPlatform.linux:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case TargetPlatform.windows:
         // TODO: Handle this case.
         throw UnimplementedError();
     }
@@ -43,6 +42,17 @@ class DefaultFirebaseOptions {
   );*/
 
   static const FirebaseOptions web = FirebaseOptions(
+    apiKey: "AIzaSyBmrs9YC0Yr5ahrtuq15GRPCa4haNSethU",
+    appId: "1:703255082825:web:c1b487036915e447760c98",
+    messagingSenderId: "703255082825",
+    projectId: "project1-aa671",
+    authDomain: "project1-aa671.firebaseapp.com",
+    //storageBucket: "project1-aa671.firebasestorage.app",
+    storageBucket: 'project1-aa671.appspot.com',
+    measurementId: "G-F28TZP3MP2",
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
     apiKey: "AIzaSyBmrs9YC0Yr5ahrtuq15GRPCa4haNSethU",
     appId: "1:703255082825:web:c1b487036915e447760c98",
     messagingSenderId: "703255082825",

@@ -1,27 +1,40 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'package:intl/intl.dart';
+import 'package:to_do_list/model/task.dart';
+
 class AppStrings {
-  static final String SHOWALL = 'Mostrar totes';
-  static final String ALREADY_SHARED = 'Aquesta tasca ja ha estat compartida';
-  static final String NOTEXISTS_MESSAGE = 'Aquest usuari no existeix';
+  static const String USER_SEPARATOR = ' | ';
+  static const String DEFAULT_PSWRD = '123';
 
-  static final String CONFIRM = 'Confirmar';
-  static final String ACCEPT = 'Acceptar';
-  static final String CANCEL = 'Cancel·lar';
+  static const String SHOWALL = 'Mostrar totes';
+  static const String ALREADY_SHARED = 'Aquesta tasca ja ha estat compartida';
+  static const String NOTEXISTS_MESSAGE = 'Aquest usuari no existeix';
 
-  static final String USERS = '\u2794 Usuaris:';
-  static final String USER_SEPARATOR = ' | ';
-  static final String DEFAULT_PSWRD = '123';
+  static const String CONFIRM = 'Confirmar';
+  static const String ACCEPT = 'Acceptar';
+  static const String CANCEL = 'Cancel·lar';
 
-  static final String COMPLETED = 'Completada';
-  static final String PENDING = 'Pendent';
+  static const String USERS = '\u2794 Usuaris:';
 
-  static final String CONFIG = 'Configuració';
-  static final String PROFILE = 'Perfil';
-  static final String USERS_LABEL = 'Usuaris';
-  static final String DELETEACC = 'Eliminar compte';
+  static const String COMPLETED = 'Completada';
+  static const String PENDING = 'Pendent';
+
+  static const String CONFIG = 'Configuració';
+  static const String PROFILE = 'Perfil';
+  static const String USERS_LABEL = 'Usuaris';
+  static const String DELETEACC = 'Eliminar compte';
+
+  static const String PR_HIGH = 'Alt';
+  static const String PR_MEDIUM = 'Mitjà';
+  static const String PR_LOW = 'Baix';
+  static const List<String> prioritiesSTR = ['Alt', 'Mitjà', 'Baix'];
 
   static String subtitleText(String description, String ids) {
     return '$description\n${AppStrings.USERS} $ids';
+  }
+
+  static String titleText(Task task) {
+    return '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}';
   }
 }
