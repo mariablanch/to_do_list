@@ -317,42 +317,34 @@ class ToDoPage extends State<MyHomePageToDo> {
                                 child: Container(
                                   padding: const EdgeInsets.all(8.0),
                                   width: double.infinity,
-                                  child: Column(
+                                  child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Priorities.getIconPriority(task.priority),
-                                          SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  AppStrings.titleText(task),
-                                                  style: TextStyle(
-                                                    color: textColor(task),
-                                                    fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
-                                                    fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 5),
-                                                Text(
-                                                  AppStrings.subtitleText(
-                                                    task.description,
-                                                    taskAndUsersMAP[task.id] ?? '',
-                                                  ),
-                                                  style: TextStyle(color: textColor(task)),
-                                                ),
-                                              ],
+                                      Column(children: [Priorities.getIconPriority(task.priority)]),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              AppStrings.titleText(task),
+                                              style: TextStyle(
+                                                color: textColor(task),
+                                                fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
+                                                fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
+                                              ),
                                             ),
-                                          ),
-                                          SizedBox(height: 10),
-                                          Column(children: [buttons(task, index)]),
-                                        ],
+                                            SizedBox(height: 5),
+                                            Text(
+                                              AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
+                                              style: TextStyle(color: textColor(task)),
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                      SizedBox(height: 10),
+                                      buttons(task, index),
                                     ],
                                   ),
                                 ),
@@ -380,6 +372,8 @@ class ToDoPage extends State<MyHomePageToDo> {
           ],
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'addTask',
         onPressed: () {
