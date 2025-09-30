@@ -215,173 +215,179 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 500;
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
 
-        title: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(children: [myUser.icon, Container(width: 7), Text(myUser.userName)]),
-
-              Row(
+            title: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    tooltip: 'Notificacions',
-                    onPressed: () {
-                      openNotifications();
-                    },
-                    icon: (notifications.isEmpty)
-                        ? Icon(Icons.notifications)
-                        : Icon(Icons.notifications_active, color: Colors.red),
-                  ),
+                  Row(children: [myUser.icon, Container(width: 7), Text(myUser.userName)]),
 
-                  PopupMenuButton(
-                    icon: Icon(Icons.menu),
-                    tooltip: 'Menú',
-                    itemBuilder: (BuildContext context) => [
-                      PopupMenuItem(
-                        child: const Row(
-                          children: [
-                            Icon(Icons.settings, color: Colors.black54),
-                            SizedBox(width: 8),
-                            Text('Configuració'),
-                          ],
-                        ),
-
-                        onTap: () async {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-                          final updatedUser = await Navigator.push<User>(
-                            context,
-                            MaterialPageRoute(builder: (context) => ConfigHP(user: myUser)),
-                          );
-
-                          if (updatedUser != null) {
-                            setState(() {
-                              myUser = User.copy(updatedUser);
-                            });
-                          }
-                          loadInitialData(UserRole.isAdmin(myUser.userRole));
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Notificacions',
+                        onPressed: () {
+                          openNotifications();
                         },
+                        icon: (notifications.isEmpty)
+                            ? Icon(Icons.notifications)
+                            : Icon(Icons.notifications_active, color: Colors.red),
                       ),
-                      PopupMenuItem(
-                        child: const Row(
-                          children: [
-                            Icon(Icons.exit_to_app, color: Colors.black54),
-                            SizedBox(width: 8),
-                            Text('Tancar sessió'),
-                          ],
-                        ),
-                        onTap: () =>
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MyApp())),
+
+                      PopupMenuButton(
+                        icon: Icon(Icons.menu),
+                        tooltip: 'Menú',
+                        itemBuilder: (BuildContext context) => [
+                          PopupMenuItem(
+                            child: const Row(
+                              children: [
+                                Icon(Icons.settings, color: Colors.black54),
+                                SizedBox(width: 8),
+                                Text('Configuració'),
+                              ],
+                            ),
+
+                            onTap: () async {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                              final updatedUser = await Navigator.push<User>(
+                                context,
+                                MaterialPageRoute(builder: (context) => ConfigHP(user: myUser)),
+                              );
+
+                              if (updatedUser != null) {
+                                setState(() {
+                                  myUser = User.copy(updatedUser);
+                                });
+                              }
+                              loadInitialData(UserRole.isAdmin(myUser.userRole));
+                            },
+                          ),
+                          PopupMenuItem(
+                            child: const Row(
+                              children: [
+                                Icon(Icons.exit_to_app, color: Colors.black54),
+                                SizedBox(width: 8),
+                                Text('Tancar sessió'),
+                              ],
+                            ),
+                            onTap: () =>
+                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MyApp())),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-      body: Container(
-        margin: const EdgeInsets.all(30),
-        child: Column(
-          children: [
-            Row(
+          body: Container(
+            margin: const EdgeInsets.all(30),
+            child: Column(
               children: [
-                taskSort(),
-                Container(width: 10),
-                if (UserRole.isAdmin(myUser.userRole)) userFilter(),
-                Container(width: 10),
+                Row(
+                  children: [
+                    taskSort(),
+                    Container(width: 10),
+                    if (UserRole.isAdmin(myUser.userRole)) userFilter(),
+                    Container(width: 10),
+                  ],
+                ),
+
+                Expanded(
+                  child: allTasks.isEmpty
+                      ? Center(child: Text('No hi ha tasques.'))
+                      : ListView.builder(
+                          itemCount: allTasks.length,
+                          itemBuilder: (context, index) {
+                            final task = allTasks[index];
+
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (isCompact) {
+                                  return Card(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8.0),
+                                      width: double.infinity,
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(children: [Priorities.getIconPriority(task.priority)]),
+                                          SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  AppStrings.titleText(task),
+                                                  style: TextStyle(
+                                                    color: textColor(task),
+                                                    fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
+                                                    fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 5),
+                                                Text(
+                                                  AppStrings.subtitleText(
+                                                    task.description,
+                                                    taskAndUsersMAP[task.id] ?? '',
+                                                  ),
+                                                  style: TextStyle(color: textColor(task)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(height: 10),
+                                          buttons(task, index),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  return Card(
+                                    child: ListTile(
+                                      leading: Priorities.getIconPriority(task.priority),
+                                      title: Text(AppStrings.titleText(task)),
+                                      subtitle: Text(
+                                        AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
+                                      ),
+
+                                      textColor: textColor(task),
+                                      trailing: SizedBox(width: 150, child: buttons(task, index)),
+                                      onTap: () => openShowTask(task),
+                                    ),
+                                  );
+                                }
+                              },
+                            );
+                          },
+                        ),
+                ),
               ],
             ),
+          ),
+          //floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-            Expanded(
-              child: allTasks.isEmpty
-                  ? Center(child: Text('No hi ha tasques.'))
-                  : ListView.builder(
-                      itemCount: allTasks.length,
-                      itemBuilder: (context, index) {
-                        final task = allTasks[index];
-
-                        return LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isCompact = constraints.maxWidth < 500;
-
-                            if (isCompact) {
-                              return Card(
-                                child: Container(
-                                  padding: const EdgeInsets.all(8.0),
-                                  width: double.infinity,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(children: [Priorities.getIconPriority(task.priority)]),
-                                      SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              AppStrings.titleText(task),
-                                              style: TextStyle(
-                                                color: textColor(task),
-                                                fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
-                                                fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
-                                              ),
-                                            ),
-                                            SizedBox(height: 5),
-                                            Text(
-                                              AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
-                                              style: TextStyle(color: textColor(task)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      SizedBox(height: 10),
-                                      buttons(task, index),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            } else {
-                              return Card(
-                                child: ListTile(
-                                  leading: Priorities.getIconPriority(task.priority),
-                                  title: Text(AppStrings.titleText(task)),
-                                  subtitle: Text(
-                                    AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
-                                  ),
-
-                                  textColor: textColor(task),
-                                  trailing: SizedBox(width: 150, child: buttons(task, index)),
-                                  onTap: () => openShowTask(task),
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'addTask',
-        onPressed: () {
-          openForm();
-        },
-        label: Text('Afegir tasca'),
-        icon: Icon(Icons.add),
-      ),
+          floatingActionButton: !isCompact
+              ? FloatingActionButton.extended(
+                  heroTag: 'addTask',
+                  onPressed: () => openForm(),
+                  label: Text('Afegir tasca'),
+                  icon: Icon(Icons.add),
+                )
+              : FloatingActionButton.extended(label: Icon(Icons.add), onPressed: () => openForm()),
+        );
+      },
     );
   }
 
