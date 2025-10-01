@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
-import 'package:to_do_list/utils/messages.dart';
-import 'package:to_do_list/utils/db_constants.dart';
+import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task.dart';
 

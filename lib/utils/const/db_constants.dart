@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 class DbConstants {
   //COLLECTION
   static const String TASK = 'task';
@@ -11,6 +13,7 @@ class DbConstants {
   static const String USERROLE = 'userRole';
   static const String TASKID = 'taskId';
   static const String PFP = 'iconName';
+  static const String STATE = 'state';
 
   //COMPROVACIÓ ERROR BASE DE DADES
   static const int USEREXISTS = 0;

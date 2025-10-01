@@ -2,10 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
-import 'package:to_do_list/utils/app_strings.dart';
-import 'package:to_do_list/utils/messages.dart';
-import 'package:to_do_list/utils/db_constants.dart';
-import 'package:to_do_list/utils/user_role.dart';
+import 'package:to_do_list/utils/const/app_strings.dart';
+import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/model/user.dart';
 
 class UserController {
@@ -93,18 +92,6 @@ class UserController {
       }
     } catch (e) {
       logError('RESET PASSWORD', e);
-    }
-  }
-
-  Future<void> giveAdmin(User user, UserRole uR) async {
-    try {
-      final id = await _getUserIdByUserName(user.userName);
-      if (id != null) {
-        final updated = user.copyWith(userRole: uR);
-        await _updateUserById(id, updated);
-      }
-    } catch (e) {
-      logError('GIVE ADMIN', e);
     }
   }
 
@@ -207,4 +194,16 @@ class UserController {
     }
     return null;
   }
+
+ /*Future<void> giveAdmin(User user, UserRole uR) async {
+    try {
+      final id = await _getUserIdByUserName(user.userName);
+      if (id != null) {
+        final updated = user.copyWith(userRole: uR);
+        await _updateUserById(id, updated);
+      }
+    } catch (e) {
+      logError('GIVE ADMIN', e);
+    }
+  }*/
 }

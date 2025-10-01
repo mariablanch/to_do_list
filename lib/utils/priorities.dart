@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:to_do_list/utils/app_strings.dart';
+import 'package:to_do_list/utils/const/app_strings.dart';
 
 enum Priorities {
   NONE,
@@ -7,15 +7,16 @@ enum Priorities {
   MEDIUM,
   LOW;
 
-  static Icon getIconPriority(Priorities priority) {
+  static Icon getIconPriority(Priorities priority, bool hasPassed) {
     //Priorities priority = task.priority;
+    Color defColor = Colors.white;
     switch (priority) {
       case Priorities.HIGH:
-        return Icon(Icons.arrow_upward, color: Colors.red);
+        return Icon(Icons.arrow_upward, color: hasPassed ? defColor : Colors.redAccent);
       case Priorities.MEDIUM:
-        return Icon(Icons.keyboard_arrow_up, color: Colors.orange);
+        return Icon(Icons.keyboard_arrow_up, color: hasPassed ? defColor : Colors.orange.shade800);
       case Priorities.LOW:
-        return Icon(Icons.arrow_drop_up, color: Colors.green);
+        return Icon(Icons.arrow_drop_up, color: hasPassed ? defColor : Colors.green.shade700);
       default:
         return Icon(Icons.help_outline, color: Colors.grey);
     }

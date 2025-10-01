@@ -5,10 +5,11 @@ import 'package:intl/intl.dart';
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
-import 'package:to_do_list/utils/firebase_options.dart';
-import 'package:to_do_list/utils/messages.dart';
-import 'package:to_do_list/utils/app_strings.dart';
+import 'package:to_do_list/utils/const/firebase_options.dart';
+import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/priorities.dart';
+import 'package:to_do_list/utils/task_state.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/model/notification.dart';
@@ -96,18 +97,17 @@ class ToDoPage extends State<MyHomePageToDo> {
       await taskController.loadTasksFromDB(myUser.userName);
       await notController.loadNotificationsFromDB(myUser.userName);
     }
-    final users = await userController.loadAllUsers();
 
     notifications = notController.notifications;
     allTasks = taskController.tasks;
     //filterTask = List.from(allTasks);
-    allUserNames = users.map((User user) => user.userName).toList();
+    allUserNames = (await userController.loadAllUsers()).map((User user) => user.userName).toList();
     allUserNames.sort();
     allUserNames.insert(0, AppStrings.SHOWALL);
 
     await taskAndUsers();
 
-    loadTasksToDelete();
+    //loadTasksToDelete();
 
     setState(() {});
   }
@@ -115,7 +115,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   void loadTasksToDelete() {
     taskToDelete.clear();
     for (Task task in allTasks) {
-      if (task.isCompleted) {
+      if (TaskState.isDone(task.state)) {
         taskToDelete.add(task);
       }
     }
@@ -313,61 +313,69 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                             return LayoutBuilder(
                               builder: (context, constraints) {
-                                if (isCompact) {
-                                  return Card(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8.0),
-                                      width: double.infinity,
-                                      child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Column(children: [Priorities.getIconPriority(task.priority)]),
-                                          SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  AppStrings.titleText(task),
-                                                  style: TextStyle(
-                                                    color: textColor(task),
-                                                    fontSize: Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
-                                                    fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
+                                return Card(
+                                  color: backgroundColor(task),
+                                  child: isCompact
+                                      ? Container(
+                                          padding: const EdgeInsets.all(8.0),
+                                          width: double.infinity,
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                children: [
+                                                  Priorities.getIconPriority(
+                                                    task.priority,
+                                                    task.limitDate.isBefore(DateTime.now()),
                                                   ),
+                                                ],
+                                              ),
+                                              SizedBox(width: 10),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      AppStrings.titleText(task),
+                                                      style: TextStyle(
+                                                        //color: textColor(task),
+                                                        fontSize:
+                                                            Theme.of(context).textTheme.titleMedium!.fontSize! + 1,
+                                                        fontWeight: Theme.of(context).textTheme.titleMedium?.fontWeight,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 5),
+                                                    Text(
+                                                      AppStrings.subtitleText(
+                                                        task.description,
+                                                        taskAndUsersMAP[task.id] ?? '',
+                                                      ),
+                                                      style: TextStyle(color: textColor(task)),
+                                                    ),
+                                                  ],
                                                 ),
-                                                SizedBox(height: 5),
-                                                Text(
-                                                  AppStrings.subtitleText(
-                                                    task.description,
-                                                    taskAndUsersMAP[task.id] ?? '',
-                                                  ),
-                                                  style: TextStyle(color: textColor(task)),
-                                                ),
-                                              ],
-                                            ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              buttons(task, index),
+                                            ],
                                           ),
-                                          SizedBox(height: 10),
-                                          buttons(task, index),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  return Card(
-                                    child: ListTile(
-                                      leading: Priorities.getIconPriority(task.priority),
-                                      title: Text(AppStrings.titleText(task)),
-                                      subtitle: Text(
-                                        AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
-                                      ),
+                                        )
+                                      : ListTile(
+                                          leading: Priorities.getIconPriority(
+                                            task.priority,
+                                            task.limitDate.isBefore(DateTime.now()),
+                                          ),
+                                          title: Text(AppStrings.titleText(task)),
+                                          subtitle: Text(
+                                            AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
+                                          ),
 
-                                      textColor: textColor(task),
-                                      trailing: SizedBox(width: 150, child: buttons(task, index)),
-                                      onTap: () => openShowTask(task),
-                                    ),
-                                  );
-                                }
+                                          textColor: textColor(task),
+                                          trailing: SizedBox(width: 150, child: buttons(task, index)),
+                                          onTap: () => openShowTask(task),
+                                        ),
+                                );
                               },
                             );
                           },
@@ -376,7 +384,6 @@ class ToDoPage extends State<MyHomePageToDo> {
               ],
             ),
           ),
-          //floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
           floatingActionButton: !isCompact
               ? FloatingActionButton.extended(
@@ -391,14 +398,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  Color? textColor(Task task) {
-    if (task.isCompleted) {
-      return Colors.green.shade700;
-    }
-    return task.limitDate.isBefore(DateTime.now()) ? Colors.red : null;
-  }
-
-  openForm() {
+  void openForm() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -586,7 +586,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     return ret;
   }
 
-  openEditTask(Task taskToEdit, int index) {
+  void openEditTask(Task taskToEdit, int index) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -614,7 +614,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  openShowTask(Task task) {
+  void openShowTask(Task task) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -648,7 +648,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             tableRow('Descripció:', task.description),
             tableRow('Prioritat:', Priorities.priorityToString(task.priority)),
             tableRow('Data límit:', DateFormat('dd/MM/yyyy').format(task.limitDate)),
-            tableRow('', task.isCompleted ? AppStrings.COMPLETED : AppStrings.PENDING),
+            tableRow('', TaskState.stateToString(task.state)),
           ],
         ),
 
@@ -756,7 +756,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  openNotifications() {
+  void openNotifications() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -882,10 +882,10 @@ class ToDoPage extends State<MyHomePageToDo> {
         tooltip: 'Sobre quin element voleu ordenar',
 
         itemBuilder: (BuildContext context) => [
-          menuItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
-          menuItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
-          menuItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
-          menuItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
+          _menuItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
+          _menuItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
+          _menuItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
+          _menuItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
         ],
         child: Container(
           padding: EdgeInsets.all(10),
@@ -937,7 +937,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  TableRow tableRow(String label, String value) {
+  static TableRow tableRow(String label, String value) {
     return TableRow(
       children: [
         Padding(
@@ -949,7 +949,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  PopupMenuItem menuItem(IconData icon, String label, SortType st) {
+  PopupMenuItem _menuItem(IconData icon, String label, SortType st) {
     return PopupMenuItem(
       child: Row(
         children: [
@@ -970,7 +970,8 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Row buttons(Task task, int index) {
-    Color defaultColor = Colors.black54;
+    Color defaultColor = const Color.fromARGB(165, 0, 0, 0);
+    String tooltip = AppStrings.tooltipTextState(task.state);
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -1001,8 +1002,13 @@ class ToDoPage extends State<MyHomePageToDo> {
           ),
         ),
         IconButton(
-          tooltip: 'Marcar com a feta',
-          icon: Icon(Icons.check_circle, color: task.isCompleted ? Colors.green : null),
+          tooltip: tooltip,
+          icon: Icon(
+            Icons.check_circle,
+            color: TaskState.isDone(task.state)
+                ? (task.limitDate.isBefore(DateTime.now()) ? Colors.green.shade400 : Colors.green.shade700)
+                : null,
+          ),
           style: ButtonStyle(
             foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
               if (states.contains(WidgetState.hovered)) {
@@ -1012,16 +1018,32 @@ class ToDoPage extends State<MyHomePageToDo> {
             }),
           ),
           onPressed: () async {
-            Task updatedTask = task.copyWith(completed: !task.isCompleted);
+            //Task updatedTask = task.copyWith(completed: !task.isCompleted);
+            Task updatedTask = task.copyWith(state: TaskState.changeState(task.state));
             await taskController.updateTask(updatedTask, task.id);
             setState(() => allTasks[index] = updatedTask);
-            if (updatedTask.isCompleted) {
+            if (TaskState.isDone(updatedTask.state)) {
               await confirmDelete(index, task.id, true);
             }
           },
         ),
       ],
     );
+  }
+
+  Color? backgroundColor(Task task) {
+    if (task.limitDate.isBefore(DateTime.now())) {
+      return Colors.red.shade400;
+    } else {
+      return TaskState.stateColor(task.state);
+    }
+  }
+
+  Color? textColor(Task task) {
+    if (task.limitDate.isBefore(DateTime.now())) {
+      return Colors.white;
+    }
+    return null;
   }
 }
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
-import 'package:to_do_list/utils/db_constants.dart';
+import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
 class User {

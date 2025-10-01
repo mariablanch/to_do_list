@@ -6,9 +6,9 @@ import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/to_do_page.dart';
 //import 'package:to_do_list/to_do_page.dart';
-import 'package:to_do_list/utils/messages.dart';
-import 'package:to_do_list/utils/firebase_options.dart';
-import 'package:to_do_list/utils/app_strings.dart';
+import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/const/firebase_options.dart';
+import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/main.dart';
@@ -211,10 +211,10 @@ class ConfigPage extends State<ConfigHP> {
             Table(
               columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
               children: [
-                ToDoPage().tableRow('Nom:', myUser.name),
-                ToDoPage().tableRow('Cognom:', myUser.surname),
-                ToDoPage().tableRow('Nom d\'usuari:', myUser.userName),
-                ToDoPage().tableRow('Correu:', myUser.mail),
+                ToDoPage.tableRow('Nom:', myUser.name),
+                ToDoPage.tableRow('Cognom:', myUser.surname),
+                ToDoPage.tableRow('Nom d\'usuari:', myUser.userName),
+                ToDoPage.tableRow('Correu:', myUser.mail),
               ],
             ),
           ],
@@ -240,7 +240,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  editAccount(User editUser, bool isNew) {
+  Form editAccount(User editUser, bool isNew) {
     final formKey = GlobalKey<FormState>();
 
     // false si el usuari es igual (s edita a ell mateix)
@@ -477,7 +477,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  userNotAviableMessage() {
+  void userNotAviableMessage() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -617,7 +617,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  userList() {
+  Expanded userList() {
     return Expanded(
       child: ListView.builder(
         itemCount: allUsers.length,
@@ -674,7 +674,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  viewUser(bool edit, User user) {
+  Widget viewUser(bool edit, User user) {
     List<Task> tasks = tasksFromUsers[user.userName]!;
     return edit
         ? editAccount(user, false)
@@ -685,11 +685,11 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    ToDoPage().tableRow('Nom:', user.name),
-                    ToDoPage().tableRow('Cognom:', user.surname),
-                    ToDoPage().tableRow('Nom d\'usuari:', user.userName),
-                    ToDoPage().tableRow('Correu:', user.mail),
-                    ToDoPage().tableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
+                    ToDoPage.tableRow('Nom:', user.name),
+                    ToDoPage.tableRow('Cognom:', user.surname),
+                    ToDoPage.tableRow('Nom d\'usuari:', user.userName),
+                    ToDoPage.tableRow('Correu:', user.mail),
+                    ToDoPage.tableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
                   ],
                 ),
 
@@ -700,11 +700,11 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    ToDoPage().tableRow(
+                    ToDoPage.tableRow(
                       'Tasques de l\'usuari:',
                       tasks.isEmpty ? 'Aquest usuari no té tasques assignades.' : tasks.first.name,
                     ),
-                    for (Task task in tasks.skip(1).toList()) ToDoPage().tableRow('', task.name),
+                    for (Task task in tasks.skip(1).toList()) ToDoPage.tableRow('', task.name),
                   ],
                 ),
 

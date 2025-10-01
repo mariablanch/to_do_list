@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_list/utils/priorities.dart';
+import 'package:to_do_list/utils/task_state.dart';
 
 class Task implements Comparable<Task> {
   String _id;
@@ -8,23 +9,25 @@ class Task implements Comparable<Task> {
   String _description;
   Priorities _priority;
   DateTime _limitDate;
-  bool _completed;
+  //bool _completed;
+  TaskState _state;
 
   Task.empty()
-    : this._id = '',
-      this._name = '',
-      this._description = '',
-      this._priority = Priorities.NONE,
-      this._limitDate = DateTime.now(),
-      this._completed = false;
+    : _id = '',
+      _name = '',
+      _description = '',
+      _priority = Priorities.NONE,
+      _limitDate = DateTime.now(),
+      _state = TaskState.PENDING;
 
   Task.copy(Task task)
-    : this._name = task.name,
-      this._description = task.description,
-      this._priority = task.priority,
-      this._limitDate = task.limitDate,
-      this._completed = task.isCompleted,
-      this._id = task.id;
+    : _name = task.name,
+      _description = task.description,
+      _priority = task.priority,
+      _limitDate = task.limitDate,
+      //this._completed = task.isCompleted,
+      _state = task.state,
+      _id = task.id;
 
   Task copyWith({
     String? id,
@@ -32,15 +35,16 @@ class Task implements Comparable<Task> {
     String? description,
     Priorities? priority,
     DateTime? limitDate,
-    bool? completed,
+    TaskState? state,
   }) {
     return Task(
-      id: id ?? this._id,
-      name: name ?? this._name,
-      description: description ?? this._description,
-      priority: priority ?? this._priority,
-      limitDate: limitDate ?? this._limitDate,
-      completed: completed ?? this._completed,
+      id: id ?? _id,
+      name: name ?? _name,
+      description: description ?? _description,
+      priority: priority ?? _priority,
+      limitDate: limitDate ?? _limitDate,
+      //completed: completed ?? this._completed,
+      state: state ?? _state,
     );
   }
 
@@ -50,20 +54,20 @@ class Task implements Comparable<Task> {
     required String description,
     required Priorities priority,
     required DateTime limitDate,
-    required bool completed,
-  }) : this._name = name,
-       this._description = description,
-       this._priority = priority,
-       this._limitDate = limitDate,
-       this._completed = completed,
-       this._id = id;
+    required TaskState state,
+  }) : _name = name,
+       _description = description,
+       _priority = priority,
+       _limitDate = limitDate,
+       _state = state,
+       _id = id;
 
-  String get name => this._name;
-  String get description => this._description;
-  Priorities get priority => this._priority;
-  DateTime get limitDate => this._limitDate;
-  bool get isCompleted => this._completed;
-  String get id => this._id;
+  String get name => _name;
+  String get description => _description;
+  Priorities get priority => _priority;
+  DateTime get limitDate => _limitDate;
+  TaskState get state => _state;
+  String get id => _id;
 
   set id(String newId) => _id = newId;
 
@@ -76,7 +80,7 @@ class Task implements Comparable<Task> {
     str += 'Descripció: $_description \n';
     str += 'Prioritat: $_priority \n';
     str += 'Data límit: $dateformat \n';
-    _completed ? str += 'Completada' : str += 'Pendent';
+    str += 'Estat: $_state';
     return str;
   }
 
@@ -86,7 +90,7 @@ class Task implements Comparable<Task> {
       'description': _description,
       'priority': _priority.name,
       'limitDate': Timestamp.fromDate(_limitDate),
-      'completed': _completed,
+      'state': _state.name,
     };
   }
 
@@ -100,14 +104,16 @@ class Task implements Comparable<Task> {
         (p) => p.name.toLowerCase() == (data['priority'] ?? '').toString().toLowerCase(),
       ),
       limitDate: (data['limitDate'] as Timestamp).toDate(),
-      completed: data['completed'] ?? false,
+      state: TaskState.values.firstWhere(
+        (st) => st.name.toLowerCase() == (data['state'] ?? '').toString().toLowerCase(),
+      ),
     );
   }
 
   @override
   int compareTo(Task task) {
-    int comp = this._priority.index.compareTo(task._priority.index);
-    if (comp == 0) comp = this._name.compareTo(task._name);
+    int comp = _priority.index.compareTo(task._priority.index);
+    if (comp == 0) comp = _name.compareTo(task._name);
     return comp;
   }
 }
