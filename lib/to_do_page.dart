@@ -1005,9 +1005,10 @@ class ToDoPage extends State<MyHomePageToDo> {
           tooltip: tooltip,
           icon: Icon(
             Icons.check_circle,
-            color: TaskState.isDone(task.state)
+            /*color: TaskState.isDone(task.state)
                 ? (task.limitDate.isBefore(DateTime.now()) ? Colors.green.shade400 : Colors.green.shade700)
-                : null,
+                : null,*/
+            color: TaskState.iconColorByState(task.state),
           ),
           style: ButtonStyle(
             foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
@@ -1033,7 +1034,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Color? backgroundColor(Task task) {
     if (task.limitDate.isBefore(DateTime.now())) {
-      return Colors.red.shade400;
+      return Colors.red.shade300;
     } else {
       return TaskState.stateColor(task.state);
     }

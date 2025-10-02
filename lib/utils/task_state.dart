@@ -58,4 +58,17 @@ enum TaskState {
         return Colors.black;
     }
   }
+
+  static Color? iconColorByState(TaskState state){
+       switch (state) {
+      case TaskState.COMPLETED:
+        return Colors.green.shade600;
+      case TaskState.INPROGRES:
+        return Colors.orange.shade600;
+      case TaskState.PENDING:
+        return null;
+      case TaskState.NONE:
+        return null;
+    }
+  }
 }

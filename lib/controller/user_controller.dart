@@ -87,7 +87,8 @@ class UserController {
     try {
       final id = await _getUserIdByUserName(user.userName);
       if (id != null) {
-        user.password = User.hashPassword(AppStrings.DEFAULT_PSWRD);
+        //user.password = User.hashPassword(AppStrings.DEFAULT_PSWRD);
+        user.setPassword(User.hashPassword(AppStrings.DEFAULT_PSWRD));
         await _updateUserById(id, user);
       }
     } catch (e) {

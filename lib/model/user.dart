@@ -134,7 +134,8 @@ class User {
   UserRole get userRole => this._userRole;
   Icon get icon => this._icon;
 
-  set password(String password) => _password = password;
+  //set password(String password) => _password = password;
+  void setPassword(String password) => _password = password;
 
   @override
   String toString() {

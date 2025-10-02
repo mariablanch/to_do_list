@@ -85,7 +85,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) {
       loadUsers();
     }
-    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    //iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     isUserAdmin = isAdmin;
     setState(() {});
   }
@@ -100,7 +100,7 @@ class ConfigPage extends State<ConfigHP> {
 
     setState(() {
       allUsers = users;
-      iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+      //iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     });
     await loadTask();
   }
@@ -224,6 +224,7 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget editAccountPage() {
+    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     return Align(
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
@@ -330,16 +331,12 @@ class ConfigPage extends State<ConfigHP> {
               ),
             ),
 
-            if ((!adminEdit && !isNew))
+            if (!adminEdit && !isNew)
               Container(
                 margin: EdgeInsets.symmetric(vertical: 5),
                 child: TextFormField(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: !(!adminEdit && !isNew) ? 'Contrasenya' : 'Nova contrasenya',
-                  ),
+                  decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nova contrasenya'),
                   obscureText: true,
-                  readOnly: !(!adminEdit && !isNew),
                   //controller: paswordController,
                   validator: (value) {
                     if (isNew && (value == null || value.isEmpty)) {
@@ -354,12 +351,12 @@ class ConfigPage extends State<ConfigHP> {
               ),
             Container(height: 5),
 
-            if (!(!adminEdit && !isNew) && isNew)
-              Text('La contrasenya és generada automaticament', style: TextStyle(fontSize: 14)),
+            if (isNew) Text('La contrasenya és generada automaticament', style: TextStyle(fontSize: 14)),
 
             Container(height: 5),
 
-            if (isAdmin && editUser.userName != myUser.userName && !isNew)
+            //if (isAdmin && editUser.userName != myUser.userName && !isNew)
+            if (adminEdit && !isNew)
               Row(
                 children: [
                   Text('Permisos d\'administrador'),
@@ -414,55 +411,58 @@ class ConfigPage extends State<ConfigHP> {
                     formKey.currentState!.save();
                     bool usernameExists = await userController.userNameExists(userName);
 
-                    if (isNew) {
-                      if (!usernameExists) {
-                        User user = editUser.copyWith(
+                    if (userName != editUser.userName && usernameExists) {
+                      userNotAviableMessage();
+                    } else if (isNew) {
+                      User user = editUser.copyWith(
+                        name: name,
+                        surname: surname,
+                        userName: userName,
+                        mail: mail,
+                        password: AppStrings.DEFAULT_PSWRD,
+                      );
+                      await userController.createAccountDB(user);
+                      await loadUsers();
+
+                      Navigator.pop(context);
+                    } else {
+                      bool confirmPswrd = await confirmPasword(false);
+
+                      if (confirmPswrd) {
+                        bool isEmpty = password.isEmpty;
+                        //String pswrd = adminEdit ? editUser.password : (isEmpty ? editUser.password : User.hashPassword(password));
+                        String pswrd = (adminEdit || isEmpty) ? editUser.password : User.hashPassword(password);
+                        //bool ur = isAdmin ? true : isUserAdmin;
+                        bool ur = isAdmin || isUserAdmin;
+
+                        User updatedUser = editUser.copyWith(
                           name: name,
                           surname: surname,
                           userName: userName,
                           mail: mail,
-                          password: AppStrings.DEFAULT_PSWRD,
+                          //password: !isEmpty ? User.hashPassword(password) : editUser.password,
+                          password: pswrd,
+                          //userRole: UserRole.getUserRole(isUserAdmin),
+                          userRole: UserRole.getUserRole(ur),
+                          icon: Icon(User.iconMap[iconSelected]),
                         );
-                        await userController.createAccountDB(user);
-                        await loadUsers();
 
-                        Navigator.pop(context);
-                      }
-                    } else {
-                      if (userName != editUser.userName && usernameExists) {
-                        userNotAviableMessage();
-                      } else {
-                        bool confirmPswrd = await confirmPasword(false);
+                        try {
+                          await userController.updateProfileDB(updatedUser, editUser);
+                        } catch (e) {
+                          logError('EDIT ACCOUNT configPage', e);
+                        }
+                        //user = updatedUser;
 
-                        if (confirmPswrd) {
-                          bool isEmpty = password.isEmpty;
+                        setState(() {
+                          viewUserList = true;
+                          userEdit = false;
+                        });
 
-                          User updatedUser = editUser.copyWith(
-                            name: name,
-                            surname: surname,
-                            userName: userName,
-                            mail: mail,
-                            password: !isEmpty ? User.hashPassword(password) : editUser.password,
-                            userRole: UserRole.getUserRole(isUserAdmin),
-                            icon: Icon(User.iconMap[iconSelected]),
-                          );
-                          try {
-                            await userController.updateProfileDB(updatedUser, editUser);
-                          } catch (e) {
-                            logError('EDIT ACCOUNT configPage', e);
-                          }
-                          //user = updatedUser;
-
-                          setState(() {
-                            viewUserList = true;
-                            userEdit = false;
-                          });
-
-                          if (!adminEdit) {
-                            Navigator.pop(context, updatedUser);
-                          } else {
-                            await loadUsers();
-                          }
+                        if (!adminEdit) {
+                          Navigator.pop(context, updatedUser);
+                        } else {
+                          await loadUsers();
                         }
                       }
                     }
@@ -658,7 +658,7 @@ class ConfigPage extends State<ConfigHP> {
                           userEdit = true;
                           editUser = allUsers[index];
                           //iconSelected = editUser.icon;
-                          iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
+                          //iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
                           isUserAdmin = UserRole.isAdmin(editUser.userRole);
                         });
                       },
@@ -676,6 +676,7 @@ class ConfigPage extends State<ConfigHP> {
 
   Widget viewUser(bool edit, User user) {
     List<Task> tasks = tasksFromUsers[user.userName]!;
+    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == user.icon.icon).key;
     return edit
         ? editAccount(user, false)
         : SingleChildScrollView(

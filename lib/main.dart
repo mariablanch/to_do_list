@@ -77,7 +77,7 @@ class LogInPage extends State<MyHomePage> {
     );
   }
 
-  logInForm() {
+  Form logInForm() {
     TextEditingController nameController = TextEditingController();
     TextEditingController pswrdController = TextEditingController();
 
@@ -158,7 +158,7 @@ class LogInPage extends State<MyHomePage> {
     );
   }
 
-  createAccountForm() {
+  Form createAccountForm() {
     String name = '';
     String surname = '';
     String userName = '';
