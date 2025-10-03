@@ -1072,9 +1072,9 @@ class TaskFormState extends State<TaskForm> {
   final _formKey = GlobalKey<FormState>();
 
   DateTime? selectedDate;
-  late TextEditingController dateController;
   String? prioritySTR;
 
+  late TextEditingController dateController;
   late TextEditingController nameController;
   late TextEditingController descriptionController;
 
@@ -1267,5 +1267,13 @@ class TaskFormState extends State<TaskForm> {
         ),
       ),
     );
+  }
+  
+  @override
+  void dispose() {
+    super.dispose();
+    dateController.dispose();
+    nameController.dispose();
+    descriptionController.dispose();
   }
 }

@@ -46,6 +46,35 @@ class LogInPage extends State<MyHomePage> {
 
   String control = '';
 
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController pswrdController = TextEditingController();
+  final TextEditingController surnameController = TextEditingController();
+  final TextEditingController userNameController = TextEditingController();
+  final TextEditingController mailController = TextEditingController();
+  final TextEditingController paswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    pswrdController.dispose();
+    surnameController.dispose();
+    userNameController.dispose();
+    mailController.dispose();
+    paswordController.dispose();
+    super.dispose();
+  }
+
+  void clear() {
+    nameController.clear();
+    pswrdController.clear();
+    surnameController.clear();
+    userNameController.clear();
+    mailController.clear();
+    paswordController.clear();
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,6 +95,7 @@ class LogInPage extends State<MyHomePage> {
                   setState(() {
                     _hasAccount = !_hasAccount;
                     control = '';
+                    clear();
                   });
                 },
                 child: Text(_hasAccount ? 'No tens compte? Registra\'t' : 'Ja tens compte? Inicia sessió'),
@@ -78,8 +108,8 @@ class LogInPage extends State<MyHomePage> {
   }
 
   Form logInForm() {
-    TextEditingController nameController = TextEditingController();
-    TextEditingController pswrdController = TextEditingController();
+    //TextEditingController nameController = TextEditingController();
+    //TextEditingController pswrdController = TextEditingController();
 
     return Form(
       key: _formKey,
@@ -166,11 +196,11 @@ class LogInPage extends State<MyHomePage> {
     String password = '';
     User user;
 
-    TextEditingController nameController = TextEditingController();
-    TextEditingController surnameController = TextEditingController();
-    TextEditingController userNameController = TextEditingController();
-    TextEditingController mailController = TextEditingController();
-    TextEditingController paswordController = TextEditingController();
+    //TextEditingController nameController = TextEditingController();
+    //TextEditingController surnameController = TextEditingController();
+    //TextEditingController userNameController = TextEditingController();
+    //TextEditingController mailController = TextEditingController();
+    //TextEditingController paswordController = TextEditingController();
 
     return Form(
       key: _formKey,

@@ -72,10 +72,33 @@ class ConfigPage extends State<ConfigHP> {
   List<Widget> get adminPages => [profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
 
   UserController userController = UserController();
-  //TaskController taskController = TaskController();
   List<User> allUsers = [];
 
   Map<String, List<Task>> tasksFromUsers = {};
+
+  TextEditingController userNameController = TextEditingController();
+  TextEditingController nameController = TextEditingController();
+  TextEditingController surnameController = TextEditingController();
+  TextEditingController mailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    userNameController.dispose();
+    nameController.dispose();
+    surnameController.dispose();
+    mailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void clear() {
+    userNameController.clear();
+    nameController.clear();
+    surnameController.clear();
+    mailController.clear();
+    passwordController.clear();
+  }
 
   @override
   void initState() {
@@ -149,8 +172,9 @@ class ConfigPage extends State<ConfigHP> {
                 final rail = NavigationRail(
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (int index) {
-                    if (index == 1)
+                    if (index == 1) {
                       iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+                    }
                     setState(() => selectedIndex = index);
                   },
                   labelType: NavigationRailLabelType.all,
@@ -255,10 +279,12 @@ class ConfigPage extends State<ConfigHP> {
     String mail = editUser.mail;
     String password = editUser.password;
 
-    TextEditingController nameController = TextEditingController(text: editUser.name);
-    TextEditingController surnameController = TextEditingController(text: surname);
-    TextEditingController userNameController = TextEditingController(text: editUser.userName);
-    TextEditingController mailController = TextEditingController(text: editUser.mail);
+    clear();
+
+    nameController = TextEditingController(text: editUser.name);
+    surnameController = TextEditingController(text: surname);
+    userNameController = TextEditingController(text: editUser.userName);
+    mailController = TextEditingController(text: editUser.mail);
 
     return Form(
       key: formKey,
@@ -507,8 +533,6 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Future<bool> confirmPasword(bool deleteAcc) async {
-    final TextEditingController passwordController = TextEditingController();
-
     final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -702,7 +726,10 @@ class ConfigPage extends State<ConfigHP> {
                 ),
 
                 Container(height: 10),
-                Text('------------------------------------------------', style: TextStyle(fontWeight: FontWeight.bold)),
+                //Text('------------------------------------------------', style: TextStyle(fontWeight: FontWeight.bold)),
+                //Divider(height: 20, endIndent: 1000),
+                SizedBox(height: 30, width: 500, child: Divider(thickness: 2)),
+
                 Container(height: 10),
 
                 Table(
@@ -751,8 +778,7 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Future<bool> confirmUserName(String userName) async {
-    final TextEditingController userNameController = TextEditingController();
-
+    clear();
     final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
