@@ -155,7 +155,7 @@ class User {
       'mail': _mail,
       DbConstants.PASSWORD: _password,
       DbConstants.USERROLE: _userRole.name,
-      'iconName': iconMap.entries.firstWhere((line) => line.value == _icon.icon).key,
+      DbConstants.ICON: iconMap.entries.firstWhere((line) => line.value == _icon.icon).key,
     };
   }
 
@@ -177,7 +177,7 @@ class User {
 
   factory User.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
     final data = snapshot.data();
-    final iconName = data?['iconName'] ?? 'person';
+    final iconName = data?[DbConstants.ICON] ?? 'person';
 
     return User(
       name: data?['name'] ?? '',

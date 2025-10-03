@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/utils/const/db_constants.dart';
 
 class Notifications implements Comparable<Notifications> {
   String _id;
@@ -51,9 +52,9 @@ class Notifications implements Comparable<Notifications> {
 
   Map<String, dynamic> toFirestore() {
     return {
-      'taskId': _taskId,
+      DbConstants.TASKID: _taskId,
       'description': _description,
-      'userName': _userName,
+      DbConstants.USERNAME: _userName,
       'message': _message,
     };
   }
@@ -62,9 +63,9 @@ class Notifications implements Comparable<Notifications> {
     final data = doc.data() as Map<String, dynamic>;
     return Notifications(
       id: doc.id,
-      taskId: data['taskId'] ?? '',
+      taskId: data[DbConstants.TASKID] ?? '',
       description: data['description'] ?? '',
-      userName: data['userName'] ?? '',
+      userName: data[DbConstants.USERNAME] ?? '',
       message: data['message'] ?? '',
     );
   }

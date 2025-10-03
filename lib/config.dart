@@ -85,7 +85,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) {
       loadUsers();
     }
-    //iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     isUserAdmin = isAdmin;
     setState(() {});
   }
@@ -100,7 +100,6 @@ class ConfigPage extends State<ConfigHP> {
 
     setState(() {
       allUsers = users;
-      //iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     });
     await loadTask();
   }
@@ -150,6 +149,8 @@ class ConfigPage extends State<ConfigHP> {
                 final rail = NavigationRail(
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (int index) {
+                    if (index == 1)
+                      iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
                     setState(() => selectedIndex = index);
                   },
                   labelType: NavigationRailLabelType.all,
@@ -186,6 +187,7 @@ class ConfigPage extends State<ConfigHP> {
       title: Text(title),
       selected: selectedIndex == index,
       onTap: () {
+        if (index == 1) iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
         Navigator.of(context).pop();
         setState(() => selectedIndex = index);
       },
@@ -224,7 +226,6 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget editAccountPage() {
-    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     return Align(
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
@@ -433,14 +434,22 @@ class ConfigPage extends State<ConfigHP> {
                         //String pswrd = adminEdit ? editUser.password : (isEmpty ? editUser.password : User.hashPassword(password));
                         String pswrd = (adminEdit || isEmpty) ? editUser.password : User.hashPassword(password);
                         //bool ur = isAdmin ? true : isUserAdmin;
-                        bool ur = isAdmin || isUserAdmin;
+                        //bool ur = isAdmin || isUserAdmin;
+                        bool ur = false;
+                        if (isAdmin) {
+                          if (myUser.userName == editUser.userName) {
+                            ur = true;
+                          } else {
+                            //NO SE EDITA A ELL --> EDITA A UN ALTRE
+                            ur = isUserAdmin;
+                          }
+                        }
 
                         User updatedUser = editUser.copyWith(
                           name: name,
                           surname: surname,
                           userName: userName,
                           mail: mail,
-                          //password: !isEmpty ? User.hashPassword(password) : editUser.password,
                           password: pswrd,
                           //userRole: UserRole.getUserRole(isUserAdmin),
                           userRole: UserRole.getUserRole(ur),
@@ -654,11 +663,10 @@ class ConfigPage extends State<ConfigHP> {
                       tooltip: 'Editar',
                       onPressed: () {
                         setState(() {
+                          editUser = allUsers[index];
+                          iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
                           viewUserList = false;
                           userEdit = true;
-                          editUser = allUsers[index];
-                          //iconSelected = editUser.icon;
-                          //iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
                           isUserAdmin = UserRole.isAdmin(editUser.userRole);
                         });
                       },
@@ -676,7 +684,6 @@ class ConfigPage extends State<ConfigHP> {
 
   Widget viewUser(bool edit, User user) {
     List<Task> tasks = tasksFromUsers[user.userName]!;
-    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == user.icon.icon).key;
     return edit
         ? editAccount(user, false)
         : SingleChildScrollView(

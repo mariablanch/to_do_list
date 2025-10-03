@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/task_state.dart';
 
@@ -90,7 +91,7 @@ class Task implements Comparable<Task> {
       'description': _description,
       'priority': _priority.name,
       'limitDate': Timestamp.fromDate(_limitDate),
-      'state': _state.name,
+      DbConstants.STATE: _state.name,
     };
   }
 
@@ -105,7 +106,7 @@ class Task implements Comparable<Task> {
       ),
       limitDate: (data['limitDate'] as Timestamp).toDate(),
       state: TaskState.values.firstWhere(
-        (st) => st.name.toLowerCase() == (data['state'] ?? '').toString().toLowerCase(),
+        (st) => st.name.toLowerCase() == (data[DbConstants.STATE] ?? '').toString().toLowerCase(),
       ),
     );
   }

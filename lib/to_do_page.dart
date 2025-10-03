@@ -47,7 +47,7 @@ class MyAppToDo extends StatelessWidget {
       theme: ThemeData(
         colorScheme: (!UserRole.isAdmin(user.userRole))
             ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
-            : ColorScheme.fromSeed(seedColor: Colors.amber),
+            : ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
     );
   }

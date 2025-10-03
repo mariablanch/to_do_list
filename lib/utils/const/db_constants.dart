@@ -12,7 +12,7 @@ class DbConstants {
   static const String PASSWORD = 'password';
   static const String USERROLE = 'userRole';
   static const String TASKID = 'taskId';
-  static const String PFP = 'iconName';
+  static const String ICON = 'iconName';
   static const String STATE = 'state';
 
   //COMPROVACIÓ ERROR BASE DE DADES
