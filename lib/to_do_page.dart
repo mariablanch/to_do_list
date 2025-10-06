@@ -42,7 +42,7 @@ class MyAppToDo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ToDoList',
+      title: user.userName,
       home: MyHomePageToDo(user: user),
       theme: ThemeData(
         colorScheme: (!UserRole.isAdmin(user.userRole))

@@ -36,7 +36,7 @@ class MyAppConfig extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ToDoList',
+      title: 'Configuració',
       home: ConfigHP(user: user),
       theme: ThemeData(
         //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
