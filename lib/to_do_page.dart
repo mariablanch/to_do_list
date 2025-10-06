@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
@@ -49,6 +50,15 @@ class MyAppToDo extends StatelessWidget {
             ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
             : ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        Locale('en'), // English
+        Locale('es'), // Spanish
+      ],
     );
   }
 }
@@ -931,7 +941,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             borderRadius: BorderRadius.circular(12.0),
           ),
 
-          child: Text('Filtrar', style: TextStyle(fontSize: 17)),
+          child: Text('Usuaris', style: TextStyle(fontSize: 17)),
         ),
       ),
     );
@@ -1160,6 +1170,7 @@ class TaskFormState extends State<TaskForm> {
                   //firstDate: DateTime.now(),
                   firstDate: newTask.limitDate.isBefore(DateTime.now()) ? newTask.limitDate : DateTime.now(),
                   lastDate: DateTime(2050),
+                  locale: const Locale('es', 'ES'),
                 );
                 if (picked != null) {
                   setState(() {
@@ -1268,7 +1279,7 @@ class TaskFormState extends State<TaskForm> {
       ),
     );
   }
-  
+
   @override
   void dispose() {
     super.dispose();

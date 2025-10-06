@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
@@ -25,6 +26,16 @@ class MyApp extends StatelessWidget {
       title: 'Iniciar Sessió',
       home: MyHomePage(),
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
+
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        Locale('en'), // English
+        Locale('es'), // Spanish
+      ],
     );
   }
 }
@@ -72,8 +83,6 @@ class LogInPage extends State<MyHomePage> {
     mailController.clear();
     paswordController.clear();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -196,12 +205,6 @@ class LogInPage extends State<MyHomePage> {
     String password = '';
     User user;
 
-    //TextEditingController nameController = TextEditingController();
-    //TextEditingController surnameController = TextEditingController();
-    //TextEditingController userNameController = TextEditingController();
-    //TextEditingController mailController = TextEditingController();
-    //TextEditingController paswordController = TextEditingController();
-
     return Form(
       key: _formKey,
       child: Column(
@@ -263,6 +266,8 @@ class LogInPage extends State<MyHomePage> {
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Aquest camp és obligatori';
+                } else if (!value.contains('@')) {
+                  return 'No té el format adequat';
                 }
                 return null;
               },

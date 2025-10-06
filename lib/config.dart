@@ -349,6 +349,8 @@ class ConfigPage extends State<ConfigHP> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Aquest camp és obligatori';
+                  } else if (!(value.contains('@') && value.contains('.'))) {
+                    return 'No té el format adequat';
                   }
                   return null;
                 },
