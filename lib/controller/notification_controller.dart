@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_this
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';

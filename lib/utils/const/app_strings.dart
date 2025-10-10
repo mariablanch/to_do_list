@@ -1,8 +1,5 @@
-// ignore_for_file: constant_identifier_names
-
 import 'package:intl/intl.dart';
 import 'package:to_do_list/model/task.dart';
-import 'package:to_do_list/utils/task_state.dart';
 
 class AppStrings {
   static const String USER_SEPARATOR = ' | ';
@@ -24,6 +21,7 @@ class AppStrings {
   static const String CONFIG = 'Configuració';
   static const String PROFILE = 'Perfil';
   static const String USERS_LABEL = 'Usuaris';
+  static const String TASKSTATES = 'Estat de les tasques';
   static const String DELETEACC = 'Eliminar compte';
 
   static const String PR_HIGH = 'Alt';
@@ -36,7 +34,7 @@ class AppStrings {
   static const String ST_PEND = 'Pendent';
   static const List<String> stateSTR = [ST_COMP, ST_INP, ST_PEND];
 
-  static String tooltipTextState(TaskState state) {
+  /*static String tooltipTextState(TaskState state) {
     switch (state) {
       case TaskState.NONE:
         return '';
@@ -47,7 +45,7 @@ class AppStrings {
       case TaskState.COMPLETED:
         return 'Canviar a pendent';
     }
-  }
+  }*/
 
   static String subtitleText(String description, String ids) {
     return '$description\n${AppStrings.USERS} $ids';

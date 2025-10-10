@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -300,12 +302,24 @@ class LogInPage extends State<MyHomePage> {
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
-                  user = User.parameter(name, surname, userName, mail, password, UserRole.USER);
-                  nameController.clear();
+                  //user = User.parameter(name, surname, userName, mail, password, UserRole.USER);
+                  user = User(
+                    name: name,
+                    surname: surname,
+                    userName: userName,
+                    mail: mail,
+                    password: password,
+                    userRole: UserRole.USER,
+                    iconName: Icon(User.getRandomIcon()),
+                  );
+
+                  clear();
+
+                  /*nameController.clear();
                   surnameController.clear();
                   userNameController.clear();
                   mailController.clear();
-                  paswordController.clear();
+                  paswordController.clear();*/
 
                   int accountError = await userController.createAccountDB(user);
 

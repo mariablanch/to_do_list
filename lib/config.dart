@@ -1,9 +1,13 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/task.dart';
+import 'package:to_do_list/model/task_state.dart';
 import 'package:to_do_list/to_do_page.dart';
 //import 'package:to_do_list/to_do_page.dart';
 import 'package:to_do_list/utils/const/messages.dart';
@@ -17,15 +21,23 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  User userProva = User.parameter(
+  /*User userProva = User.parameter(
     '111',
     '111',
     '111',
     '111',
     'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
     UserRole.ADMIN,
+  );*/
+  User userProva = User(
+    name: '111',
+    surname: '111',
+    userName: '111',
+    mail: '111',
+    password: 'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
+    userRole: UserRole.ADMIN,
+    iconName: Icon(User.getRandomIcon()),
   );
-
   runApp(MyAppConfig(user: userProva));
 }
 
@@ -69,10 +81,12 @@ class ConfigPage extends State<ConfigHP> {
   String iconSelected = 'person';
 
   List<Widget> get pages => [profilePage(), editAccountPage(), deleteAccountPage()];
-  List<Widget> get adminPages => [profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
+  List<Widget> get adminPagess => [profilePage(), editAccountPage(), usersPage(), statePage(), deleteAccountPage()];
+  List<Widget> get adminPages => [statePage(), profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
 
   UserController userController = UserController();
   List<User> allUsers = [];
+  List<TaskState> states = [];
 
   Map<String, List<Task>> tasksFromUsers = {};
 
@@ -82,6 +96,9 @@ class ConfigPage extends State<ConfigHP> {
   TextEditingController mailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
+  //TextEditingController colorController = TextEditingController();
+  String colorSelected = 'blue';
+
   @override
   void dispose() {
     userNameController.dispose();
@@ -89,6 +106,7 @@ class ConfigPage extends State<ConfigHP> {
     surnameController.dispose();
     mailController.dispose();
     passwordController.dispose();
+    //colorController.dispose();
     super.dispose();
   }
 
@@ -98,6 +116,7 @@ class ConfigPage extends State<ConfigHP> {
     surnameController.clear();
     mailController.clear();
     passwordController.clear();
+    //colorController.clear();
   }
 
   @override
@@ -106,33 +125,11 @@ class ConfigPage extends State<ConfigHP> {
     myUser = User.copy(widget.user);
     isAdmin = UserRole.isAdmin(myUser.userRole);
     if (isAdmin) {
-      loadUsers();
+      loadAdminData();
     }
     iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
     isUserAdmin = isAdmin;
     setState(() {});
-  }
-
-  Future<void> loadUsers() async {
-    List<User> users = await userController.loadAllUsers();
-    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
-
-    users.removeWhere((user) {
-      return user.userName == myUser.userName;
-    });
-
-    setState(() {
-      allUsers = users;
-    });
-    await loadTask();
-  }
-
-  Future<void> loadTask() async {
-    TaskController tk = TaskController();
-    for (User user in allUsers) {
-      await tk.loadTasksFromDB(user.userName);
-      tasksFromUsers[user.userName] = tk.tasks;
-    }
   }
 
   @override
@@ -160,7 +157,8 @@ class ConfigPage extends State<ConfigHP> {
                   _drawerItem(AppStrings.PROFILE, 0),
                   _drawerItem(AppStrings.CONFIG, 1),
                   if (isAdmin) _drawerItem(AppStrings.USERS_LABEL, 2),
-                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 3 : 2),
+                  if (isAdmin) _drawerItem(AppStrings.TASKSTATES, 3),
+                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 4 : 2),
                 ],
               ),
             ),
@@ -182,6 +180,7 @@ class ConfigPage extends State<ConfigHP> {
                     _railItem(Icons.person, AppStrings.PROFILE),
                     _railItem(Icons.settings, AppStrings.CONFIG),
                     if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL),
+                    if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES),
                     _railItem(Icons.delete, AppStrings.DELETEACC),
                   ],
                 );
@@ -827,6 +826,259 @@ class ConfigPage extends State<ConfigHP> {
     return result ?? false;
   }
 
+  Widget statePage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              AppStrings.TASKSTATES.toUpperCase(),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
+            ),
+          ],
+        ),
+
+        SizedBox(height: 20),
+        taskStateList(),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: FloatingActionButton.extended(
+            heroTag: 'createState',
+            onPressed: () {
+              openFormCreateState(true, TaskState.empty());
+            },
+            label: Text('Crear nou estat'),
+            icon: Icon(Icons.add),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Expanded taskStateList() {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: states.length,
+        itemBuilder: (context, index) {
+          final state = states[index];
+
+          return Card(
+            color: StateController().getShade200(state.color),
+            child: ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: EdgeInsets.all(5),
+
+              title: SizedBox(child: Row(children: [SizedBox(width: 15), Text(state.name)])),
+              trailing: SizedBox(
+                width: 150,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      tooltip: 'Editar',
+                      onPressed: () {
+                        openFormCreateState(false, state);
+                      },
+                      icon: Icon(Icons.edit),
+                    ),
+                    /*SizedBox(width: 15),
+                    IconButton(
+                      tooltip: 'Eliminar',
+                      onPressed: () {
+                        logInfo('ELIMINAR - PER IMPLEMENTAR');
+                      },
+                      icon: Icon(Icons.delete),
+                    ),*/
+                    SizedBox(width: 15),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /*Form createState(TaskState state, bool isNew) {
+    final formKey = GlobalKey<FormState>();
+
+    // false si el usuari es igual (s edita a ell mateix)
+    // true si es diferent (edita a algu altre ==> restablir contrasenya)
+    //bool adminEdit = editUser.userName.compareTo(myUser.userName) != 0;
+
+    String name = state.name;
+    String id = state.id;
+    String color = TaskState.colorName(state.color);
+
+    clear();
+
+    nameController = TextEditingController(text: editUser.name);
+
+    return Form(
+      key: formKey,
+      child: SingleChildScrollView(
+        //padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
+                controller: nameController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  name = value!;
+                },
+              ),
+            ),
+
+            Row(
+              children: [
+                Text('Color'),
+
+                Container(width: 10),
+
+                DropdownButton<String>(
+                  value: colorSelected,
+                  hint: Row(
+                    children: [
+                      Container(width: 24, height: 24, color: TaskState.colorMap['blue']),
+                      const SizedBox(width: 8),
+                      //Text('blue'),
+                    ],
+                  ),
+                  items: TaskState.colorMap.keys.map((String colorName) {
+                    return DropdownMenuItem<String>(
+                      value: colorName,
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 1),
+                          Container(width: 24, height: 24, color: TaskState.colorMap[colorName]),
+                          const SizedBox(width: 1),
+                          //Text(colorName),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      colorSelected = newValue!;
+                    });
+                  },
+                  selectedItemBuilder: (BuildContext context) {
+                    return TaskState.colorMap.keys.map((String colorName) {
+                      return Container(width: 24, height: 24, color: TaskState.colorMap[colorName]);
+                    }).toList();
+                  },
+                  menuMaxHeight: 300,
+                ),
+              ],
+            ),
+
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 20),
+
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    formKey.currentState!.save();
+
+                    TaskState updatedState = TaskState(id: id, name: name, color: TaskState.colorValue(color));
+                    Navigator.pop(context, updatedState);
+                  }
+                },
+                icon: Icon(Icons.abc),
+                label: Text(!isNew ? 'Guardar canvis' : 'Crear estat'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+*/
+
+  Future<void> loadUsers() async {
+    List<User> users = await userController.loadAllUsers();
+    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+
+    users.removeWhere((user) {
+      return user.userName == myUser.userName;
+    });
+
+    setState(() {
+      allUsers = users;
+    });
+    await loadTask();
+  }
+
+  Future<void> loadTask() async {
+    TaskController tk = TaskController();
+    for (User user in allUsers) {
+      await tk.loadTasksFromDB(user.userName);
+      tasksFromUsers[user.userName] = tk.tasks;
+    }
+  }
+
+  Future<void> loadStates() async {
+    StateController sc = StateController();
+    await sc.loadAllStates();
+    states = sc.states;
+  }
+
+  Future<void> loadAdminData() async {
+    await loadUsers();
+    await loadStates();
+  }
+
+  openFormCreateState(bool isCreate, TaskState state) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
+
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: isCreate
+                ? StateForm(
+                    state: state,
+                    createTState: (state) async {
+                      StateController stateController = StateController();
+                      await stateController.createState(state);
+                      states.add(state);
+                      setState(() {});
+                    },
+                  )
+                : StateForm(
+                    state: state,
+                    editTState: (tState) async {
+                      StateController stateController = StateController();
+
+                      await stateController.updateState(tState);
+                      //states.add(tState);
+                      int num = states.indexWhere((s) => state.id == s.id);
+                      states[num] = tState;
+
+                      setState(() {});
+                    },
+                  ),
+          ),
+        );
+      },
+    );
+  }
+
   openFormCreateUser() {
     showModalBottomSheet(
       context: context,
@@ -839,5 +1091,158 @@ class ConfigPage extends State<ConfigHP> {
         );
       },
     );
+  }
+}
+
+class StateForm extends StatefulWidget {
+  final Function(TaskState)? createTState;
+  final Function(TaskState)? editTState;
+
+  final TaskState state;
+
+  const StateForm({super.key, this.createTState, this.editTState, required this.state});
+
+  @override
+  StateFormState createState() => StateFormState();
+}
+
+class StateFormState extends State<StateForm> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController nameController;
+  String validator = '';
+
+  late String colorSelected;
+
+  late bool isCreating;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.state.name);
+    isCreating = widget.createTState != null;
+    colorSelected = isCreating ? 'blue' : TaskState.colorName(widget.state.color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    TaskState tState = TaskState.copy(widget.state);
+
+    String name = tState.name;
+
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              child: TextFormField(
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
+                controller: nameController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Aquest camp és obligatori';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  name = value!;
+                },
+              ),
+            ),
+
+            SizedBox(height: 10),
+
+            Row(
+              children: [
+                Container(width: 5),
+
+                Text('Color', style: TextStyle(fontSize: 16)),
+
+                Container(width: 10),
+
+                DropdownButton<String>(
+                  underline: const SizedBox(),
+                  //borderRadius: BorderRadius.circular(10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+
+                  /*hint: Row(
+                    children: [
+                      Container(width: 24, height: 24, color: TaskState.colorMap['blue']),
+                      //const SizedBox(width: 8),
+                      //Text('blue'),
+                    ],
+                  ),*/
+                  value: colorSelected,
+                  items: TaskState.colorMap.keys.map((String colorName) {
+                    return DropdownMenuItem<String>(
+                      value: colorName,
+                      child: Container(width: 30, height: 30, color: TaskState.colorMap[colorName]),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue == null) {
+                      colorSelected = 'null';
+                    } else {
+                      colorSelected = newValue;
+                    }
+                    setState(() {});
+                  },
+                  selectedItemBuilder: (BuildContext context) {
+                    return TaskState.colorMap.keys.map((String colorName) {
+                      return Center(child: Container(width: 30, height: 30, color: TaskState.colorMap[colorName]));
+                    }).toList();
+                  },
+                  menuMaxHeight: 300,
+                ),
+              ],
+            ),
+
+            SizedBox(height: 10),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  Color? color;
+
+                  if (colorSelected == 'null') {
+                    color = null;
+                  } else {
+                    color = TaskState.colorValue(colorSelected);
+                  }
+
+                  TaskState updatedState = widget.state.copyWith(
+                    name: name,
+                    //color: TaskState.colorValue(colorSelected),
+                    color: color,
+                    setColor: true
+                  );
+
+                  if (widget.createTState != null) {
+                    widget.createTState!(updatedState);
+                  } else if (widget.editTState != null) {
+                    widget.editTState!(updatedState);
+                  }
+
+                  Navigator.of(context).pop();
+                }
+              },
+              icon: Icon(isCreating ? Icons.add : Icons.save_alt),
+              label: Text(isCreating ? 'Crear' : 'Guardar canvis'),
+
+              //icon: Icon(Icons.abc),
+              //label: Text(!isNew ? 'Guardar canvis' : 'Crear estat'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    nameController.dispose();
   }
 }

@@ -1,6 +1,10 @@
+// ignore_for_file: unnecessary_this
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
+import 'package:to_do_list/controller/state_controller.dart';
+import 'package:to_do_list/model/task_state.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/const/messages.dart';
@@ -33,7 +37,7 @@ class TaskController {
             .get();
 
         for (var doc in query.docs) {
-          task = Task.fromFirestore(doc, null);
+          task = await _loadTask(doc);
           loadedTasks.add(task);
         }
       }
@@ -48,7 +52,21 @@ class TaskController {
     }
   }
 
-  Future<void> loadAllTasksFromDB() async {
+  Future<Task> _loadTask(doc) async {
+    StateController sc = StateController();
+    TaskState state;
+    Task task = Task.fromFirestore(doc, null);
+    //logInfo(task.state.id);
+    await sc.loadState(task.state.id);
+    //logInfo(sc.state.id);
+    state = sc.state.copyWith();
+    task.state = state;
+    //logPrintClass('------------------');
+
+    return task;
+  }
+
+  Future<void> loadAllTasksFromDB() async { 
     Task task;
     try {
       List<Task> loadedTasks = [];
@@ -58,7 +76,8 @@ class TaskController {
 
       for (var doc in docs) {
         if (doc.exists) {
-          task = Task.fromFirestore(doc, null);
+          task = await _loadTask(doc);
+
           loadedTasks.add(task);
         }
       }
@@ -79,7 +98,7 @@ class TaskController {
       final doc = await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(taskId).get();
 
       if (doc.exists) {
-        task = Task.fromFirestore(doc, null);
+        task = await _loadTask(doc);
       }
     } catch (e) {
       logError('GET TASK BY ID', e);

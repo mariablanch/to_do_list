@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 
-enum TaskState {
+enum TaskStateee {
   NONE,
   PENDING,
   INPROGRES,
   COMPLETED;
 
-  static TaskState stateFromString(String str) {
+  static TaskStateee stateFromString(String str) {
     switch (str) {
       case AppStrings.ST_COMP:
-        return TaskState.COMPLETED;
+        return TaskStateee.COMPLETED;
       case AppStrings.ST_INP:
-        return TaskState.INPROGRES;
+        return TaskStateee.INPROGRES;
       case AppStrings.ST_PEND:
-        return TaskState.PENDING;
+        return TaskStateee.PENDING;
       default:
-        return TaskState.NONE;
+        return TaskStateee.NONE;
     }
   }
 
-  static String stateToString(TaskState state) {
+  static String stateToString(TaskStateee state) {
     switch (state) {
-      case TaskState.COMPLETED:
+      case TaskStateee.COMPLETED:
         return AppStrings.ST_COMP;
-      case TaskState.INPROGRES:
+      case TaskStateee.INPROGRES:
         return AppStrings.ST_INP;
-      case TaskState.PENDING:
+      case TaskStateee.PENDING:
         return AppStrings.ST_PEND;
-      case TaskState.NONE:
+      case TaskStateee.NONE:
         return '';
     }
   }
 
-  static bool isDone(TaskState state) {
+  static bool isDone(TaskStateee state) {
     return state == COMPLETED;
   }
 
-  static TaskState changeState(TaskState state) {
-    List<TaskState> states = TaskState.values.skip(1).toList();
+  static TaskStateee changeState(TaskStateee state) {
+    List<TaskStateee> states = TaskStateee.values.skip(1).toList();
     int index = states.indexOf(state) + 1;
     if (index == states.length) {
       index = 0;
@@ -46,28 +46,28 @@ enum TaskState {
     return states[index];
   }
 
-  static Color? stateColor(TaskState state) {
+  static Color? stateColor(TaskStateee state) {
     switch (state) {
-      case TaskState.COMPLETED:
+      case TaskStateee.COMPLETED:
         return Colors.green.shade200;
-      case TaskState.INPROGRES:
+      case TaskStateee.INPROGRES:
         return Colors.orange.shade200;
-      case TaskState.PENDING:
+      case TaskStateee.PENDING:
         return null;
-      case TaskState.NONE:
+      case TaskStateee.NONE:
         return Colors.black;
     }
   }
 
-  static Color? iconColorByState(TaskState state){
+  static Color? iconColorByState(TaskStateee state){
        switch (state) {
-      case TaskState.COMPLETED:
+      case TaskStateee.COMPLETED:
         return Colors.green.shade600;
-      case TaskState.INPROGRES:
+      case TaskStateee.INPROGRES:
         return Colors.orange.shade600;
-      case TaskState.PENDING:
+      case TaskStateee.PENDING:
         return null;
-      case TaskState.NONE:
+      case TaskStateee.NONE:
         return null;
     }
   }

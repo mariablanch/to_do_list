@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 const String RED = '\x1B[31m';
 const String GREEN = '\x1B[32m';
 const String YELLOW = '\x1B[33m';
@@ -18,5 +20,11 @@ void logInfo(String message) {
 }
 
 void logWarning(String warning) {
-  print('WARNING: $warning');
+  print('${WHITE}WARNING: $warning');
+}
+
+void logPrintClass(String toStr) {
+  for (final line in toStr.split('\n')) {
+    print(MAGENTA + line + CLEAR);
+  }
 }

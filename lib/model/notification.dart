@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_this
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 
@@ -59,14 +61,14 @@ class Notifications implements Comparable<Notifications> {
     };
   }
 
-  factory Notifications.fromFirestore(DocumentSnapshot doc, _) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Notifications.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
+    final data = snapshot.data();
     return Notifications(
-      id: doc.id,
-      taskId: data[DbConstants.TASKID] ?? '',
-      description: data['description'] ?? '',
-      userName: data[DbConstants.USERNAME] ?? '',
-      message: data['message'] ?? '',
+      id: snapshot.id,
+      taskId: data?[DbConstants.TASKID] ?? '',
+      description: data?['description'] ?? '',
+      userName: data?[DbConstants.USERNAME] ?? '',
+      message: data?['message'] ?? '',
     );
   }
 

@@ -1,8 +1,10 @@
+// ignore_for_file: unnecessary_getters_setters
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/priorities.dart';
-import 'package:to_do_list/utils/task_state.dart';
+import 'package:to_do_list/model/task_state.dart';
 
 class Task implements Comparable<Task> {
   String _id;
@@ -19,7 +21,7 @@ class Task implements Comparable<Task> {
       _description = '',
       _priority = Priorities.NONE,
       _limitDate = DateTime.now(),
-      _state = TaskState.PENDING;
+      _state = TaskState.empty();
 
   Task.copy(Task task)
     : _name = task.name,
@@ -27,7 +29,7 @@ class Task implements Comparable<Task> {
       _priority = task.priority,
       _limitDate = task.limitDate,
       //this._completed = task.isCompleted,
-      _state = task.state,
+      _state = TaskState.copy(task.state),
       _id = task.id;
 
   Task copyWith({
@@ -44,7 +46,6 @@ class Task implements Comparable<Task> {
       description: description ?? _description,
       priority: priority ?? _priority,
       limitDate: limitDate ?? _limitDate,
-      //completed: completed ?? this._completed,
       state: state ?? _state,
     );
   }
@@ -60,17 +61,19 @@ class Task implements Comparable<Task> {
        _description = description,
        _priority = priority,
        _limitDate = limitDate,
-       _state = state,
+       _state = TaskState.copy(state),
        _id = id;
 
   String get name => _name;
   String get description => _description;
   Priorities get priority => _priority;
   DateTime get limitDate => _limitDate;
+  
   TaskState get state => _state;
   String get id => _id;
 
   set id(String newId) => _id = newId;
+  set state(TaskState newState) => _state = newState;
 
   @override
   String toString() {
@@ -81,7 +84,7 @@ class Task implements Comparable<Task> {
     str += 'Descripció: $_description \n';
     str += 'Prioritat: $_priority \n';
     str += 'Data límit: $dateformat \n';
-    str += 'Estat: $_state';
+    str += 'Estat: ${_state.toString()}';
     return str;
   }
 
@@ -91,23 +94,25 @@ class Task implements Comparable<Task> {
       'description': _description,
       'priority': _priority.name,
       'limitDate': Timestamp.fromDate(_limitDate),
-      DbConstants.STATE: _state.name,
+      DbConstants.STATE: _state.id,
     };
   }
 
-  factory Task.fromFirestore(DocumentSnapshot doc, _) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Task.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> snapshot,
+    SnapshotOptions? options
+  ) {
+    final data = snapshot.data();
+
     return Task(
-      id: doc.id,
-      name: data['name'] ?? '',
-      description: data['description'] ?? '',
+      id: snapshot.id,
+      name: data?['name'] ?? '',
+      description: data?['description'] ?? '',
       priority: Priorities.values.firstWhere(
-        (p) => p.name.toLowerCase() == (data['priority'] ?? '').toString().toLowerCase(),
+        (p) => p.name.toLowerCase() == (data?['priority'] ?? '').toString().toLowerCase(),
       ),
-      limitDate: (data['limitDate'] as Timestamp).toDate(),
-      state: TaskState.values.firstWhere(
-        (st) => st.name.toLowerCase() == (data[DbConstants.STATE] ?? '').toString().toLowerCase(),
-      ),
+      limitDate: (data?['limitDate'] as Timestamp).toDate(),
+      state: TaskState(id: data?['state'] ?? '', color: null, name: ''),
     );
   }
 

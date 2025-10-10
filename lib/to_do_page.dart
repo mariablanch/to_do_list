@@ -1,19 +1,22 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
+import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
-import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
+import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/priorities.dart';
-import 'package:to_do_list/utils/task_state.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/model/notification.dart';
+import 'package:to_do_list/model/task_state.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/config.dart';
@@ -55,10 +58,7 @@ class MyAppToDo extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [
-        Locale('en'), // English
-        Locale('es'), // Spanish
-      ],
+      supportedLocales: [Locale('en'), Locale('es')],
     );
   }
 }
@@ -122,7 +122,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     setState(() {});
   }
 
-  void loadTasksToDelete() {
+  /*void loadTasksToDelete() {
     taskToDelete.clear();
     for (Task task in allTasks) {
       if (TaskState.isDone(task.state)) {
@@ -152,7 +152,7 @@ class ToDoPage extends State<MyHomePageToDo> {
       );
     }
     setState(() {});
-  }
+  }*/
 
   Future<bool> deleteCompletedTasks() async {
     taskSelected.clear();
@@ -628,6 +628,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
+        logPrintClass(task.state.toString());
         return Padding(
           padding: EdgeInsetsGeometry.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -658,7 +659,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             tableRow('Descripció:', task.description),
             tableRow('Prioritat:', Priorities.priorityToString(task.priority)),
             tableRow('Data límit:', DateFormat('dd/MM/yyyy').format(task.limitDate)),
-            tableRow('', TaskState.stateToString(task.state)),
+            tableRow('Estat:', task.state.name),
           ],
         ),
 
@@ -981,7 +982,8 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Row buttons(Task task, int index) {
     Color defaultColor = const Color.fromARGB(165, 0, 0, 0);
-    String tooltip = AppStrings.tooltipTextState(task.state);
+    //String tooltip = AppStrings.tooltipTextState(task.state);
+    String tooltip = 'Canviar estat';
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -1018,7 +1020,8 @@ class ToDoPage extends State<MyHomePageToDo> {
             /*color: TaskState.isDone(task.state)
                 ? (task.limitDate.isBefore(DateTime.now()) ? Colors.green.shade400 : Colors.green.shade700)
                 : null,*/
-            color: TaskState.iconColorByState(task.state),
+            color: StateController().getShade600(task.state.color),
+
           ),
           style: ButtonStyle(
             foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
@@ -1030,12 +1033,12 @@ class ToDoPage extends State<MyHomePageToDo> {
           ),
           onPressed: () async {
             //Task updatedTask = task.copyWith(completed: !task.isCompleted);
-            Task updatedTask = task.copyWith(state: TaskState.changeState(task.state));
+            Task updatedTask = task.copyWith(state: TaskState.empty());
             await taskController.updateTask(updatedTask, task.id);
             setState(() => allTasks[index] = updatedTask);
-            if (TaskState.isDone(updatedTask.state)) {
+            /*if (TaskState.isDone(updatedTask.state)) {
               await confirmDelete(index, task.id, true);
-            }
+            }*/
           },
         ),
       ],
@@ -1046,7 +1049,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     if (task.limitDate.isBefore(DateTime.now())) {
       return Colors.red.shade300;
     } else {
-      return TaskState.stateColor(task.state);
+      return StateController().getShade200(task.state.color);
     }
   }
 

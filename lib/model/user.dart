@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_this
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:crypto/crypto.dart';
@@ -81,22 +83,20 @@ class User {
       this._password = '',
       this._userRole = UserRole.USER,
       this._icon = Icon(getRandomIcon());
-  User.parameter(
+  /*User.parameter(
     String name,
     String surname,
     String userName,
     String mail,
     String password,
-    UserRole role,
-    //Icon icon
+    UserRole role
   ) : this._name = name,
       this._surname = surname,
       this._userName = userName,
       this._mail = mail,
       this._password = password,
       this._userRole = role,
-      //this._icon = icon;
-      this._icon = Icon(getRandomIcon());
+      this._icon = Icon(getRandomIcon());*/
   User.copy(User user)
     : this._name = user.name,
       this._surname = user.surname,
@@ -134,7 +134,6 @@ class User {
   UserRole get userRole => this._userRole;
   Icon get icon => this._icon;
 
-  //set password(String password) => _password = password;
   void setPassword(String password) => _password = password;
 
   @override
