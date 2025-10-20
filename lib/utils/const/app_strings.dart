@@ -27,12 +27,12 @@ class AppStrings {
   static const String PR_HIGH = 'Alt';
   static const String PR_MEDIUM = 'Mitjà';
   static const String PR_LOW = 'Baix';
-  static const List<String> prioritiesSTR = [PR_HIGH, PR_MEDIUM, PR_LOW];
+  static const List<String> PRIORITIES_STR = [PR_HIGH, PR_MEDIUM, PR_LOW];
 
-  static const String ST_COMP = 'Completada';
-  static const String ST_INP = 'En procés';
-  static const String ST_PEND = 'Pendent';
-  static const List<String> stateSTR = [ST_COMP, ST_INP, ST_PEND];
+  //static const String ST_COMP = 'Completada';
+  //static const String ST_INP = 'En procés';
+  //static const String ST_PEND = 'Pendent';
+  //static const List<String> stateSTR = [ST_COMP, ST_INP, ST_PEND];
 
   /*static String tooltipTextState(TaskState state) {
     switch (state) {
@@ -46,6 +46,8 @@ class AppStrings {
         return 'Canviar a pendent';
     }
   }*/
+
+  static const List<String> DEFAULT_STATES = ['Pendent','En procés', 'Completada'];
 
   static String subtitleText(String description, String ids) {
     return '$description\n${AppStrings.USERS} $ids';

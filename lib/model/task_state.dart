@@ -6,7 +6,7 @@ class TaskState {
   String _name;
   Color? _color;
 
-  TaskState.empty() : _id = '123', _name = 'Default', _color = Colors.amber;
+  TaskState.empty() : _id = '', _name = '', _color = null;
 
   TaskState({required String id, required String name, required Color? color}) : _id = id, _name = name, _color = color;
 
@@ -19,6 +19,8 @@ class TaskState {
   String get id => _id;
   String get name => _name;
   Color? get color => _color;
+
+  set id(String newId) => _id = newId; 
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -36,7 +38,7 @@ class TaskState {
   static final Map<String, Color?> colorMap = {
     'null': null,
     'pink': Colors.pink,
-    'red': Colors.red,
+    //'red': Colors.red,
     'orange': Colors.orange,
     'amber': Colors.amber,
     'yellow': Colors.yellow,
@@ -49,7 +51,7 @@ class TaskState {
     'purple': Colors.purple,
     'deepPurple': Colors.deepPurple,
     'brown': Colors.brown,
-    'grey': Colors.grey,
+    //'grey': Colors.grey,
   };
 
   static String colorName(Color? color) {
@@ -66,7 +68,7 @@ class TaskState {
   @override
   String toString() {
     String str = 'Id: $_id \n';
-    str += 'Nom: ${colorName(_color)} \n';
+    str += 'Nom: $_name \n';
     str += 'Color: $_color \n';
     return str;
   }

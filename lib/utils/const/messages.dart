@@ -10,8 +10,7 @@ const String WHITE = '\x1B[37m';
 const String CLEAR = '\x1B[0m';
 
 void logError(String context, dynamic e) {
-  String str = '~~~~~~~~~~~~~~~~~~~~~~~~~~';
-  print('$context \nERROR: $e \n$str');
+  print('$RED$context \n${RED}ERROR: $e');
 }
 
 void logInfo(String message) {
@@ -27,4 +26,11 @@ void logPrintClass(String toStr) {
   for (final line in toStr.split('\n')) {
     print(MAGENTA + line + CLEAR);
   }
+}
+
+void logToDo(String str, String document) {
+  print(
+    '${YELLOW}PER IMPLEMENTAR: $str\n'
+    '\t$YELLOW$document',
+  );
 }

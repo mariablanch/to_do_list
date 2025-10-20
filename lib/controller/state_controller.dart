@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:to_do_list/controller/task_controller.dart';
+import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/task_state.dart';
+import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 
@@ -45,8 +48,20 @@ class StateController {
 
   Future<void> deleteState(String stateId) async {
     try {
+      TaskController tc = TaskController();
+      await tc.loadAllTasksFromDB();
+      var tasks = tc.tasks;
+      tasks = tasks.where((Task tsk) => tsk.state.id == stateId).toList();
+      
+      for (Task task in tasks) {
+        logPrintClass(task.toString());
+        task.state = defaultState();
+        tc.updateTask(task);
+      }
+
       await FirebaseFirestore.instance.collection(DbConstants.TASKSTATE).doc(stateId).delete();
       states.removeWhere((TaskState state) => state.id == stateId);
+
     } catch (e) {
       logError('DELETE STATE', e);
     }
@@ -62,10 +77,21 @@ class StateController {
 
   Future<void> createState(TaskState tState) async {
     try {
-      await FirebaseFirestore.instance.collection(DbConstants.TASKSTATE).add(tState.toFirestore());
+      final docRef = await FirebaseFirestore.instance.collection(DbConstants.TASKSTATE).add(tState.toFirestore());
+      String stateId = docRef.id;
+      tState.id = stateId;
     } catch (e) {
       logError('CREATE STATE', e);
     }
+  }
+
+  TaskState defaultState() {
+    return getStateByName(AppStrings.DEFAULT_STATES[0]);
+    //return TaskState(id:'TaPsLJBEtQizeFUxc5jU', name: 'Completada', color: Colors.green);
+  }
+
+  TaskState getStateByName(String name) {
+    return states.firstWhere((state) => state.name == name);
   }
 
   Color? getShade200(Color? color) {

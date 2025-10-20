@@ -107,9 +107,9 @@ class TaskController {
     return task;
   }
 
-  Future<void> updateTask(Task task, String id) async {
+  Future<void> updateTask(Task task) async {
     try {
-      await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(id).update(task.toFirestore());
+      await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(task.id).update(task.toFirestore());
     } catch (e) {
       logError('UPDATE TASK', e);
     }

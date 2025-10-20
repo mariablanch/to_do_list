@@ -81,12 +81,13 @@ class ConfigPage extends State<ConfigHP> {
   String iconSelected = 'person';
 
   List<Widget> get pages => [profilePage(), editAccountPage(), deleteAccountPage()];
-  List<Widget> get adminPagess => [profilePage(), editAccountPage(), usersPage(), statePage(), deleteAccountPage()];
-  List<Widget> get adminPages => [statePage(), profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
+  List<Widget> get adminPages => [profilePage(), editAccountPage(), usersPage(), statePage(), deleteAccountPage()];
+  List<Widget> get adminPagess => [statePage(), profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
 
   UserController userController = UserController();
   List<User> allUsers = [];
   List<TaskState> states = [];
+  StateController stateController = StateController();
 
   Map<String, List<Task>> tasksFromUsers = {};
 
@@ -177,11 +178,11 @@ class ConfigPage extends State<ConfigHP> {
                   },
                   labelType: NavigationRailLabelType.all,
                   destinations: [
-                    _railItem(Icons.person, AppStrings.PROFILE),
-                    _railItem(Icons.settings, AppStrings.CONFIG),
-                    if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL),
-                    if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES),
-                    _railItem(Icons.delete, AppStrings.DELETEACC),
+                    _railItem(Icons.person, AppStrings.PROFILE, false),
+                    _railItem(Icons.settings, AppStrings.CONFIG, false),
+                    if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL, allUsers.isEmpty),
+                    if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES, states.isEmpty),
+                    _railItem(Icons.delete, AppStrings.DELETEACC, false),
                   ],
                 );
 
@@ -217,8 +218,8 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  NavigationRailDestination _railItem(IconData icon, String label) {
-    return NavigationRailDestination(icon: Icon(icon), label: Text(label));
+  NavigationRailDestination _railItem(IconData icon, String label, bool disabled) {
+    return NavigationRailDestination(icon: Icon(icon), label: Text(label), disabled: disabled);
   }
 
   Widget profilePage() {
@@ -863,9 +864,11 @@ class ConfigPage extends State<ConfigHP> {
         itemCount: states.length,
         itemBuilder: (context, index) {
           final state = states[index];
+          bool canDelete = AppStrings.DEFAULT_STATES.contains(state.name);
+          //canDelete = false;
 
           return Card(
-            color: StateController().getShade200(state.color),
+            color: stateController.getShade200(state.color),
             child: ListTile(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.all(5),
@@ -877,20 +880,29 @@ class ConfigPage extends State<ConfigHP> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      tooltip: 'Editar',
-                      onPressed: () {
-                        openFormCreateState(false, state);
-                      },
+                      tooltip: !canDelete ? 'Editar' : 'Opció per defecte (no editable)',
+                      onPressed: !canDelete
+                          ? () {
+                              openFormCreateState(false, state);
+                            }
+                          : null,
                       icon: Icon(Icons.edit),
                     ),
-                    /*SizedBox(width: 15),
+
                     IconButton(
-                      tooltip: 'Eliminar',
-                      onPressed: () {
-                        logInfo('ELIMINAR - PER IMPLEMENTAR');
-                      },
+                      tooltip: !canDelete ? 'Eliminar' : 'Opció per defecte (no es pot eliminar)',
+                      onPressed: !canDelete
+                          ? () async {
+                              bool exists = await deleteState(state);
+                              if (exists) {
+                                stateController.deleteState(state.id);
+                                states.remove(state);
+                                setState(() {});
+                              }
+                            }
+                          : null,
                       icon: Icon(Icons.delete),
-                    ),*/
+                    ),
                     SizedBox(width: 15),
                   ],
                 ),
@@ -1029,15 +1041,11 @@ class ConfigPage extends State<ConfigHP> {
     }
   }
 
-  Future<void> loadStates() async {
-    StateController sc = StateController();
-    await sc.loadAllStates();
-    states = sc.states;
-  }
-
   Future<void> loadAdminData() async {
     await loadUsers();
-    await loadStates();
+    await stateController.loadAllStates();
+    states = stateController.states;
+    setState(() {});
   }
 
   openFormCreateState(bool isCreate, TaskState state) {
@@ -1053,23 +1061,39 @@ class ConfigPage extends State<ConfigHP> {
             child: isCreate
                 ? StateForm(
                     state: state,
-                    createTState: (state) async {
-                      StateController stateController = StateController();
-                      await stateController.createState(state);
-                      states.add(state);
+                    createTState: (tState) async {
+                      bool contains = states.any((TaskState s) => s.name == tState.name);
+
+                      if (contains) {
+                        stateNameExists(true);
+                      } else {
+                        await stateController.createState(tState);
+                        states.add(tState);
+                        Navigator.of(context).pop();
+                      }
+
                       setState(() {});
                     },
                   )
                 : StateForm(
                     state: state,
                     editTState: (tState) async {
-                      StateController stateController = StateController();
+                      bool nameChanged = tState.name != state.name;
 
-                      await stateController.updateState(tState);
-                      //states.add(tState);
-                      int num = states.indexWhere((s) => state.id == s.id);
-                      states[num] = tState;
+                      bool contains = false;
 
+                      if (nameChanged) {
+                        contains = states.any((TaskState s) => s.name == tState.name);
+                      }
+
+                      if (contains) {
+                        stateNameExists(false);
+                      } else {
+                        await stateController.updateState(tState);
+                        int num = states.indexWhere((s) => state.id == s.id);
+                        states[num] = tState;
+                        Navigator.of(context).pop();
+                      }
                       setState(() {});
                     },
                   ),
@@ -1077,6 +1101,119 @@ class ConfigPage extends State<ConfigHP> {
         );
       },
     );
+  }
+
+  void stateNameExists(bool create) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Aquest estat ja existeix'),
+          content: Text('Tria un altre nom'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Tancar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /*bool deleteState(TaskState tState) {
+    nameController.clear();
+    final result = showDialog<bool>(
+      //showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Eliminar estat'),
+          content: Text('Per  continuar, introdueixi el nom del estat: '),
+          actions: <Widget>[
+            TextField(
+              controller: nameController,
+              //obscureText: false,
+              decoration: InputDecoration(border: OutlineInputBorder()),
+            ),
+
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Tancar'),
+            ),
+            TextButton(
+              onPressed: () {
+                bool exists = nameController.text == tState.name;
+
+                /*states.any((state) {
+                  bool a = state.name == nameController.text;
+                  print(a);
+                  return a;
+                });*/
+
+                if (exists) {
+                  stateController.deleteState(tState.id);
+                  states.remove(tState);
+                  setState(() {});
+                }
+
+                //logToDo('eliminar state', 'ConfigPage(taskStateList)');
+                Navigator.of(context).pop();
+              },
+              child: Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }*/
+
+  Future<bool> deleteState(TaskState tState) async {
+    TextEditingController controller = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Eliminar estat'),
+          content: Text('Per  continuar, introdueixi el nom del estat: '),
+          actions: <Widget>[
+            TextField(
+              controller: controller,
+              //obscureText: false,
+              decoration: InputDecoration(border: OutlineInputBorder()),
+            ),
+
+            SizedBox(height: 10),
+
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    final isValid = controller.text == tState.name;
+                    Navigator.of(context).pop(isValid);
+                  },
+
+                  child: Text(AppStrings.CONFIRM),
+                ),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(AppStrings.CANCEL),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   openFormCreateUser() {
@@ -1216,16 +1353,16 @@ class StateFormState extends State<StateForm> {
                     name: name,
                     //color: TaskState.colorValue(colorSelected),
                     color: color,
-                    setColor: true
+                    setColor: true,
                   );
 
-                  if (widget.createTState != null) {
+                  if (isCreating) {
                     widget.createTState!(updatedState);
                   } else if (widget.editTState != null) {
                     widget.editTState!(updatedState);
                   }
 
-                  Navigator.of(context).pop();
+                  //Navigator.of(context).pop();
                 }
               },
               icon: Icon(isCreating ? Icons.add : Icons.save_alt),

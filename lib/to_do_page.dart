@@ -9,6 +9,8 @@ import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/task_filter.dart';
+import 'package:to_do_list/task_form.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
@@ -16,7 +18,6 @@ import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/model/notification.dart';
-import 'package:to_do_list/model/task_state.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/config.dart';
@@ -77,7 +78,9 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   //bool showAllTask = true;
 
+  List<Task> tasksToShow = [];
   List<Task> allTasks = [];
+
   List<Notifications> notifications = [];
   List<String> allUserNames = [];
   //List<String> usersFromTask = [];
@@ -88,6 +91,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   NotificationController notController = NotificationController();
   TaskController taskController = TaskController();
   UserController userController = UserController();
+  StateController stateController = StateController();
 
   Set<String> usersSelected = {};
   Set<String> taskSelected = {};
@@ -107,9 +111,15 @@ class ToDoPage extends State<MyHomePageToDo> {
       await taskController.loadTasksFromDB(myUser.userName);
       await notController.loadNotificationsFromDB(myUser.userName);
     }
+    await stateController.loadAllStates();
 
     notifications = notController.notifications;
-    allTasks = taskController.tasks;
+    tasksToShow = taskController.tasks;
+    allTasks.clear();
+    allTasks.addAll(tasksToShow);
+
+    //allTasks = tasksToShow.map((Task task) => Task.copy(task)).toList();
+
     //filterTask = List.from(allTasks);
     allUserNames = (await userController.loadAllUsers()).map((User user) => user.userName).toList();
     allUserNames.sort();
@@ -199,7 +209,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 TextButton(
                   onPressed: () async {
                     for (String taskId in taskSelected) {
-                      allTasks.removeWhere((Task task) => task.id == taskId);
+                      tasksToShow.removeWhere((Task task) => task.id == taskId);
                       await taskController.deleteTaskWithRelation(taskId);
                     }
                     setState(() {});
@@ -309,17 +319,20 @@ class ToDoPage extends State<MyHomePageToDo> {
                     taskSort(),
                     Container(width: 10),
                     if (UserRole.isAdmin(myUser.userRole)) userFilter(),
+                    if (UserRole.isAdmin(myUser.userRole)) Container(width: 10),
+                    taskFilter(),
                     Container(width: 10),
+                    showAllTask(),
                   ],
                 ),
 
                 Expanded(
-                  child: allTasks.isEmpty
+                  child: tasksToShow.isEmpty
                       ? Center(child: Text('No hi ha tasques.'))
                       : ListView.builder(
-                          itemCount: allTasks.length,
+                          itemCount: tasksToShow.length,
                           itemBuilder: (context, index) {
-                            final task = allTasks[index];
+                            final task = tasksToShow[index];
 
                             return LayoutBuilder(
                               builder: (context, constraints) {
@@ -372,10 +385,21 @@ class ToDoPage extends State<MyHomePageToDo> {
                                           ),
                                         )
                                       : ListTile(
-                                          leading: Priorities.getIconPriority(
-                                            task.priority,
-                                            task.limitDate.isBefore(DateTime.now()),
+                                          leading: Container(
+                                            height: 30,
+                                            width: 30,
+                                            /*decoration: const BoxDecoration(
+                                              color: Colors.amber,
+                                              shape: BoxShape.circle,
+                                            ),*/
+
+                                            //color: Colors.white,
+                                            child: Priorities.getIconPriority(
+                                              task.priority,
+                                              task.limitDate.isBefore(DateTime.now()),
+                                            ),
                                           ),
+
                                           title: Text(AppStrings.titleText(task)),
                                           subtitle: Text(
                                             AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
@@ -443,7 +467,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   //await taskAndUsers();
                   setState(() {
                     //tasks.add(task);
-                    allTasks.sort((task1, task2) {
+                    tasksToShow.sort((task1, task2) {
                       return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                     });
                     taskAndUsersMAP;
@@ -476,7 +500,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                   if (confirmed) {
                     await taskAndUsers();
                     if (taskAndUsersMAP[taskId]!.isEmpty) {
-                      allTasks.removeAt(index);
+                      tasksToShow.removeAt(index);
+                      allTasks.removeWhere((task) => task.id == taskId);
                       taskAndUsersMAP.remove(taskId);
                     }
                     //loadInitialData(true);
@@ -487,7 +512,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                 } else {
                   await taskController.removeTask(taskId, myUser.userName);
                   setState(() {
-                    allTasks.removeAt(index);
+                    tasksToShow.removeAt(index);
+                    allTasks.removeWhere((task) => task.id == taskId);
                   });
                   Navigator.of(context).pop();
                 }
@@ -606,12 +632,14 @@ class ToDoPage extends State<MyHomePageToDo> {
           child: SizedBox(
             height: MediaQuery.of(context).size.height * 0.7,
             child: TaskForm(
+              isAdmin: UserRole.isAdmin(myUser.userRole),
               onTaskEdited: (Task task) async {
-                await taskController.updateTask(task, task.id);
+                await taskController.updateTask(task);
 
                 setState(() {
-                  allTasks[index] = task;
-                  allTasks.sort((task1, task2) {
+                  tasksToShow[index] = task;
+                  allTasks[allTasks.indexWhere((t) => t.id == task.id)] = task;
+                  tasksToShow.sort((task1, task2) {
                     return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                   });
                 });
@@ -628,7 +656,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        logPrintClass(task.state.toString());
         return Padding(
           padding: EdgeInsetsGeometry.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -840,7 +867,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                             //tasks.add(newTask);
                             addTask(newTask);
-                            allTasks.sort((task1, task2) {
+                            tasksToShow.sort((task1, task2) {
                               return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                             });
 
@@ -863,7 +890,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   Future<void> taskAndUsers() async {
     String users;
     taskAndUsersMAP.clear();
-    for (Task task in allTasks) {
+    for (Task task in tasksToShow) {
       users = await taskController.getUsersRelatedWithTask(task.id);
 
       if (taskAndUsersMAP.containsKey(task.id)) {
@@ -875,9 +902,10 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   void addTask(Task newTask) {
-    bool contains = allTasks.any((task) => task.id == newTask.id);
+    bool contains = tasksToShow.any((task) => task.id == newTask.id);
     if (!contains) {
       setState(() {
+        tasksToShow.add(newTask);
         allTasks.add(newTask);
       });
     }
@@ -893,10 +921,10 @@ class ToDoPage extends State<MyHomePageToDo> {
         tooltip: 'Sobre quin element voleu ordenar',
 
         itemBuilder: (BuildContext context) => [
-          _menuItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
-          _menuItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
-          _menuItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
-          _menuItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
+          _menuSortItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
+          _menuSortItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
+          _menuSortItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
+          _menuSortItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
         ],
         child: Container(
           padding: EdgeInsets.all(10),
@@ -926,13 +954,15 @@ class ToDoPage extends State<MyHomePageToDo> {
 
         onSelected: (userSelected) async {
           if (userSelected == AppStrings.SHOWALL) {
-            await taskController.loadAllTasksFromDB();
+            //await taskController.loadAllTasksFromDB();
+            //tasksToShow = allTasks.map((Task task) => Task.copy(task)).toList();
+            _resetTasks();
           } else {
-            await taskController.loadTasksFromDB(userSelected);
+            tasksToShow = allTasks.where((Task line) => taskAndUsersMAP[line.id]!.contains(userSelected)).toList();
+            //await taskController.loadTasksFromDB(userSelected);
           }
-          setState(() {
-            allTasks = taskController.tasks;
-          });
+          //tasksToShow = taskController.tasks;
+          setState(() {});
         },
 
         child: Container(
@@ -948,6 +978,111 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
+  Container taskFilter() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: Tooltip(
+        message: 'Filtrar tasques',
+
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12.0),
+              onTap: () => openFilterTask(),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Text('Filtrar', style: TextStyle(fontSize: 17)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Container showAllTask() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: Tooltip(
+        message: 'Mostrar totes',
+
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12.0),
+              onTap: () {
+                _resetTasks();
+                setState(() {});
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Text('Treure filtres', style: TextStyle(fontSize: 17)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /*PopupMenuItem _menuFilterItem(IconData icon, String label, TaskFilter filter) {
+    return PopupMenuItem(
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.black54),
+          SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+      onTap: () {
+        openFilterTask(tasksToShow);
+        setState(() {
+          //TaskFilterPage filterTask(tasksToShow, filter);
+        });
+      },
+    );
+  }*/
+
+  Future<void> openFilterTask() async {
+    final filteredTasks = await showDialog<List<Task>>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          //surfaceTintColor: Theme.of(context).colorScheme.primaryContainer,
+          title: Text('Filtrar tasques'),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.2,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [TaskFilterPage(tasks: tasksToShow, allTasks: allTasks)],
+            ),
+          ),
+        );
+      },
+    );
+    if (filteredTasks != null) {
+      setState(() {
+        tasksToShow = filteredTasks;
+      });
+    }
+  }
+
   static TableRow tableRow(String label, String value) {
     return TableRow(
       children: [
@@ -960,7 +1095,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  PopupMenuItem _menuItem(IconData icon, String label, SortType st) {
+  PopupMenuItem _menuSortItem(IconData icon, String label, SortType st) {
     return PopupMenuItem(
       child: Row(
         children: [
@@ -972,7 +1107,7 @@ class ToDoPage extends State<MyHomePageToDo> {
       onTap: () {
         setState(() {
           sortType = st;
-          allTasks.sort((task1, task2) {
+          tasksToShow.sort((task1, task2) {
             return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
           });
         });
@@ -983,7 +1118,6 @@ class ToDoPage extends State<MyHomePageToDo> {
   Row buttons(Task task, int index) {
     Color defaultColor = const Color.fromARGB(165, 0, 0, 0);
     //String tooltip = AppStrings.tooltipTextState(task.state);
-    String tooltip = 'Canviar estat';
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -1014,14 +1148,13 @@ class ToDoPage extends State<MyHomePageToDo> {
           ),
         ),
         IconButton(
-          tooltip: tooltip,
+          tooltip: 'Canviar estat (dels predeterminats)',
           icon: Icon(
             Icons.check_circle,
             /*color: TaskState.isDone(task.state)
                 ? (task.limitDate.isBefore(DateTime.now()) ? Colors.green.shade400 : Colors.green.shade700)
                 : null,*/
-            color: StateController().getShade600(task.state.color),
-
+            color: stateController.getShade600(task.state.color),
           ),
           style: ButtonStyle(
             foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
@@ -1032,13 +1165,18 @@ class ToDoPage extends State<MyHomePageToDo> {
             }),
           ),
           onPressed: () async {
-            //Task updatedTask = task.copyWith(completed: !task.isCompleted);
-            Task updatedTask = task.copyWith(state: TaskState.empty());
-            await taskController.updateTask(updatedTask, task.id);
-            setState(() => allTasks[index] = updatedTask);
-            /*if (TaskState.isDone(updatedTask.state)) {
-              await confirmDelete(index, task.id, true);
-            }*/
+            List<String> stateNames = AppStrings.DEFAULT_STATES;
+            int index = 1;
+            if (stateNames.contains(task.state.name)) {
+              index = stateNames.indexOf(task.state.name) + 1;
+
+              if (index == stateNames.length) {
+                index = 0;
+              }
+            }
+            task.state = stateController.getStateByName(stateNames[index]);
+            await taskController.updateTask(task);
+            setState(() {});
           },
         ),
       ],
@@ -1049,7 +1187,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     if (task.limitDate.isBefore(DateTime.now())) {
       return Colors.red.shade300;
     } else {
-      return StateController().getShade200(task.state.color);
+      return stateController.getShade200(task.state.color);
     }
   }
 
@@ -1059,235 +1197,10 @@ class ToDoPage extends State<MyHomePageToDo> {
     }
     return null;
   }
-}
 
-class TaskForm extends StatefulWidget {
-  final Function(Task, Set<String>)? onTaskCreated;
-  final Function(Task)? onTaskEdited;
-  final Task task;
-  final bool? isAdmin;
-
-  //const TaskForm({super.key, this.onTaskCreated, required this.task, this.onTaskEdited, required this.isAdmin})
-  //: assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited');
-
-  const TaskForm({super.key, this.onTaskCreated, this.onTaskEdited, required this.task, this.isAdmin})
-    : assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited'),
-      assert(
-        (onTaskCreated != null && isAdmin != null) || (onTaskEdited != null),
-        'es requereix isAdmin, ja que s\'utilitza onTaskCreated',
-      );
-
-  @override
-  TaskFormState createState() => TaskFormState();
-}
-
-class TaskFormState extends State<TaskForm> {
-  final _formKey = GlobalKey<FormState>();
-
-  DateTime? selectedDate;
-  String? prioritySTR;
-
-  late TextEditingController dateController;
-  late TextEditingController nameController;
-  late TextEditingController descriptionController;
-
-  late bool isAdmin = false;
-
-  List<User> users = [];
-  Set<String> selectedUserIds = {};
-
-  String validator = '';
-
-  @override
-  void initState() {
-    super.initState();
-    selectedDate = widget.task.limitDate;
-    prioritySTR = Priorities.priorityToString(widget.task.priority);
-    widget.onTaskCreated != null
-        ? dateController = TextEditingController(text: null)
-        : dateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.limitDate));
-    nameController = TextEditingController(text: widget.task.name);
-    descriptionController = TextEditingController(text: widget.task.description);
-    if (widget.isAdmin != null && widget.isAdmin == true) {
-      isAdmin = true;
-      usersFromTask();
-    }
-    //setState(() {});
-  }
-
-  Future<void> usersFromTask() async {
-    UserController uc = UserController();
-    users = await uc.loadAllUsers();
-    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
-    setState(() {});
-    //users = usersList.map((User user) => user.userName).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Task newTask = Task.copy(widget.task);
-
-    String name = newTask.name;
-    String description = newTask.description;
-
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            //NOM
-            TextFormField(
-              controller: nameController,
-              decoration: InputDecoration(labelText: 'Nom', border: OutlineInputBorder()),
-              validator: (value) => (value == null || value.isEmpty) ? 'El nom no pot ser buit' : null,
-              onSaved: (value) => name = value!,
-            ),
-
-            SizedBox(height: 10),
-
-            //DESCRIPCIÓ
-            TextFormField(
-              controller: descriptionController,
-              decoration: InputDecoration(labelText: 'Descripció', border: OutlineInputBorder()),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Es requereix de la descripció';
-                }
-                return null;
-              },
-              onSaved: (value) => description = value!,
-            ),
-
-            SizedBox(height: 10),
-
-            //DATA LIMIT
-            TextFormField(
-              controller: dateController,
-              decoration: InputDecoration(labelText: 'Data límit', border: OutlineInputBorder()),
-              readOnly: true,
-              onTap: () async {
-                DateTime? picked = await showDatePicker(
-                  context: context,
-                  //initialDate: widget.task.limitDate,
-                  initialDate: newTask.limitDate,
-                  //firstDate: DateTime.now(),
-                  firstDate: newTask.limitDate.isBefore(DateTime.now()) ? newTask.limitDate : DateTime.now(),
-                  lastDate: DateTime(2050),
-                  locale: const Locale('es', 'ES'),
-                );
-                if (picked != null) {
-                  setState(() {
-                    selectedDate = picked;
-                    dateController.text = DateFormat('dd/MM/yyyy').format(picked);
-                  });
-                }
-              },
-              validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
-            ),
-
-            SizedBox(height: 10),
-
-            //PRIORITAT
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(border: OutlineInputBorder()),
-              hint: Text('Selecciona nivell de prioritat'),
-              value: prioritySTR!.isNotEmpty ? prioritySTR : null,
-              items: AppStrings.prioritiesSTR.map((line) => DropdownMenuItem(value: line, child: Text(line))).toList(),
-              onChanged: (value) {
-                setState(() {
-                  prioritySTR = value;
-                });
-              },
-              validator: (value) => value == null ? 'Siusplau, seleccioneu una prioritat' : null,
-            ),
-
-            SizedBox(height: 20),
-
-            if (isAdmin)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Usuaris que tindran aquesta tasca:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Theme.of(context).colorScheme.inverseSurface,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              ),
-
-            if (isAdmin)
-              Column(
-                children: [
-                  for (User user in users)
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: selectedUserIds.contains(user.userName),
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                selectedUserIds.add(user.userName);
-                              } else {
-                                selectedUserIds.remove(user.userName);
-                              }
-                            });
-                          },
-                        ),
-                        Text(user.userName),
-                      ],
-                    ),
-                ],
-              ),
-
-            SizedBox(height: 5),
-            Text(validator),
-            SizedBox(height: 10),
-
-            ElevatedButton.icon(
-              onPressed: () {
-                if (widget.onTaskCreated != null && selectedUserIds.isEmpty && isAdmin) {
-                  validator = 'S\'ha de seleccionar mínim un usuari';
-                  setState(() {});
-                  return;
-                }
-
-                validator = '';
-                setState(() {});
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-
-                  Task updatedTask = widget.task.copyWith(
-                    name: name,
-                    description: description,
-                    priority: Priorities.priorityFromString(prioritySTR!),
-                    limitDate: selectedDate!,
-                  );
-
-                  if (widget.onTaskCreated != null) {
-                    widget.onTaskCreated!(updatedTask.copyWith(id: ''), selectedUserIds);
-                  } else if (widget.onTaskEdited != null) {
-                    widget.onTaskEdited!(updatedTask);
-                  }
-
-                  Navigator.of(context).pop();
-                }
-              },
-              icon: Icon(widget.onTaskCreated != null ? Icons.add : Icons.edit),
-              label: Text(widget.onTaskCreated != null ? 'Crear' : 'Editar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    dateController.dispose();
-    nameController.dispose();
-    descriptionController.dispose();
+  void _resetTasks() {
+    //tasksToShow = allTasks.map((Task task) => Task.copy(task)).toList();
+    tasksToShow.clear();
+    tasksToShow.addAll(allTasks);
   }
 }
