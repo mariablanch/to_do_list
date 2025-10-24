@@ -4,18 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
+import 'package:to_do_list/controller/team_controller.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/task_state.dart';
+import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/to_do_page.dart';
-//import 'package:to_do_list/to_do_page.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/main.dart';
+import 'package:to_do_list/view_form/state_form.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,23 +75,44 @@ class ConfigPage extends State<ConfigHP> {
   int selectedIndex = 0;
   late User myUser;
   bool viewUserList = true;
+  bool viewTeamList = true;
   bool userEdit = false;
   late bool isAdmin;
   User editUser = User.empty();
+  Team editTeam = Team.empty();
 
   bool isUserAdmin = false;
   String iconSelected = 'person';
 
   List<Widget> get pages => [profilePage(), editAccountPage(), deleteAccountPage()];
-  List<Widget> get adminPages => [profilePage(), editAccountPage(), usersPage(), statePage(), deleteAccountPage()];
-  List<Widget> get adminPagess => [statePage(), profilePage(), editAccountPage(), usersPage(), deleteAccountPage()];
+  List<Widget> get adminPages => [
+    profilePage(),
+    editAccountPage(),
+    usersPage(),
+    statePage(),
+    teamsPage(),
+    deleteAccountPage(),
+  ];
+  List<Widget> get adminPagess => [
+    teamsPage(),
+    profilePage(),
+    editAccountPage(),
+    usersPage(),
+    statePage(),
+    deleteAccountPage(),
+  ];
 
   UserController userController = UserController();
   List<User> allUsers = [];
   List<TaskState> states = [];
   StateController stateController = StateController();
+  TeamController teamController = TeamController();
 
   Map<String, List<Task>> tasksFromUsers = {};
+  Map<Team, List<User>> teamsAndUsers = {};
+  Map<Team, List<User>> myTeams = {};
+
+  Set<User> usersAdded = {};
 
   TextEditingController userNameController = TextEditingController();
   TextEditingController nameController = TextEditingController();
@@ -99,6 +122,9 @@ class ConfigPage extends State<ConfigHP> {
 
   //TextEditingController colorController = TextEditingController();
   String colorSelected = 'blue';
+
+  late bool isWide;
+  late bool isTall;
 
   @override
   void dispose() {
@@ -135,7 +161,8 @@ class ConfigPage extends State<ConfigHP> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 600;
+    isWide = MediaQuery.of(context).size.width > 800;
+    isTall = MediaQuery.of(context).size.height > 600;
 
     return Scaffold(
       appBar: isWide
@@ -159,7 +186,8 @@ class ConfigPage extends State<ConfigHP> {
                   _drawerItem(AppStrings.CONFIG, 1),
                   if (isAdmin) _drawerItem(AppStrings.USERS_LABEL, 2),
                   if (isAdmin) _drawerItem(AppStrings.TASKSTATES, 3),
-                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 4 : 2),
+                  if (isAdmin) _drawerItem(AppStrings.TEAMS, 4),
+                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 5 : 2),
                 ],
               ),
             ),
@@ -182,6 +210,7 @@ class ConfigPage extends State<ConfigHP> {
                     _railItem(Icons.settings, AppStrings.CONFIG, false),
                     if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL, allUsers.isEmpty),
                     if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES, states.isEmpty),
+                    if (isAdmin) _railItem(Icons.groups, AppStrings.TEAMS, false),
                     _railItem(Icons.delete, AppStrings.DELETEACC, false),
                   ],
                 );
@@ -206,22 +235,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  ListTile _drawerItem(String title, int index) {
-    return ListTile(
-      title: Text(title),
-      selected: selectedIndex == index,
-      onTap: () {
-        if (index == 1) iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
-        Navigator.of(context).pop();
-        setState(() => selectedIndex = index);
-      },
-    );
-  }
-
-  NavigationRailDestination _railItem(IconData icon, String label, bool disabled) {
-    return NavigationRailDestination(icon: Icon(icon), label: Text(label), disabled: disabled);
-  }
-
+  // PROFILE PAGE
   Widget profilePage() {
     return Align(
       alignment: Alignment.topCenter,
@@ -229,10 +243,11 @@ class ConfigPage extends State<ConfigHP> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            /*Text(
               AppStrings.PROFILE.toUpperCase(),
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
-            ),
+            ),*/
+            pageLabel(AppStrings.PROFILE.toUpperCase()),
             SizedBox(height: 20),
             Table(
               columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
@@ -249,6 +264,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
+  // CONFIG PAGE
   Widget editAccountPage() {
     return Align(
       alignment: Alignment.topCenter,
@@ -257,7 +273,9 @@ class ConfigPage extends State<ConfigHP> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('EDITAR PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+            //Text('EDITAR PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+            pageLabel(AppStrings.EDIT_PROFILE.toUpperCase()),
+
             SizedBox(height: 20),
             editAccount(myUser, false),
           ],
@@ -451,7 +469,7 @@ class ConfigPage extends State<ConfigHP> {
                         password: AppStrings.DEFAULT_PSWRD,
                       );
                       await userController.createAccountDB(user);
-                      await loadUsers();
+                      await _loadUsers();
 
                       Navigator.pop(context);
                     } else {
@@ -459,16 +477,12 @@ class ConfigPage extends State<ConfigHP> {
 
                       if (confirmPswrd) {
                         bool isEmpty = password.isEmpty;
-                        //String pswrd = adminEdit ? editUser.password : (isEmpty ? editUser.password : User.hashPassword(password));
                         String pswrd = (adminEdit || isEmpty) ? editUser.password : User.hashPassword(password);
-                        //bool ur = isAdmin ? true : isUserAdmin;
-                        //bool ur = isAdmin || isUserAdmin;
                         bool ur = false;
                         if (isAdmin) {
                           if (myUser.userName == editUser.userName) {
                             ur = true;
                           } else {
-                            //NO SE EDITA A ELL --> EDITA A UN ALTRE
                             ur = isUserAdmin;
                           }
                         }
@@ -499,7 +513,7 @@ class ConfigPage extends State<ConfigHP> {
                         if (!adminEdit) {
                           Navigator.pop(context, updatedUser);
                         } else {
-                          await loadUsers();
+                          await _loadUsers();
                         }
                       }
                     }
@@ -514,100 +528,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  void userNotAviableMessage() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Aquest usuari ja existeix'),
-          content: Text('Prova a fer-ne un altre'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Tancar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<bool> confirmPasword(bool deleteAcc) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(deleteAcc ? 'Eliminar compte' : 'Contrasenya'),
-          content: Text('Per continuar, introdueixi la contrasenya'),
-          actions: <Widget>[
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(border: OutlineInputBorder()),
-            ),
-
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () async {
-                    final isValid = await userController.isPasword(myUser.userName, passwordController.text);
-                    Navigator.of(context).pop(isValid);
-                  },
-                  style: deleteAcc
-                      ? ButtonStyle(
-                          foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                            if (states.contains(WidgetState.hovered)) {
-                              return Colors.red;
-                            }
-                            return Theme.of(context).colorScheme.primary;
-                          }),
-                        )
-                      : null,
-                  child: Text(AppStrings.CONFIRM),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(AppStrings.CANCEL),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
-  }
-
-  Widget deleteAccountPage() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        TextButton(
-          style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-              if (states.contains(WidgetState.hovered)) {
-                return Colors.red;
-              }
-              return Colors.black87;
-            }),
-          ),
-          onPressed: () async {
-            //confirmDelete();
-            if (await confirmPasword(true)) {
-              await userController.deleteUser(widget.user.userName);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
-            }
-          },
-          child: Text(AppStrings.DELETEACC.toUpperCase(), style: TextStyle(fontSize: 20)),
-        ),
-      ],
-    );
-  }
-
+  //USERS PAGE
   Widget usersPage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,10 +544,12 @@ class ConfigPage extends State<ConfigHP> {
                 },
                 icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
               ),
-            Text(
+
+            /*Text(
               viewUserList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName,
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
-            ),
+            ),*/
+            pageLabel(viewUserList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName),
           ],
         ),
 
@@ -642,7 +565,7 @@ class ConfigPage extends State<ConfigHP> {
               heroTag: 'createUser',
               onPressed: () async {
                 await openFormCreateUser();
-                await loadUsers();
+                await _loadUsers();
               },
               label: Text('Crear Usuari'),
               icon: Icon(Icons.add),
@@ -779,64 +702,18 @@ class ConfigPage extends State<ConfigHP> {
           );
   }
 
-  Future<bool> confirmUserName(String userName) async {
-    clear();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Nom d\'usuari'),
-          content: Text('Per continuar, introdueixi el nom de l\'usuari'),
-          actions: <Widget>[
-            TextField(
-              controller: userNameController,
-              //obscureText: true,
-              decoration: InputDecoration(border: OutlineInputBorder()),
-            ),
-
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () {
-                    //final isValid = await isUserName(userNameController.text);
-                    final isValid = userNameController.text.compareTo(userName) == 0;
-                    Navigator.of(context).pop(isValid);
-                  },
-                  style: ButtonStyle(
-                    foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(WidgetState.hovered)) {
-                        return Colors.red;
-                      }
-                      return Theme.of(context).colorScheme.primary;
-                    }),
-                  ),
-                  child: Text(AppStrings.CONFIRM),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(AppStrings.CANCEL),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
-  }
-
+  //STATE PAGE
   Widget statePage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(
+            /*Text(
               AppStrings.TASKSTATES.toUpperCase(),
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
-            ),
+            ),*/
+            pageLabel(AppStrings.TASKSTATES.toUpperCase()),
           ],
         ),
 
@@ -914,140 +791,268 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  /*Form createState(TaskState state, bool isNew) {
-    final formKey = GlobalKey<FormState>();
-
-    // false si el usuari es igual (s edita a ell mateix)
-    // true si es diferent (edita a algu altre ==> restablir contrasenya)
-    //bool adminEdit = editUser.userName.compareTo(myUser.userName) != 0;
-
-    String name = state.name;
-    String id = state.id;
-    String color = TaskState.colorName(state.color);
-
-    clear();
-
-    nameController = TextEditingController(text: editUser.name);
-
-    return Form(
-      key: formKey,
-      child: SingleChildScrollView(
-        //padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 5),
-              child: TextFormField(
-                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
-                controller: nameController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Aquest camp és obligatori';
-                  }
-                  return null;
+  //TEAMS PAGE
+  Widget teamsPage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (!viewTeamList)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    viewTeamList = true;
+                  });
                 },
-                onSaved: (value) {
-                  name = value!;
-                },
+                icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
               ),
-            ),
-
-            Row(
-              children: [
-                Text('Color'),
-
-                Container(width: 10),
-
-                DropdownButton<String>(
-                  value: colorSelected,
-                  hint: Row(
-                    children: [
-                      Container(width: 24, height: 24, color: TaskState.colorMap['blue']),
-                      const SizedBox(width: 8),
-                      //Text('blue'),
-                    ],
-                  ),
-                  items: TaskState.colorMap.keys.map((String colorName) {
-                    return DropdownMenuItem<String>(
-                      value: colorName,
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 1),
-                          Container(width: 24, height: 24, color: TaskState.colorMap[colorName]),
-                          const SizedBox(width: 1),
-                          //Text(colorName),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      colorSelected = newValue!;
-                    });
-                  },
-                  selectedItemBuilder: (BuildContext context) {
-                    return TaskState.colorMap.keys.map((String colorName) {
-                      return Container(width: 24, height: 24, color: TaskState.colorMap[colorName]);
-                    }).toList();
-                  },
-                  menuMaxHeight: 300,
-                ),
-              ],
-            ),
-
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 20),
-
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  if (formKey.currentState!.validate()) {
-                    formKey.currentState!.save();
-
-                    TaskState updatedState = TaskState(id: id, name: name, color: TaskState.colorValue(color));
-                    Navigator.pop(context, updatedState);
-                  }
-                },
-                icon: Icon(Icons.abc),
-                label: Text(!isNew ? 'Guardar canvis' : 'Crear estat'),
-              ),
-            ),
+            /*Text(
+              viewTeamList ? AppStrings.TEAMS.toUpperCase() : editTeam.name,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
+            ),*/
+            pageLabel(viewTeamList ? AppStrings.TEAMS.toUpperCase() : editTeam.name),
           ],
+        ),
+
+        SizedBox(height: 20),
+
+        viewTeamList ? teamList() : Expanded(child: viewTeam(editTeam)),
+
+        if (viewTeamList)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: FloatingActionButton.extended(
+              heroTag: 'createTeam',
+              onPressed: () async {
+                logToDo('crear equip', 'ConfigPage(teamsPage)');
+              },
+              label: Text('Crear Equip'),
+              icon: Icon(Icons.add),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Expanded teamList() {
+    return Expanded(
+      child: GridView.builder(
+        itemCount: teamsAndUsers.length,
+        itemBuilder: (context, index) {
+          var teamKey = teamsAndUsers.keys.elementAt(index);
+          final users = teamsAndUsers[teamKey];
+
+          return Card(
+            child: InkWell(
+              overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                if (states.contains(WidgetState.hovered)) {
+                  return Theme.of(context).colorScheme.primaryContainer;
+                }
+                return null;
+              }),
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                setState(() {
+                  viewTeamList = false;
+                  editTeam = teamKey;
+                  usersAdded.clear();
+                });
+              },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(teamKey.name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  //if (isWide) SizedBox(height: 4),
+                  //if (isWide) Text('data', style: TextStyle(color: Colors.grey.shade800)),
+                  const SizedBox(height: 4),
+                  Text('${users!.length} membres', style: TextStyle(color: Colors.grey[600])),
+                ],
+              ),
+            ),
+          );
+        },
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: isWide ? (isTall ? 5 : 4) : (isTall ? 2 : 3),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1,
         ),
       ),
     );
   }
-*/
 
-  Future<void> loadUsers() async {
-    List<User> users = await userController.loadAllUsers();
-    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+  Widget viewTeam(Team team) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Membres del equip:', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          SizedBox(height: 20),
+          Table(
+            columnWidths: {
+              0: IntrinsicColumnWidth(),
+              1: IntrinsicColumnWidth(),
+              2: IntrinsicColumnWidth(),
+              3: IntrinsicColumnWidth(),
+              4: IntrinsicColumnWidth(),
+            },
+            children: [
+              for (User user in teamsAndUsers[team]!)
+                tableRowUser(
+                  Text('${teamsAndUsers[team]!.indexOf(user) + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
+                  //'${teamsAndUsers[team]!.indexOf(user) + 1}',
+                  user,
+                ),
+            ],
+          ),
+          Divider(height: 30),
+          Row(
+            children: [
+              Text('Afegir membres: ', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              SizedBox(width: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  for (var user in usersAdded) {
+                    await teamController.addUserToTeam(team, user);
+                  }
+                  usersAdded.clear();
+                  setState(() {});
+                },
+                child: Text('Afegir'),
+              ),
+            ],
+          ),
 
-    users.removeWhere((user) {
-      return user.userName == myUser.userName;
-    });
-
-    setState(() {
-      allUsers = users;
-    });
-    await loadTask();
+          SizedBox(height: 15),
+          Container(child: showUsersToAdd(team)),
+        ],
+      ),
+    );
   }
 
-  Future<void> loadTask() async {
-    TaskController tk = TaskController();
-    for (User user in allUsers) {
-      await tk.loadTasksFromDB(user.userName);
-      tasksFromUsers[user.userName] = tk.tasks;
-    }
+  Widget showUsersToAdd(Team team) {
+    List<User> usersAviable = [];
+    usersAviable.addAll(allUsers);
+    usersAviable = usersAviable.toSet().toList();
+    usersAviable.removeWhere((User user) => teamsAndUsers[team]!.any((u) => u.userName == user.userName));
+
+    usersAviable.sort();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Table(
+          columnWidths: {
+            0: IntrinsicColumnWidth(),
+            1: IntrinsicColumnWidth(),
+            2: IntrinsicColumnWidth(),
+            3: IntrinsicColumnWidth(),
+            4: IntrinsicColumnWidth(),
+          },
+          children: [
+            for (var user in usersAviable)
+              tableRowUser(
+                Checkbox(
+                  value: usersAdded.contains(user),
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        usersAdded.add(user);
+                      } else {
+                        usersAdded.remove(user);
+                      }
+                    });
+                  },
+                  visualDensity: VisualDensity(horizontal: -4, vertical: -4),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                user,
+              ),
+          ],
+        ),
+      ],
+    );
   }
 
-  Future<void> loadAdminData() async {
-    await loadUsers();
-    await stateController.loadAllStates();
-    states = stateController.states;
-    setState(() {});
+  //DELETE ACC
+  Widget deleteAccountPage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        TextButton(
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.red;
+              }
+              return Colors.black87;
+            }),
+          ),
+          onPressed: () async {
+            //confirmDelete();
+            if (await confirmPasword(true)) {
+              await userController.deleteUser(widget.user.userName);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
+            }
+          },
+          child: Text(AppStrings.DELETEACC.toUpperCase(), style: TextStyle(fontSize: 20)),
+        ),
+      ],
+    );
   }
 
+  //OTHER
+  Text pageLabel(String text) {
+    return Text(text, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20));
+  }
+
+  //TABLE - DRAWER - RAIL
+  ListTile _drawerItem(String title, int index) {
+    return ListTile(
+      title: Text(title),
+      selected: selectedIndex == index,
+      onTap: () {
+        if (index == 1) iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+        Navigator.of(context).pop();
+        setState(() => selectedIndex = index);
+      },
+    );
+  }
+
+  NavigationRailDestination _railItem(IconData icon, String label, bool disabled) {
+    return NavigationRailDestination(icon: Icon(icon), label: Text(label), disabled: disabled);
+  }
+
+  TableRow tableRowUser(Widget label, User user) {
+    double horizontal = isWide ? 30 : 10;
+    double vertical = 8;
+    return TableRow(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: vertical),
+          child: label,
+          //Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
+          child: Text("${user.name} ${user.surname}"),
+        ),
+
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
+          child: Text(user.userName),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
+          child: Text(user.userRole.name),
+        ),
+      ],
+    );
+  }
+
+  // SHOW MODAL BOTTOM SHEET
   openFormCreateState(bool isCreate, TaskState state) {
     showModalBottomSheet(
       context: context,
@@ -1103,6 +1108,79 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
+  openFormCreateUser() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
+
+          child: SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: editAccount(User.empty(), true)),
+        );
+      },
+    );
+  }
+
+  //LOAD
+  Future<void> _loadUsers() async {
+    List<User> users = await userController.loadAllUsers();
+    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+
+    users.removeWhere((user) {
+      return user.userName == myUser.userName;
+    });
+
+    setState(() {
+      allUsers = users;
+    });
+    await _loadTask();
+  }
+
+  Future<void> _loadTask() async {
+    TaskController tk = TaskController();
+    for (User user in allUsers) {
+      await tk.loadTasksFromDB(user.userName);
+      tasksFromUsers[user.userName] = tk.tasks;
+    }
+  }
+
+  Future<void> _loadTeams() async {
+    await teamController.loadAllTeamsWithUsers();
+    await teamController.loadTeamsbyUser(myUser);
+  }
+
+  Future<void> loadAdminData() async {
+    await _loadUsers();
+    await stateController.loadAllStates();
+    states = stateController.states;
+    await _loadTeams();
+    teamsAndUsers = teamController.allTeamsAndUsers;
+    myTeams = teamController.myTeamsAndUsers;
+    setState(() {});
+  }
+
+  // SHOW DIALOG:
+  void userNotAviableMessage() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Aquest usuari ja existeix'),
+          content: Text('Prova a fer-ne un altre'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Tancar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void stateNameExists(bool create) {
     showDialog(
       context: context,
@@ -1122,56 +1200,6 @@ class ConfigPage extends State<ConfigHP> {
       },
     );
   }
-
-  /*bool deleteState(TaskState tState) {
-    nameController.clear();
-    final result = showDialog<bool>(
-      //showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Eliminar estat'),
-          content: Text('Per  continuar, introdueixi el nom del estat: '),
-          actions: <Widget>[
-            TextField(
-              controller: nameController,
-              //obscureText: false,
-              decoration: InputDecoration(border: OutlineInputBorder()),
-            ),
-
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Tancar'),
-            ),
-            TextButton(
-              onPressed: () {
-                bool exists = nameController.text == tState.name;
-
-                /*states.any((state) {
-                  bool a = state.name == nameController.text;
-                  print(a);
-                  return a;
-                });*/
-
-                if (exists) {
-                  stateController.deleteState(tState.id);
-                  states.remove(tState);
-                  setState(() {});
-                }
-
-                //logToDo('eliminar state', 'ConfigPage(taskStateList)');
-                Navigator.of(context).pop();
-              },
-              child: Text('Confirmar'),
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
-  }*/
 
   Future<bool> deleteState(TaskState tState) async {
     TextEditingController controller = TextEditingController();
@@ -1216,170 +1244,99 @@ class ConfigPage extends State<ConfigHP> {
     return result ?? false;
   }
 
-  openFormCreateUser() {
-    showModalBottomSheet(
+  Future<bool> confirmUserName(String userName) async {
+    clear();
+    final result = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
-
-          child: SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: editAccount(User.empty(), true)),
-        );
-      },
-    );
-  }
-}
-
-class StateForm extends StatefulWidget {
-  final Function(TaskState)? createTState;
-  final Function(TaskState)? editTState;
-
-  final TaskState state;
-
-  const StateForm({super.key, this.createTState, this.editTState, required this.state});
-
-  @override
-  StateFormState createState() => StateFormState();
-}
-
-class StateFormState extends State<StateForm> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController nameController;
-  String validator = '';
-
-  late String colorSelected;
-
-  late bool isCreating;
-
-  @override
-  void initState() {
-    super.initState();
-    nameController = TextEditingController(text: widget.state.name);
-    isCreating = widget.createTState != null;
-    colorSelected = isCreating ? 'blue' : TaskState.colorName(widget.state.color);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    TaskState tState = TaskState.copy(widget.state);
-
-    String name = tState.name;
-
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 5),
-              child: TextFormField(
-                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
-                controller: nameController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Aquest camp és obligatori';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  name = value!;
-                },
-              ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Nom d\'usuari'),
+          content: Text('Per continuar, introdueixi el nom de l\'usuari'),
+          actions: <Widget>[
+            TextField(
+              controller: userNameController,
+              //obscureText: true,
+              decoration: InputDecoration(border: OutlineInputBorder()),
             ),
-
-            SizedBox(height: 10),
 
             Row(
               children: [
-                Container(width: 5),
-
-                Text('Color', style: TextStyle(fontSize: 16)),
-
-                Container(width: 10),
-
-                DropdownButton<String>(
-                  underline: const SizedBox(),
-                  //borderRadius: BorderRadius.circular(10),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-
-                  /*hint: Row(
-                    children: [
-                      Container(width: 24, height: 24, color: TaskState.colorMap['blue']),
-                      //const SizedBox(width: 8),
-                      //Text('blue'),
-                    ],
-                  ),*/
-                  value: colorSelected,
-                  items: TaskState.colorMap.keys.map((String colorName) {
-                    return DropdownMenuItem<String>(
-                      value: colorName,
-                      child: Container(width: 30, height: 30, color: TaskState.colorMap[colorName]),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue == null) {
-                      colorSelected = 'null';
-                    } else {
-                      colorSelected = newValue;
-                    }
-                    setState(() {});
+                TextButton(
+                  onPressed: () {
+                    //final isValid = await isUserName(userNameController.text);
+                    final isValid = userNameController.text.compareTo(userName) == 0;
+                    Navigator.of(context).pop(isValid);
                   },
-                  selectedItemBuilder: (BuildContext context) {
-                    return TaskState.colorMap.keys.map((String colorName) {
-                      return Center(child: Container(width: 30, height: 30, color: TaskState.colorMap[colorName]));
-                    }).toList();
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(WidgetState.hovered)) {
+                        return Colors.red;
+                      }
+                      return Theme.of(context).colorScheme.primary;
+                    }),
+                  ),
+                  child: Text(AppStrings.CONFIRM),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
                   },
-                  menuMaxHeight: 300,
+                  child: Text(AppStrings.CANCEL),
                 ),
               ],
             ),
-
-            SizedBox(height: 10),
-
-            ElevatedButton.icon(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  Color? color;
-
-                  if (colorSelected == 'null') {
-                    color = null;
-                  } else {
-                    color = TaskState.colorValue(colorSelected);
-                  }
-
-                  TaskState updatedState = widget.state.copyWith(
-                    name: name,
-                    //color: TaskState.colorValue(colorSelected),
-                    color: color,
-                    setColor: true,
-                  );
-
-                  if (isCreating) {
-                    widget.createTState!(updatedState);
-                  } else if (widget.editTState != null) {
-                    widget.editTState!(updatedState);
-                  }
-
-                  //Navigator.of(context).pop();
-                }
-              },
-              icon: Icon(isCreating ? Icons.add : Icons.save_alt),
-              label: Text(isCreating ? 'Crear' : 'Guardar canvis'),
-
-              //icon: Icon(Icons.abc),
-              //label: Text(!isNew ? 'Guardar canvis' : 'Crear estat'),
-            ),
           ],
-        ),
-      ),
+        );
+      },
     );
+    return result ?? false;
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    nameController.dispose();
+  Future<bool> confirmPasword(bool deleteAcc) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(deleteAcc ? 'Eliminar compte' : 'Contrasenya'),
+          content: Text('Per continuar, introdueixi la contrasenya'),
+          actions: <Widget>[
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(border: OutlineInputBorder()),
+            ),
+
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    final isValid = await userController.isPasword(myUser.userName, passwordController.text);
+                    Navigator.of(context).pop(isValid);
+                  },
+                  style: deleteAcc
+                      ? ButtonStyle(
+                          foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return Colors.red;
+                            }
+                            return Theme.of(context).colorScheme.primary;
+                          }),
+                        )
+                      : null,
+                  child: Text(AppStrings.CONFIRM),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(AppStrings.CANCEL),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 }

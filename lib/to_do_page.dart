@@ -9,8 +9,8 @@ import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
-import 'package:to_do_list/task_filter.dart';
-import 'package:to_do_list/task_form.dart';
+import 'package:to_do_list/view_form/task_filter.dart';
+import 'package:to_do_list/view_form/task_form.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
@@ -51,7 +51,7 @@ class MyAppToDo extends StatelessWidget {
       home: MyHomePageToDo(user: user),
       theme: ThemeData(
         colorScheme: (!UserRole.isAdmin(user.userRole))
-            ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
+            ? ColorScheme.fromSeed(seedColor: Colors.pink)
             : ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       localizationsDelegates: [
@@ -76,14 +76,11 @@ class ToDoPage extends State<MyHomePageToDo> {
   SortType sortType = SortType.NONE;
   late User myUser;
 
-  //bool showAllTask = true;
-
   List<Task> tasksToShow = [];
   List<Task> allTasks = [];
 
   List<Notifications> notifications = [];
   List<String> allUserNames = [];
-  //List<String> usersFromTask = [];
   Map<String, String> taskAndUsersMAP = {};
 
   List<Task> taskToDelete = [];
@@ -94,7 +91,6 @@ class ToDoPage extends State<MyHomePageToDo> {
   StateController stateController = StateController();
 
   Set<String> usersSelected = {};
-  Set<String> taskSelected = {};
 
   @override
   void initState() {
@@ -126,8 +122,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     allUserNames.insert(0, AppStrings.SHOWALL);
 
     await taskAndUsers();
-
-    //loadTasksToDelete();
 
     setState(() {});
   }
@@ -164,7 +158,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     setState(() {});
   }*/
 
-  Future<bool> deleteCompletedTasks() async {
+  /*Future<bool> deleteCompletedTasks() async {
     taskSelected.clear();
     bool ret = false;
 
@@ -231,7 +225,7 @@ class ToDoPage extends State<MyHomePageToDo> {
       },
     );
     return ret;
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -313,17 +307,23 @@ class ToDoPage extends State<MyHomePageToDo> {
           body: Container(
             margin: const EdgeInsets.all(30),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+
               children: [
-                Row(
-                  children: [
-                    taskSort(),
-                    Container(width: 10),
-                    if (UserRole.isAdmin(myUser.userRole)) userFilter(),
-                    if (UserRole.isAdmin(myUser.userRole)) Container(width: 10),
-                    taskFilter(),
-                    Container(width: 10),
-                    showAllTask(),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      taskSort(),
+                      Container(width: 10),
+                      if (UserRole.isAdmin(myUser.userRole)) userFilter(),
+                      if (UserRole.isAdmin(myUser.userRole)) Container(width: 10),
+                      taskFilter(isCompact),
+                      Container(width: 10),
+                      showAllTask(),
+                    ],
+                  ),
                 ),
 
                 Expanded(
@@ -464,12 +464,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                   }
 
                   addTask(task);
-                  //await taskAndUsers();
                   setState(() {
-                    //tasks.add(task);
-                    tasksToShow.sort((task1, task2) {
-                      return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-                    });
                     taskAndUsersMAP;
                   });
                   //taskAndUsersMAP;
@@ -640,6 +635,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                   tasksToShow[index] = task;
                   allTasks[allTasks.indexWhere((t) => t.id == task.id)] = task;
                   tasksToShow.sort((task1, task2) {
+                    return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+                  });
+                  allTasks.sort((task1, task2) {
                     return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                   });
                 });
@@ -867,9 +865,6 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                             //tasks.add(newTask);
                             addTask(newTask);
-                            tasksToShow.sort((task1, task2) {
-                              return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-                            });
 
                             await taskAndUsers();
                             setState(() {});
@@ -904,10 +899,16 @@ class ToDoPage extends State<MyHomePageToDo> {
   void addTask(Task newTask) {
     bool contains = tasksToShow.any((task) => task.id == newTask.id);
     if (!contains) {
-      setState(() {
-        tasksToShow.add(newTask);
-        allTasks.add(newTask);
+      _resetTasks();
+      tasksToShow.add(newTask);
+      allTasks.add(newTask);
+      tasksToShow.sort((task1, task2) {
+        return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
       });
+      allTasks.sort((task1, task2) {
+        return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+      });
+      setState(() {});
     }
     //taskAndUsersMAP[newTask.id] = myUser.userName;
   }
@@ -952,16 +953,12 @@ class ToDoPage extends State<MyHomePageToDo> {
             PopupMenuItem(value: userName, child: Text(userName == myUser.userName ? 'Veure les meves' : userName)),
         ],
 
-        onSelected: (userSelected) async {
+        onSelected: (userSelected) {
           if (userSelected == AppStrings.SHOWALL) {
-            //await taskController.loadAllTasksFromDB();
-            //tasksToShow = allTasks.map((Task task) => Task.copy(task)).toList();
             _resetTasks();
           } else {
             tasksToShow = allTasks.where((Task line) => taskAndUsersMAP[line.id]!.contains(userSelected)).toList();
-            //await taskController.loadTasksFromDB(userSelected);
           }
-          //tasksToShow = taskController.tasks;
           setState(() {});
         },
 
@@ -978,7 +975,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  Container taskFilter() {
+  Container taskFilter(bool isCompact) {
     return Container(
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(bottom: 10),
@@ -992,7 +989,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(12.0),
-              onTap: () => openFilterTask(),
+              onTap: () => isCompact ? openFilterTaskMBS() : openFilterTaskSD(),
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -1023,6 +1020,7 @@ class ToDoPage extends State<MyHomePageToDo> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12.0),
               onTap: () {
+                sortType = SortType.NONE;
                 _resetTasks();
                 setState(() {});
               },
@@ -1059,13 +1057,13 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }*/
 
-  Future<void> openFilterTask() async {
+  Future<void> openFilterTaskSD() async {
     final filteredTasks = await showDialog<List<Task>>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           //surfaceTintColor: Theme.of(context).colorScheme.primaryContainer,
-          title: Text('Filtrar tasques'),
+          //title: Text('Filtrar tasques'),
           content: SizedBox(
             width: MediaQuery.of(context).size.width * 0.2,
             child: Column(
@@ -1076,6 +1074,29 @@ class ToDoPage extends State<MyHomePageToDo> {
         );
       },
     );
+    if (filteredTasks != null) {
+      setState(() {
+        tasksToShow = filteredTasks;
+      });
+    }
+  }
+
+  Future<void> openFilterTaskMBS() async {
+    final filteredTasks = await showModalBottomSheet<List<Task>>(
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
+
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: TaskFilterPage(tasks: tasksToShow, allTasks: allTasks),
+          ),
+        );
+      },
+    );
+    
     if (filteredTasks != null) {
       setState(() {
         tasksToShow = filteredTasks;
@@ -1139,7 +1160,7 @@ class ToDoPage extends State<MyHomePageToDo> {
           onPressed: () => confirmDelete(index, task.id, false),
           icon: Icon(Icons.delete),
           style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
               if (states.contains(WidgetState.hovered)) {
                 return Colors.red;
               }
@@ -1199,7 +1220,9 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   void _resetTasks() {
-    //tasksToShow = allTasks.map((Task task) => Task.copy(task)).toList();
+    allTasks.sort((task1, task2) {
+      return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+    });
     tasksToShow.clear();
     tasksToShow.addAll(allTasks);
   }

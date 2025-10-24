@@ -8,7 +8,7 @@ import 'dart:math';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
-class User {
+class User implements Comparable<User> {
   String _name;
   String _surname;
   String _userName;
@@ -195,5 +195,15 @@ class User {
     final bytes = utf8.encode(password);
     final digest = sha256.convert(bytes);
     return digest.toString();
+  }
+
+  @override
+  int compareTo(User other) {
+    int comp = this.name.compareTo(other.name);
+    if (comp == 0) {
+      comp = this.surname.compareTo(other.surname);
+      if (comp == 0) comp = this.userRole.index - other.userRole.index;
+    }
+    return comp;
   }
 }

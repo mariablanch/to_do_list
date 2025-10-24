@@ -1,5 +1,3 @@
-
-
 enum TaskFilter {
   DATE,
   NAME,

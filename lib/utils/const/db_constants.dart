@@ -5,6 +5,8 @@ class DbConstants {
   static const String USERTASK = 'usertask';
   static const String NOTIFICATION = 'notification';
   static const String TASKSTATE = 'taskState';
+  static const String TEAM = 'team';
+  static const String USERTEAM = 'userteam';
 
   //FIELD
   static const String USERNAME = 'userName';
@@ -13,6 +15,7 @@ class DbConstants {
   static const String TASKID = 'taskId';
   static const String ICON = 'iconName';
   static const String STATE = 'state';
+  static const String TEAMID = 'teamId';
 
   //COMPROVACIÓ ERROR BASE DE DADES
   static const int USEREXISTS = 0;

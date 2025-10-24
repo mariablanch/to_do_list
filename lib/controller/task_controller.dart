@@ -56,13 +56,9 @@ class TaskController {
     StateController sc = StateController();
     TaskState state;
     Task task = Task.fromFirestore(doc, null);
-    //logInfo(task.state.id);
     await sc.loadState(task.state.id);
-    //logInfo(sc.state.id);
     state = sc.state.copyWith();
     task.state = state;
-    //logPrintClass('------------------');
-
     return task;
   }
 
@@ -72,9 +68,8 @@ class TaskController {
       List<Task> loadedTasks = [];
 
       final db = await FirebaseFirestore.instance.collection(DbConstants.TASK).get();
-      final docs = db.docs;
 
-      for (var doc in docs) {
+      for (var doc in db.docs) {
         if (doc.exists) {
           task = await _loadTask(doc);
 

@@ -15,7 +15,6 @@ void logError(String context, dynamic e) {
 
 void logInfo(String message) {
   print('${GREEN}INFO: $message $CLEAR');
-  //print('INFO: $message');
 }
 
 void logWarning(String warning) {

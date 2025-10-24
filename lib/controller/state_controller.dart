@@ -31,11 +31,6 @@ class StateController {
 
   Future<void> loadState(String stateId) async {
     try {
-      /*final db = await FirebaseFirestore.instance
-          .collection(DbConstants.TASKSTATE)
-          .where('id', isEqualTo: stateId)
-          .get();*/
-
       final db = await FirebaseFirestore.instance.collection(DbConstants.TASKSTATE).doc(stateId).get();
 
       if (db.exists) {
@@ -87,7 +82,6 @@ class StateController {
 
   TaskState defaultState() {
     return getStateByName(AppStrings.DEFAULT_STATES[0]);
-    //return TaskState(id:'TaPsLJBEtQizeFUxc5jU', name: 'Completada', color: Colors.green);
   }
 
   TaskState getStateByName(String name) {
