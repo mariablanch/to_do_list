@@ -72,4 +72,13 @@ class TaskState {
     str += 'Color: $_color \n';
     return str;
   }
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TaskState && other.id == id;
+  }
 }

@@ -206,4 +206,13 @@ class User implements Comparable<User> {
     }
     return comp;
   }
+
+  @override
+  int get hashCode => userName.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is User && other.userName == userName;
+  }
 }

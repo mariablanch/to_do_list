@@ -4,7 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/state_controller.dart';
+import 'package:to_do_list/controller/team_controller.dart';
+import 'package:to_do_list/model/relation_tables/team_task.dart';
+import 'package:to_do_list/model/relation_tables/user_task.dart';
 import 'package:to_do_list/model/task_state.dart';
+import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/const/messages.dart';
@@ -62,7 +66,7 @@ class TaskController {
     return task;
   }
 
-  Future<void> loadAllTasksFromDB() async { 
+  Future<void> loadAllTasksFromDB() async {
     Task task;
     try {
       List<Task> loadedTasks = [];
@@ -87,6 +91,27 @@ class TaskController {
     }
   }
 
+  Future<List<Task>> loadTaskByTeam(Team team) async {
+    List<Task> loadedTasks = [];
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.TEAMTASK)
+          .where(DbConstants.TEAMID, isEqualTo: team.id)
+          .get();
+      for (var doc in db.docs) {
+        TeamTask tt = TeamTask.fromFirestore(doc, null);
+        String taskId = tt.task.id;
+        final db2 = await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(taskId).get();
+        if (db2.exists) {
+          loadedTasks.add(Task.fromFirestore(db2, null));
+        }
+      }
+    } catch (e) {
+      logError('LOAD TASK BY TEAM', e);
+    }
+    return loadedTasks;
+  }
+
   Future<Task> getTaskByID(String taskId) async {
     Task task = Task.empty();
     try {
@@ -103,14 +128,27 @@ class TaskController {
   }
 
   Future<void> updateTask(Task task) async {
+    StateController stateController = StateController();
     try {
+      stateController.loadAllStates();
+
+      if (task.state.name == AppStrings.DEFAULT_STATES[2] && task.completedDate == null) {
+        task = task.copyWith(completedDate: DateTime.now());
+      } else if (task.state.name != AppStrings.DEFAULT_STATES[2] && task.completedDate != null) {
+        task = task.copyWith(completedDate: null);
+      }
+
+      /*if (stateController.states.any((s) => s.name == AppStrings.DEFAULT_STATES[2])) {
+        //task = task.copyWith(state: stateController.getStateByName(stateNames[index]), completedDate: );
+      }*/
+
       await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(task.id).update(task.toFirestore());
     } catch (e) {
       logError('UPDATE TASK', e);
     }
   }
 
-  Future<void> addTaskToDataBase(Task newTask, String userName) async {
+  Future<void> addTaskToDataBaseUser(Task newTask, String userName) async {
     try {
       final docRef = await FirebaseFirestore.instance.collection(DbConstants.TASK).add(newTask.toFirestore());
 
@@ -123,12 +161,25 @@ class TaskController {
     }
   }
 
-  Future<void> createRelation(String taskId, String userName) async {
+  Future<void> addTaskToDataBaseTeam(TeamTask tt) async {
     try {
-      await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add({
-        DbConstants.USERNAME: userName,
-        DbConstants.TASKID: taskId,
-      });
+      final docRef = await FirebaseFirestore.instance.collection(DbConstants.TASK).add(tt.task.toFirestore());
+
+      String taskId = docRef.id;
+      tt.task.id = taskId;
+
+      //createRelation(taskId, userName);
+      TeamController().addTaskToTeam(tt);
+    } catch (e) {
+      logError('ADD TASK TO DATABASE', e);
+    }
+  }
+
+  Future<void> createRelation(String taskId, String userName) async {
+    UserTask ut = UserTask(taskId: taskId, userName: userName);
+
+    try {
+      await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add(ut.toFirestore());
     } catch (e) {
       logError('CREATE RELATION', e);
     }

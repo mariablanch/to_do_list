@@ -38,6 +38,15 @@ class Team implements Comparable<Team> {
 
   @override
   int compareTo(Team other) {
-    return this.name.compareTo(other.name);
+    return name.compareTo(other.name);
+  }
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Team && other.id == id;
   }
 }

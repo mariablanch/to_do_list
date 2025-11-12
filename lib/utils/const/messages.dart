@@ -21,8 +21,8 @@ void logWarning(String warning) {
   print('${WHITE}WARNING: $warning');
 }
 
-void logPrintClass(String toStr) {
-  for (final line in toStr.split('\n')) {
+void logPrintClass(Object o) {
+  for (final line in o.toString().split('\n')) {
     print(MAGENTA + line + CLEAR);
   }
 }

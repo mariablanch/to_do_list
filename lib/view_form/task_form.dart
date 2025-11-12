@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_list/controller/state_controller.dart';
+import 'package:to_do_list/controller/team_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/task_state.dart';
+import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/priorities.dart';
 
 class TaskForm extends StatefulWidget {
-  final Function(Task, Set<String>)? onTaskCreated;
+  final Function(Task, Set<User>, Set<Team>)? onTaskCreated;
   final Function(Task)? onTaskEdited;
   final Task task;
   final bool isAdmin;
@@ -26,21 +28,21 @@ class TaskForm extends StatefulWidget {
 
 class TaskFormState extends State<TaskForm> {
   final _formKey = GlobalKey<FormState>();
+  DateTime? selectedFinalDate, selectedOpenDate;
+  String? prioritySTR, stateSTR;
 
-  DateTime? selectedDate;
-  String? prioritySTR;
-  String? stateSTR;
-
-  late TextEditingController dateController;
-  late TextEditingController nameController;
-  late TextEditingController descriptionController;
+  late TextEditingController finalDateController, openDateController, nameController, descriptionController;
 
   StateController stateController = StateController();
+  TeamController teamController = TeamController();
 
   late bool isAdmin = false;
 
   List<User> users = [];
-  Set<String> selectedUserIds = {};
+  Set<User> selectedUserIds = {};
+
+  List<Team> allTeams = [];
+  Set<Team> selectedTeams = {};
 
   bool isCreating = false;
   List<TaskState> states = [];
@@ -50,38 +52,31 @@ class TaskFormState extends State<TaskForm> {
   @override
   void initState() {
     super.initState();
-    selectedDate = widget.task.limitDate;
+    selectedFinalDate = widget.task.limitDate;
+    selectedOpenDate = widget.task.openDate;
     prioritySTR = Priorities.priorityToString(widget.task.priority);
 
     if (widget.onTaskCreated != null) {
       isCreating = true;
+      finalDateController = TextEditingController(text: null);
+      openDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(DateTime.now()));
+      stateSTR = AppStrings.DEFAULT_STATES[0];
+    } else {
+      finalDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.limitDate));
+      openDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.openDate));
+      stateSTR = widget.task.state.name;
     }
-    isCreating
-        ? dateController = TextEditingController(text: null)
-        : dateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.limitDate));
+
     nameController = TextEditingController(text: widget.task.name);
     descriptionController = TextEditingController(text: widget.task.description);
-
-    stateSTR = widget.task.state.name;
-    if (isCreating) {
-      stateSTR = AppStrings.DEFAULT_STATES[0];
-    }
 
     if (widget.isAdmin == true) {
       isAdmin = true;
       usersFromTask();
+      loadTeams();
     }
-
     loadStates();
     setState(() {});
-  }
-
-  Future<void> usersFromTask() async {
-    UserController uc = UserController();
-    users = await uc.loadAllUsers();
-    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
-    setState(() {});
-    //users = usersList.map((User user) => user.userName).toList();
   }
 
   @override
@@ -121,9 +116,34 @@ class TaskFormState extends State<TaskForm> {
 
             SizedBox(height: 10),
 
+            //DATA INICI
+            TextFormField(
+              controller: openDateController,
+              decoration: InputDecoration(labelText: 'Data obertura/inici', border: OutlineInputBorder()),
+              readOnly: true,
+              onTap: () async {
+                DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate: newTask.openDate,
+                  firstDate: newTask.openDate,
+                  lastDate: DateTime(2050),
+                  locale: const Locale('es', 'ES'),
+                );
+                if (picked != null) {
+                  setState(() {
+                    selectedOpenDate = picked;
+                    finalDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                  });
+                }
+              },
+              validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
+            ),
+
+            SizedBox(height: 10),
+
             //DATA LIMIT
             TextFormField(
-              controller: dateController,
+              controller: finalDateController,
               decoration: InputDecoration(labelText: 'Data límit', border: OutlineInputBorder()),
               readOnly: true,
               onTap: () async {
@@ -138,8 +158,8 @@ class TaskFormState extends State<TaskForm> {
                 );
                 if (picked != null) {
                   setState(() {
-                    selectedDate = picked;
-                    dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                    selectedFinalDate = picked;
+                    finalDateController.text = DateFormat('dd/MM/yyyy').format(picked);
                   });
                 }
               },
@@ -164,6 +184,7 @@ class TaskFormState extends State<TaskForm> {
 
             SizedBox(height: 10),
 
+            //AFEGIR USUARIS
             if (isAdmin && isCreating)
               Align(
                 alignment: Alignment.centerLeft,
@@ -177,29 +198,100 @@ class TaskFormState extends State<TaskForm> {
                   textAlign: TextAlign.left,
                 ),
               ),
-
             if (isAdmin && isCreating)
-              Column(
-                children: [
-                  for (User user in users)
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: selectedUserIds.contains(user.userName),
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                selectedUserIds.add(user.userName);
-                              } else {
-                                selectedUserIds.remove(user.userName);
-                              }
-                            });
-                          },
-                        ),
-                        Text(user.userName),
-                      ],
-                    ),
-                ],
+              Autocomplete<User>(
+                displayStringForOption: (user) => user.userName,
+
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.isEmpty) return const Iterable<User>.empty();
+                  return users.where(
+                    (u) =>
+                        u.userName.toLowerCase().contains(textEditingValue.text.toLowerCase()) &&
+                        !selectedUserIds.contains(u),
+                  );
+                },
+
+                onSelected: (User selection) {
+                  setState(() {
+                    selectedUserIds.add(selection);
+                  });
+                },
+              ),
+            if (isAdmin && isCreating) SizedBox(height: 20),
+            if (isAdmin && isCreating)
+              Wrap(
+                spacing: 8,
+                children: selectedUserIds
+                    .map(
+                      (u) => Chip(
+                        label: Text(u.userName),
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                        side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+
+                        onDeleted: () {
+                          setState(() {
+                            selectedUserIds.remove(u);
+                          });
+                        },
+                        deleteButtonTooltipMessage: 'Eliminar',
+                      ),
+                    )
+                    .toList(),
+              ),
+
+            //AFEGIR EQUIPS
+            if (isAdmin && isCreating)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Equips que tindran aquesta tasca:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.inverseSurface,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+            if (isAdmin && isCreating)
+              Autocomplete<Team>(
+                displayStringForOption: (team) => team.name,
+
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.isEmpty) return const Iterable<Team>.empty();
+                  return allTeams.where(
+                    (t) =>
+                        t.name.toLowerCase().contains(textEditingValue.text.toLowerCase()) &&
+                        !selectedTeams.contains(t),
+                  );
+                },
+
+                onSelected: (Team selection) {
+                  setState(() {
+                    selectedTeams.add(selection);
+                  });
+                },
+              ),
+            if (isAdmin && isCreating) SizedBox(height: 20),
+            if (isAdmin && isCreating)
+              Wrap(
+                spacing: 8,
+                children: selectedTeams
+                    .map(
+                      (t) => Chip(
+                        label: Text(t.name),
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                        side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+
+                        onDeleted: () {
+                          setState(() {
+                            selectedTeams.remove(t);
+                          });
+                        },
+                        deleteButtonTooltipMessage: 'Eliminar',
+                      ),
+                    )
+                    .toList(),
               ),
 
             if (isAdmin && !isCreating)
@@ -230,7 +322,7 @@ class TaskFormState extends State<TaskForm> {
 
             ElevatedButton.icon(
               onPressed: () {
-                if (isCreating && selectedUserIds.isEmpty && isAdmin) {
+                if (isCreating && isAdmin && (selectedUserIds.isEmpty && selectedTeams.isEmpty)) {
                   validator = 'S\'ha de seleccionar mínim un usuari';
                   setState(() {});
                   return;
@@ -245,12 +337,13 @@ class TaskFormState extends State<TaskForm> {
                     name: name,
                     description: description,
                     priority: Priorities.priorityFromString(prioritySTR!),
-                    limitDate: selectedDate!,
+                    limitDate: selectedFinalDate!,
+                    openDate: selectedOpenDate!,
                     state: stateController.getStateByName(stateSTR!),
                   );
 
                   if (isCreating) {
-                    widget.onTaskCreated!(updatedTask.copyWith(id: ''), selectedUserIds);
+                    widget.onTaskCreated!(updatedTask.copyWith(id: ''), selectedUserIds, selectedTeams);
                   } else if (widget.onTaskEdited != null) {
                     widget.onTaskEdited!(updatedTask);
                   }
@@ -272,10 +365,23 @@ class TaskFormState extends State<TaskForm> {
     states = stateController.states;
   }
 
+  Future<void> usersFromTask() async {
+    UserController uc = UserController();
+    users = await uc.loadAllUsers();
+    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+    setState(() {});
+    //users = usersList.map((User user) => user.userName).toList();
+  }
+
+  Future<void> loadTeams() async {
+    await teamController.loadAllTeamsWithUsers();
+    allTeams = teamController.allTeamsAndUsers.keys.toList();
+  }
+
   @override
   void dispose() {
     super.dispose();
-    dateController.dispose();
+    finalDateController.dispose();
     nameController.dispose();
     descriptionController.dispose();
   }

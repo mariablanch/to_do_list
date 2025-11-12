@@ -41,7 +41,7 @@ class StateController {
     }
   }
 
-  Future<void> deleteState(String stateId) async {
+  Future<void> deleteState(String stateId, TaskState tstate) async {
     try {
       TaskController tc = TaskController();
       await tc.loadAllTasksFromDB();
@@ -49,8 +49,8 @@ class StateController {
       tasks = tasks.where((Task tsk) => tsk.state.id == stateId).toList();
       
       for (Task task in tasks) {
-        logPrintClass(task.toString());
-        task.state = defaultState();
+       //task.state = defaultState();
+        task.state = tstate;
         tc.updateTask(task);
       }
 
@@ -78,6 +78,10 @@ class StateController {
     } catch (e) {
       logError('CREATE STATE', e);
     }
+  }
+
+  static bool isCompleted(TaskState state){
+    return state.id == StateController().defaultState().id;
   }
 
   TaskState defaultState() {

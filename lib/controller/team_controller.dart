@@ -1,20 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/model/relation_tables/team_task.dart';
+import 'package:to_do_list/model/relation_tables/user_team.dart';
 import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/user_role_team.dart';
 
 class TeamController {
   Team team;
-  Map<Team, List<User>> allTeamsAndUsers;
-  Map<Team, List<User>> myTeamsAndUsers;
+  Map<Team, List<UserTeam>> allTeamsAndUsers;
+  Map<Team, List<UserTeam>> myTeamsAndUsers;
 
-  TeamController() : team = Team.empty(), allTeamsAndUsers = {}, myTeamsAndUsers = {};
+  final UserController _uc;
+
+  TeamController() : team = Team.empty(), allTeamsAndUsers = {}, myTeamsAndUsers = {}, _uc = UserController();
 
   Future<void> createTeam(Team team) async {
     try {
-      await FirebaseFirestore.instance.collection(DbConstants.TEAM).add(team.toFirestore());
+      final docRef = await FirebaseFirestore.instance.collection(DbConstants.TEAM).add(team.toFirestore());
+      team.id = docRef.id;
       allTeamsAndUsers[team] = [];
     } catch (e) {
       logError('CREATE TEAM', e);
@@ -30,12 +36,10 @@ class TeamController {
   }
 
   Future<void> addUserToTeam(Team team, User user) async {
+    UserTeam ut = UserTeam(team: team, user: user, role: TeamRole.USER);
     try {
-      await FirebaseFirestore.instance.collection(DbConstants.USERTEAM).add({
-        DbConstants.USERNAME: user.userName,
-        DbConstants.TEAMID: team.id,
-      });
-      allTeamsAndUsers[team]?.add(user);
+      await FirebaseFirestore.instance.collection(DbConstants.USERTEAM).add(ut.toFirestore());
+      allTeamsAndUsers[team]?.add(ut);
     } catch (e) {
       logError('ADD USER TO TEAM', e);
     }
@@ -73,6 +77,7 @@ class TeamController {
     }
   }
 
+  /// Elimina un usuari [userName] del equip [team].
   Future<void> deleteUserTeamRelationByUser(Team team, String userName) async {
     try {
       final db = await FirebaseFirestore.instance
@@ -105,28 +110,22 @@ class TeamController {
 
   Future<void> loadAllTeamsWithUsers() async {
     try {
-      String userName;
-      String teamId;
       Team team;
-      List<User> users = [];
       User user;
 
-      UserController uc = UserController();
-      await uc.loadAllUsers();
-      List<User> allUsers = uc.users;
+      await _uc.loadAllUsers();
+      List<User> allUsers = _uc.users;
       await _loadAllTeams();
 
       final db = await FirebaseFirestore.instance.collection(DbConstants.USERTEAM).get();
 
       for (var doc in db.docs) {
-        users.clear();
-        userName = doc.get(DbConstants.USERNAME);
-        teamId = doc.get(DbConstants.TEAMID);
+        UserTeam ut = UserTeam.fromFirestore(doc, null);
+        user = allUsers.firstWhere((u) => u.userName == ut.user.userName);
+        team = allTeamsAndUsers.keys.firstWhere((t) => t.id == ut.team.id);
 
-        user = allUsers.firstWhere((u) => u.userName == userName);
-        team = allTeamsAndUsers.keys.firstWhere((t) => t.id == teamId);
-
-        allTeamsAndUsers[team]?.add(user);
+        ut = ut.copyWith(user: user, team: team);
+        allTeamsAndUsers[team]?.add(ut);
       }
       allTeamsAndUsers = Map.fromEntries(allTeamsAndUsers.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
     } catch (e) {
@@ -149,15 +148,19 @@ class TeamController {
   }
 
   Future<void> loadTeamsbyUser(User user) async {
-    if (allTeamsAndUsers.isEmpty) {
-      await loadAllTeamsWithUsers();
-    }
-    myTeamsAndUsers.clear();
-    allTeamsAndUsers.forEach((team, users) {
-      if (users.any((u) => u.userName == user.userName)) {
-        myTeamsAndUsers[team] = users;
+    try {
+      if (allTeamsAndUsers.isEmpty) {
+        await loadAllTeamsWithUsers();
       }
-    });
+      myTeamsAndUsers.clear();
+      allTeamsAndUsers.forEach((team, ut) {
+        if (ut.any((u) => u.user.userName == user.userName)) {
+          myTeamsAndUsers[team] = ut;
+        }
+      });
+    } catch (e) {
+      logError('LOAD TEAMS BY USER', e);
+    }
   }
 
   Future<Team?> loadTeambyId(String teamId) async {
@@ -166,5 +169,9 @@ class TeamController {
       return Team.fromFirestore(db, null);
     }
     return null;
+  }
+
+  Future<void> addTaskToTeam(TeamTask tt) async{
+    await FirebaseFirestore.instance.collection(DbConstants.TEAMTASK).add(tt.toFirestore());
   }
 }

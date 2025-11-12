@@ -7,6 +7,8 @@ class DbConstants {
   static const String TASKSTATE = 'taskState';
   static const String TEAM = 'team';
   static const String USERTEAM = 'userteam';
+  static const String TEAMTASK = 'teamtask';
+
 
   //FIELD
   static const String USERNAME = 'userName';
@@ -16,6 +18,10 @@ class DbConstants {
   static const String ICON = 'iconName';
   static const String STATE = 'state';
   static const String TEAMID = 'teamId';
+
+  static const String LIMIT_DATE = 'limitDate';
+  static const String OPEN_DATE = 'openDate';
+  static const String COMPLETED_DATE = 'completedDate';
 
   //COMPROVACIÓ ERROR BASE DE DADES
   static const int USEREXISTS = 0;

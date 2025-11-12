@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
+import 'package:to_do_list/model/relation_tables/user_task.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
@@ -30,17 +31,23 @@ class UserController {
   }
 
   Future<bool> userNameExists(String userName) async {
-    final db = await _getUserByUserName(userName);
+    if (users.isNotEmpty) {
+      return users.any((u) => u.userName.trim().toLowerCase() == userName.trim().toLowerCase());
+    } else {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USER)
+          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .get();
 
-    //return db.docs.length == 1;
-    return db.docs.isNotEmpty;
+      //return db.docs.length == 1;
+      return db.docs.isNotEmpty;
+    }
   }
 
   Future<void> deleteUser(String userName) async {
     TaskController taskController = TaskController();
 
     try {
-      //await taskController.loadTasksFromDB(userName, SortType.NONE);
       await taskController.deleteUserTaskRelationsByUser(userName);
       await _deleteUser(userName);
       await NotificationController().deleteNotificationByUser(userName);
@@ -87,7 +94,6 @@ class UserController {
     try {
       final id = await _getUserIdByUserName(user.userName);
       if (id != null) {
-        //user.password = User.hashPassword(AppStrings.DEFAULT_PSWRD);
         user.setPassword(User.hashPassword(AppStrings.DEFAULT_PSWRD));
         await _updateUserById(id, user);
       }
@@ -132,7 +138,6 @@ class UserController {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
-          //.where(DbConstants.USERNAME, isEqualTo: myUser.userName)
           .where(DbConstants.USERNAME, isEqualTo: oldUserName)
           .get();
 
@@ -140,11 +145,9 @@ class UserController {
 
       for (final doc in docs) {
         final taskId = doc[DbConstants.TASKID] as String;
+        UserTask ut = UserTask(taskId: taskId, userName: updatedUser.userName);
 
-        await FirebaseFirestore.instance.collection(DbConstants.USERTASK).doc(doc.id).update({
-          DbConstants.USERNAME: updatedUser.userName,
-          DbConstants.TASKID: taskId,
-        });
+        await FirebaseFirestore.instance.collection(DbConstants.USERTASK).doc(doc.id).update(ut.toFirestore());
       }
     } catch (e) {
       logError('UPDATE USER', e);
@@ -196,7 +199,7 @@ class UserController {
     return null;
   }
 
- /*Future<void> giveAdmin(User user, UserRole uR) async {
+  /*Future<void> giveAdmin(User user, UserRole uR) async {
     try {
       final id = await _getUserIdByUserName(user.userName);
       if (id != null) {

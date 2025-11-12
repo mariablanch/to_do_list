@@ -94,7 +94,7 @@ class LogInPage extends State<MyHomePage> {
         title: Text(_hasAccount ? 'Iniciar sessió' : 'Crear compte'),
       ),
       body: Container(
-        margin: EdgeInsets.symmetric(horizontal: 50.0, vertical: 30.0),
+        margin: EdgeInsets.symmetric(horizontal: 50, vertical: 30),
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16),
           child: Column(

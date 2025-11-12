@@ -24,6 +24,7 @@ class AppStrings {
   static const String USERS_LABEL = 'Usuaris';
   static const String TASKSTATES = 'Estat de les tasques';
   static const String TEAMS = 'Equips';
+  static const String MY_TEAMS = 'Els meus equips';
   static const String DELETEACC = 'Eliminar compte';
 
   static const String PR_HIGH = 'Alt';
@@ -31,7 +32,7 @@ class AppStrings {
   static const String PR_LOW = 'Baix';
   static const List<String> PRIORITIES_STR = [PR_HIGH, PR_MEDIUM, PR_LOW];
 
-  static const List<String> DEFAULT_STATES = ['Pendent','En procés', 'Completada'];
+  static const List<String> DEFAULT_STATES = ['Pendent', 'En procés', 'Completada'];
 
   static String subtitleText(String description, String ids) {
     return '$description\n${AppStrings.USERS} $ids';
@@ -39,5 +40,9 @@ class AppStrings {
 
   static String titleText(Task task) {
     return '${task.name}   -   ${DateFormat('dd/MMM').format(task.limitDate)}';
+  }
+
+  static String shownTasks(int num) {
+    return 'Tasques mostrades: $num';
   }
 }
