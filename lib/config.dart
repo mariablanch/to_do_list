@@ -769,39 +769,42 @@ class ConfigPage extends State<ConfigHP> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    IconButton(
-                      tooltip: !canDelete ? 'Editar' : 'Opció per defecte (no editable)',
-                      onPressed: !canDelete
-                          ? () {
-                              openFormCreateState(false, state);
-                            }
-                          : null,
-                      icon: Icon(Icons.edit),
+                    MouseRegion(
+                      cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: !canDelete ? () => openFormCreateState(false, state) : null,
+                        child: Icon(Icons.edit, color: !canDelete ? null : Colors.grey),
+                      ),
                     ),
 
-                    IconButton(
-                      tooltip: !canDelete ? 'Eliminar' : 'Opció per defecte (no es pot eliminar)',
-                      onPressed: !canDelete
-                          ? () async {
-                              bool contains = tasksFromUsers.values.any((list) {
-                                return list.any((task) => task.state.id == state.id);
-                              });
+                    SizedBox(width: 10),
 
-                              bool isValid = await deleteState(state);
-                              TaskState tState = TaskState.empty();
-                              if (isValid) {
-                                if (contains) {
-                                  tState = await choseState(state);
+                    MouseRegion(
+                      cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: !canDelete
+                            ? () async {
+                                bool contains = tasksFromUsers.values.any((list) {
+                                  return list.any((task) => task.state.id == state.id);
+                                });
+
+                                bool isValid = await deleteState(state);
+                                TaskState tState = TaskState.empty();
+                                if (isValid) {
+                                  if (contains) {
+                                    tState = await choseState(state);
+                                  }
+                                  stateController.deleteState(state.id, tState);
+                                  states.remove(state);
+                                  setState(() {});
                                 }
-                                stateController.deleteState(state.id, tState);
-                                states.remove(state);
-                                setState(() {});
                               }
-                            }
-                          : null,
-                      icon: Icon(Icons.delete),
+                            : null,
+                        child: Icon(Icons.delete, color: !canDelete ? null : Colors.grey),
+                      ),
                     ),
-                    SizedBox(width: 15),
+
+                    SizedBox(width: 20),
                   ],
                 ),
               ),
@@ -1150,9 +1153,7 @@ class ConfigPage extends State<ConfigHP> {
         SizedBox(height: 15),
         searchUsers(),
         SizedBox(height: 15),
-        teamsAndUsers[team]!.isEmpty
-            ? Text('\t\tNo hi ha usuaris')
-            : Container(child: showUsersToSelect(team, false)),
+        teamsAndUsers[team]!.isEmpty ? Text('\t\tNo hi ha usuaris') : Container(child: showUsersToSelect(team, false)),
       ],
     );
   }
