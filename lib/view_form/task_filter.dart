@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:to_do_list/model/relation_tables/team_task.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/task_state.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
-import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/priorities.dart';
 
 class TaskFilterPage extends StatefulWidget {
   final List<Task> tasks;
   final List<Task> allTasks;
   final bool isMBS;
-  //final TaskFilter filter;
-  //final Function(List<Task>) returnTasks;
+  final Map<String, String> taskAndUsersMAP;
+  final List<String> allUserNames;
+  final List<TeamTask> teamTask;
 
-  const TaskFilterPage({super.key, required this.tasks, required this.allTasks, required this.isMBS});
+  const TaskFilterPage({
+    super.key,
+    required this.tasks,
+    required this.allTasks,
+    required this.isMBS,
+    required this.taskAndUsersMAP,
+    required this.allUserNames,
+    required this.teamTask,
+  });
 
   @override
   State<TaskFilterPage> createState() => TaskFilterPageState();
@@ -23,6 +32,12 @@ class TaskFilterPageState extends State<TaskFilterPage> {
   late List<Task> tasks;
   late List<Task> allTasks;
   List<Task> tasksToShow = [];
+  List<String> allUserNames = [];
+  List<String> selectedUserIds = [];
+  List<String> selectedTeamIds = [];
+  List<String> teams = [];
+
+  Map<String, String> taskAndUsersMAP = {};
 
   List<bool> priotitySelected = [false, false, false];
   TextEditingController initialLimitDateController = TextEditingController();
@@ -37,17 +52,30 @@ class TaskFilterPageState extends State<TaskFilterPage> {
   final DateTime now = DateTime.now();
 
   TaskState? stateSelected;
-  DateTime? selectedInitialLimitDate;
-  DateTime? selectedFinalLimitDate;
+  DateTime? limitDateInitSelected;
+  DateTime? limitDateFinalSelected;
 
-  DateTime? selectedInitialOpenDate;
-  DateTime? selectedFinalOpenDate;
+  DateTime? openDateInitSelected;
+  DateTime? openDateFinalSelected;
 
   @override
   void initState() {
     super.initState();
     tasks = widget.tasks;
     allTasks = widget.allTasks;
+    allUserNames = widget.allUserNames;
+    allUserNames = allUserNames.where((element) => element != AppStrings.SHOWALL).toList();
+    taskAndUsersMAP = widget.taskAndUsersMAP;
+    getTeams();
+  }
+
+  void getTeams() {
+    List<TeamTask> teamTask = widget.teamTask;
+    for (TeamTask tt in teamTask) {
+      if (!teams.contains(tt.team.name)) {
+        teams.add(tt.team.name);
+      }
+    }
   }
 
   @override
@@ -74,11 +102,18 @@ class TaskFilterPageState extends State<TaskFilterPage> {
                   _tableRow('Estat', state()),
                   _tableRow('Prioritat', priorities()),
                   _tableRow(
-                    'Nom',
+                    'Nom i\nDescripció',
                     Column(children: [name(), SizedBox(height: 10), description()]),
                   ), //NOMS QUE COMTIMGUIN EL STRING ESCRIT
-                  _tableRow('Usuari(s)', Column()), //USUARI SELECCIONAT O USUARIS QUE CONTINGUIN STRING
-                  _tableRow('Equip', Column()), //EQUIP SELECCIONAT (S'HA DE FER EQUIPS)
+                  _tableRow(
+                    'Usuari(s)',
+                    Column(children: [selectUser(), SizedBox(height: 10), showUsersSelected()]),
+                  ), //USUARI SELECCIONAT O USUARIS QUE CONTINGUIN STRING
+                  if (teams.isNotEmpty)
+                    _tableRow(
+                      'Equip',
+                      Column(children: [selectTeam(), SizedBox(height: 10), showTeamsSelected()]),
+                    ), //EQUIP SELECCIONAT (S'HA DE FER EQUIPS)
                 ],
               )
             : widePage(),
@@ -135,18 +170,18 @@ class TaskFilterPageState extends State<TaskFilterPage> {
     return Table(
       columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
       children: [
-        _wideTableRow(
-          'Data límit',
-          limitDateInit(),
-          limitDateFin(),
-        ), //SELECCIONAR 2 DATES (O 1) I MIRAR SI ESTA ENTRE LES DOS (O ABANS O DESPRES SI NOMES HA POSAT 1)
-
+        _wideTableRow('Data límit', limitDateInit(), limitDateFin()),
         _wideTableRow('Data obertura', openDateInit(), openDateFin()),
+        _wideTableRow('Nom i\nDescripció', name(), description()), //NOMS QUE COMTIMGUIN EL STRING ESCRIT
+        _wideTableRow(
+          'Usuari(s)',
+          selectUser(),
+          showUsersSelected(),
+        ), //USUARI SELECCIONAT O USUARIS QUE CONTINGUIN STRING
+        if (teams.isNotEmpty)
+          _wideTableRow('Equip', selectTeam(), showTeamsSelected()), //EQUIP SELECCIONAT (S'HA DE FER EQUIPS)
         _wideTableRow('Estat', state()),
         _wideTableRow('Prioritat', priorities()),
-        _wideTableRow('Nom', name(), description()), //NOMS QUE COMTIMGUIN EL STRING ESCRIT
-        _wideTableRow('Usuari(s)', Column()), //USUARI SELECCIONAT O USUARIS QUE CONTINGUIN STRING
-        _wideTableRow('Equip', Column()), //EQUIP SELECCIONAT (S'HA DE FER EQUIPS)
       ],
     );
   }
@@ -155,8 +190,10 @@ class TaskFilterPageState extends State<TaskFilterPage> {
     tasksToShow.clear();
     tasksToShow.addAll(allTasks);
     tasks.clear();
+
     _dateLimitFilter();
     _nameFilter();
+    _descriptionFilter();
     _stateFilter();
     _priorityFilter();
     _dateOpenFilter();
@@ -167,38 +204,33 @@ class TaskFilterPageState extends State<TaskFilterPage> {
   }
 
   void _dateLimitFilter() {
-    if (!(selectedInitialLimitDate == null && selectedFinalLimitDate == null)) {
-      if (selectedInitialLimitDate == null && selectedFinalLimitDate != null) {
-        tasksToShow = tasksToShow.where((task) => task.limitDate.isBefore(selectedFinalLimitDate!)).toList();
-      } else if (selectedInitialLimitDate != null && selectedFinalLimitDate == null) {
-        tasksToShow = tasksToShow.where((task) => task.limitDate.isAfter(selectedInitialLimitDate!)).toList();
+    if (!(limitDateInitSelected == null && limitDateFinalSelected == null)) {
+      if (limitDateInitSelected == null && limitDateFinalSelected != null) {
+        tasksToShow = tasksToShow.where((task) => task.limitDate.isBefore(limitDateFinalSelected!)).toList();
+      } else if (limitDateInitSelected != null && limitDateFinalSelected == null) {
+        tasksToShow = tasksToShow.where((task) => task.limitDate.isAfter(limitDateInitSelected!)).toList();
       } else {
         tasksToShow = tasksToShow.where((task) {
-          return task.limitDate.isBefore(selectedFinalLimitDate!) && task.limitDate.isAfter(selectedInitialLimitDate!);
+          return task.limitDate.isBefore(limitDateFinalSelected!) && task.limitDate.isAfter(limitDateInitSelected!);
         }).toList();
       }
     }
-    //logToDo('filtrar', 'TaskFilterPageState(dateFilter)');
+  }
+
+  void _descriptionFilter() {
+    if (descriptionController.text != '') {
+      tasksToShow = tasksToShow
+          .where((task) => task.description.toLowerCase().contains(descriptionController.text.toLowerCase()))
+          .toList();
+    }
   }
 
   void _nameFilter() {
-    if (!(nameController.text == '' && descriptionController.text == '')) {
-      if (nameController.text == '' && descriptionController.text != '') {
-        tasksToShow = tasksToShow
-            .where((task) => task.description.toLowerCase().contains(descriptionController.text.toLowerCase()))
-            .toList();
-      } else if (nameController.text != '' && descriptionController.text == '') {
-        tasksToShow = tasksToShow
-            .where((task) => task.name.toLowerCase().contains(nameController.text.toLowerCase()))
-            .toList();
-      } else {
-        tasksToShow = tasksToShow.where((task) {
-          return task.description.toLowerCase().contains(descriptionController.text.toLowerCase()) &&
-              task.name.toLowerCase().contains(nameController.text.toLowerCase());
-        }).toList();
-      }
+    if (nameController.text != '') {
+      tasksToShow = tasksToShow
+          .where((task) => task.name.toLowerCase().contains(nameController.text.toLowerCase()))
+          .toList();
     }
-    //logToDo('filtrar', 'TaskFilterPageState(nameFilter)');
   }
 
   void _stateFilter() {
@@ -231,25 +263,40 @@ class TaskFilterPageState extends State<TaskFilterPage> {
   }
 
   void _dateOpenFilter() {
-    if (!(selectedInitialOpenDate == null && selectedFinalOpenDate == null)) {
-      if (selectedFinalOpenDate == null && selectedFinalOpenDate != null) {
-        tasksToShow = tasksToShow.where((task) => task.openDate.isBefore(selectedFinalOpenDate!)).toList();
-      } else if (selectedFinalOpenDate != null && selectedFinalOpenDate == null) {
-        tasksToShow = tasksToShow.where((task) => task.openDate.isAfter(selectedFinalOpenDate!)).toList();
+    if (!(openDateInitSelected == null && openDateFinalSelected == null)) {
+      if (openDateInitSelected == null && openDateFinalSelected != null) {
+        tasksToShow = tasksToShow.where((task) => task.openDate.isBefore(openDateFinalSelected!)).toList();
+      } else if (openDateInitSelected != null && openDateFinalSelected == null) {
+        tasksToShow = tasksToShow.where((task) => task.openDate.isAfter(openDateInitSelected!)).toList();
       } else {
         tasksToShow = tasksToShow.where((task) {
-          return task.openDate.isBefore(selectedFinalOpenDate!) && task.openDate.isAfter(selectedFinalOpenDate!);
+          return task.openDate.isBefore(openDateFinalSelected!) && task.openDate.isAfter(openDateInitSelected!);
         }).toList();
       }
     }
   }
 
   void _userFilter() {
-    logToDo('filtrar', 'TaskFilterPageState(userFilter)');
+    if (selectedUserIds.isNotEmpty) {
+      final taskFromUser = taskAndUsersMAP.entries
+          .where((e) {
+            final usersInTask = e.value.split(AppStrings.USER_SEPARATOR).map((u) => u.trim()).toList();
+            return usersInTask.any((u) => selectedUserIds.contains(u));
+          })
+          .map((e) {
+            return e.key;
+          })
+          .toList();
+
+      tasksToShow = tasksToShow.where((task) => taskFromUser.contains(task.id)).toList();
+    }
   }
 
   void _teamFilter() {
-    logToDo('filtrar', 'TaskFilterPageState(teamFilter)');
+    if (selectedTeamIds.isNotEmpty) {
+      List<Task> tasks = widget.teamTask.where((tt) => selectedTeamIds.contains(tt.team.name)).map((tt) => tt.task).toList();
+      tasksToShow = tasksToShow.where((task) => tasks.contains(task)).toList();
+    }
   }
 
   ToggleButtons priorities() {
@@ -311,19 +358,18 @@ class TaskFilterPageState extends State<TaskFilterPage> {
       onTap: () async {
         DateTime? picked = await showDatePicker(
           context: context,
-          initialDate: now,
+          initialDate: limitDateInitSelected ?? limitDateFinalSelected ?? now,
           firstDate: DateTime(now.year, now.month - 3),
-          lastDate: DateTime(now.year + 50),
+          lastDate: limitDateFinalSelected ?? DateTime(now.year + 50),
           locale: const Locale('es', 'ES'),
         );
         if (picked != null) {
           setState(() {
-            selectedInitialLimitDate = picked;
+            limitDateInitSelected = picked;
             initialLimitDateController.text = DateFormat('dd/MM/yyyy').format(picked);
           });
         }
       },
-      //validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
     );
   }
 
@@ -335,19 +381,18 @@ class TaskFilterPageState extends State<TaskFilterPage> {
       onTap: () async {
         DateTime? picked = await showDatePicker(
           context: context,
-          initialDate: now,
-          firstDate: DateTime(now.year, now.month - 3),
+          initialDate: limitDateFinalSelected ?? limitDateInitSelected ?? now,
+          firstDate: limitDateInitSelected ?? DateTime(now.year, now.month - 3),
           lastDate: DateTime(now.year + 50),
           locale: const Locale('es', 'ES'),
         );
         if (picked != null) {
           setState(() {
-            selectedFinalLimitDate = picked;
+            limitDateFinalSelected = picked;
             finalLimitDateController.text = DateFormat('dd/MM/yyyy').format(picked);
           });
         }
       },
-      //validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
     );
   }
 
@@ -359,19 +404,18 @@ class TaskFilterPageState extends State<TaskFilterPage> {
       onTap: () async {
         DateTime? picked = await showDatePicker(
           context: context,
-          initialDate: now,
+          initialDate: openDateInitSelected ?? openDateFinalSelected ?? now,
           firstDate: DateTime(now.year, now.month - 3),
-          lastDate: DateTime(now.year + 50),
+          lastDate: openDateFinalSelected ?? DateTime(now.year + 50),
           locale: const Locale('es', 'ES'),
         );
         if (picked != null) {
           setState(() {
-            selectedInitialOpenDate = picked;
+            openDateInitSelected = picked;
             initialOpenDateController.text = DateFormat('dd/MM/yyyy').format(picked);
           });
         }
       },
-      //validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
     );
   }
 
@@ -383,19 +427,120 @@ class TaskFilterPageState extends State<TaskFilterPage> {
       onTap: () async {
         DateTime? picked = await showDatePicker(
           context: context,
-          initialDate: now,
-          firstDate: DateTime(now.year, now.month - 3),
+          initialDate: openDateFinalSelected ?? openDateInitSelected ?? now,
+          firstDate: openDateInitSelected ?? DateTime(now.year, now.month - 3),
           lastDate: DateTime(now.year + 50),
           locale: const Locale('es', 'ES'),
         );
         if (picked != null) {
           setState(() {
-            selectedFinalOpenDate = picked;
+            openDateFinalSelected = picked;
             finalOpenDateController.text = DateFormat('dd/MM/yyyy').format(picked);
           });
         }
       },
-      //validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
+    );
+  }
+
+  Autocomplete<String> selectUser() {
+    return Autocomplete<String>(
+      displayStringForOption: (userName) => userName,
+
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+        return allUserNames.where(
+          (u) => u.toLowerCase().contains(textEditingValue.text.toLowerCase()) && !selectedUserIds.contains(u),
+        );
+      },
+
+      onSelected: (String selection) {
+        setState(() {
+          selectedUserIds.add(selection);
+        });
+      },
+
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: 'Nom d\'usuari',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+          ),
+        );
+      },
+    );
+  }
+
+  Wrap showUsersSelected() {
+    return Wrap(
+      spacing: 8,
+      children: selectedUserIds
+          .map(
+            (u) => Chip(
+              label: Text(u),
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+              //side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+              onDeleted: () {
+                setState(() {
+                  selectedUserIds.remove(u);
+                });
+              },
+              deleteButtonTooltipMessage: 'Eliminar',
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Autocomplete<String> selectTeam() {
+    return Autocomplete<String>(
+      displayStringForOption: (team) => team,
+
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+        return teams.where(
+          (u) => u.toLowerCase().contains(textEditingValue.text.toLowerCase()) && !selectedTeamIds.contains(u),
+        );
+      },
+
+      onSelected: (String selection) {
+        setState(() {
+          selectedTeamIds.add(selection);
+        });
+      },
+
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: 'Nom del equip',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+          ),
+        );
+      },
+    );
+  }
+
+  Wrap showTeamsSelected() {
+    return Wrap(
+      spacing: 8,
+      children: selectedTeamIds
+          .map(
+            (u) => Chip(
+              label: Text(u),
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+              //side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+              onDeleted: () {
+                setState(() {
+                  selectedTeamIds.remove(u);
+                });
+              },
+              deleteButtonTooltipMessage: 'Eliminar',
+            ),
+          )
+          .toList(),
     );
   }
 }

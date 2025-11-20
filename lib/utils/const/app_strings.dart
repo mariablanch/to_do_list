@@ -14,16 +14,14 @@ class AppStrings {
   static const String CANCEL = 'Cancel·lar';
 
   static const String USERS = '\u2794 Usuaris:';
-
-  //static const String COMPLETED = 'Completada';
-  //static const String PENDING = 'Pendent';
+  static const String TEAMS = '\u2794 Equips:';
 
   static const String CONFIG = 'Configuració';
   static const String PROFILE = 'Perfil';
   static const String EDIT_PROFILE = 'Editar perfil';
   static const String USERS_LABEL = 'Usuaris';
   static const String TASKSTATES = 'Estat de les tasques';
-  static const String TEAMS = 'Equips';
+  static const String TEAMS_LABEL = 'Equips';
   static const String MY_TEAMS = 'Els meus equips';
   static const String DELETEACC = 'Eliminar compte';
 
@@ -34,8 +32,13 @@ class AppStrings {
 
   static const List<String> DEFAULT_STATES = ['Pendent', 'En procés', 'Completada'];
 
-  static String subtitleText(String description, String ids) {
-    return '$description\n${AppStrings.USERS} $ids';
+  static String subtitleText(String description, String users, String teams) {
+    if (users == '') {
+    
+      return '$description\n${AppStrings.TEAMS} $teams';
+    } else {
+      return '$description\n${AppStrings.USERS} $users';
+    }
   }
 
   static String titleText(Task task) {

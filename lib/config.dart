@@ -196,7 +196,7 @@ class ConfigPage extends State<ConfigHP> {
                   _drawerItem(AppStrings.CONFIG, 1),
                   if (isAdmin) _drawerItem(AppStrings.USERS_LABEL, 2),
                   if (isAdmin) _drawerItem(AppStrings.TASKSTATES, 3),
-                  if (isAdmin) _drawerItem(AppStrings.TEAMS, 4),
+                  if (isAdmin) _drawerItem(AppStrings.TEAMS_LABEL, 4),
                   _drawerItem(AppStrings.MY_TEAMS, isAdmin ? 5 : 2),
                   _drawerItem(AppStrings.DELETEACC, isAdmin ? 6 : 3),
                 ],
@@ -222,7 +222,7 @@ class ConfigPage extends State<ConfigHP> {
                     _railItem(Icons.settings, AppStrings.CONFIG, false),
                     if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL, allUsers.isEmpty),
                     if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES, states.isEmpty),
-                    if (isAdmin) _railItem(Icons.groups_2, AppStrings.TEAMS, teamsAndUsers.isEmpty),
+                    if (isAdmin) _railItem(Icons.groups_2, AppStrings.TEAMS_LABEL, teamsAndUsers.isEmpty),
                     _railItem(Icons.group_work, AppStrings.MY_TEAMS, teamsAndUsers.isEmpty),
                     _railItem(Icons.delete, AppStrings.DELETEACC, false),
                   ],
@@ -591,9 +591,12 @@ class ConfigPage extends State<ConfigHP> {
   Expanded userList() {
     return Expanded(
       child: ListView.builder(
-        itemCount: allUsers.isEmpty ? 0 : allUsers.length - 1,
+        itemCount: allUsers.isEmpty ? 0 : allUsers.length,
         itemBuilder: (context, index) {
-          final user = allUsers.where((u) => u.userName != myUser.userName).toList()[index];
+          final user = allUsers[index];
+          if(user == myUser) {
+            return SizedBox();
+          }
 
           return Card(
             child: ListTile(
@@ -832,12 +835,12 @@ class ConfigPage extends State<ConfigHP> {
                 icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
               ),
             /*Text(
-              viewTeamList ? AppStrings.TEAMS.toUpperCase() : editTeam.name,
+              viewTeamList ? AppStrings.TEAMS_LABEL.toUpperCase() : editTeam.name,
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
             ),*/
             pageLabel(
               viewTeamList
-                  ? (admin ? AppStrings.TEAMS.toUpperCase() : AppStrings.MY_TEAMS.toUpperCase())
+                  ? (admin ? AppStrings.TEAMS_LABEL.toUpperCase() : AppStrings.MY_TEAMS.toUpperCase())
                   : editTeam.name,
             ),
           ],

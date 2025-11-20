@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/relation_tables/team_task.dart';
 import 'package:to_do_list/model/relation_tables/user_team.dart';
+import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
@@ -171,7 +173,26 @@ class TeamController {
     return null;
   }
 
-  Future<void> addTaskToTeam(TeamTask tt) async{
+  Future<void> addTaskToTeam(TeamTask tt) async {
     await FirebaseFirestore.instance.collection(DbConstants.TEAMTASK).add(tt.toFirestore());
+  }
+
+  Future<List<TeamTask>> loadTeamTask() async {
+    final db = await FirebaseFirestore.instance.collection(DbConstants.TEAMTASK).get();
+    TeamTask tt;
+    List<TeamTask> list = [];
+    TaskController tc = TaskController();
+    await tc.loadAllTasksFromDB();
+
+    for (var doc in db.docs) {
+      Team team;
+      Task task;
+      tt = TeamTask.fromFirestore(doc, null);
+      team = await TeamController().loadTeambyId(tt.team.id) ?? tt.team;
+      task = tc.tasks.firstWhere((tsk) => tsk.id == tt.task.id);
+      tt = TeamTask(team: team, task: task);
+      list.add(tt);
+    }
+    return list;
   }
 }

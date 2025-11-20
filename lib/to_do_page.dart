@@ -112,6 +112,8 @@ class ToDoPage extends State<MyHomePageToDo> {
     }
     await stateController.loadAllStates();
 
+    teamTask = await teamController.loadTeamTask();
+
     notifications = notController.notifications;
 
     allTasks = taskController.tasks;
@@ -125,107 +127,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
     setState(() {});
   }
-
-  /*void loadTasksToDelete() {
-    taskToDelete.clear();
-    for (Task task in allTasks) {
-      if (TaskState.isDone(task.state)) {
-        taskToDelete.add(task);
-      }
-    }
-    if (taskToDelete.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Hi ha algunes tasques completades'),
-              TextButton(
-                onPressed: () async {
-                  await deleteCompletedTasks();
-                  //Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
-                child: Text('Veure tasques'),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 10),
-        ),
-      );
-    }
-    setState(() {});
-  }*/
-
-  /*Future<bool> deleteCompletedTasks() async {
-    taskSelected.clear();
-    bool ret = false;
-
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setStateDialog) {
-            return AlertDialog(
-              title: Text('Tasques completades'),
-
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Selecciona les tasques que vol eliminar'),
-                    SizedBox(height: 10),
-
-                    for (Task task in taskToDelete)
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: taskSelected.contains(task.id),
-                            onChanged: (value) {
-                              setStateDialog(() {
-                                if (value == true) {
-                                  taskSelected.add(task.id);
-                                } else {
-                                  taskSelected.remove(task.id);
-                                }
-                              });
-                            },
-                          ),
-                          Text(task.name),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () async {
-                    for (String taskId in taskSelected) {
-                      tasksToShow.removeWhere((Task task) => task.id == taskId);
-                      await taskController.deleteTaskWithRelation(taskId);
-                    }
-                    setState(() {});
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(AppStrings.CONFIRM),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-
-                  child: Text(AppStrings.CANCEL),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    return ret;
-  }*/
+  //ScaffoldMessenger.of(context).showSnackBar(SnackBar())
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +145,6 @@ class ToDoPage extends State<MyHomePageToDo> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(children: [myUser.icon, Container(width: 7), Text(myUser.userName)]),
-
                   Row(
                     children: [
                       IconButton(
@@ -366,7 +267,7 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                                   child: isCompact
                                       ? Material(
-                                          color: Colors.transparent, // evita cubrir el fondo
+                                          color: Colors.transparent,
                                           child: InkWell(
                                             onTap: () {
                                               openShowTask(task, isCompact);
@@ -405,6 +306,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                                                           AppStrings.subtitleText(
                                                             task.description,
                                                             taskAndUsersMAP[task.id] ?? '',
+                                                            teamStr(task),
                                                           ),
                                                           style: TextStyle(color: textColor(task, hasPassedDate)),
                                                         ),
@@ -432,7 +334,11 @@ class ToDoPage extends State<MyHomePageToDo> {
 
                                           title: Text(AppStrings.titleText(task)),
                                           subtitle: Text(
-                                            AppStrings.subtitleText(task.description, taskAndUsersMAP[task.id] ?? ''),
+                                            AppStrings.subtitleText(
+                                              task.description,
+                                              taskAndUsersMAP[task.id] ?? '',
+                                              teamStr(task),
+                                            ),
                                           ),
 
                                           textColor: textColor(task, hasPassedDate),
@@ -521,19 +427,19 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  confirmDelete(int index, String taskId, bool isDone) {
+  confirmDelete(int index, String taskId) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(isDone ? 'La tasca està completada' : 'Eliminar tasca'),
-          content: Text(isDone ? 'La vols eliminar?' : 'Estàs segur que vols continuar?'),
+          title: Text('Eliminar tasca'),
+          content: Text('Estàs segur que vols continuar?'),
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                List<String> allUsers = taskAndUsersMAP[taskId]!.split(AppStrings.USER_SEPARATOR);
+                List<String> taskUsers = taskAndUsersMAP[taskId]!.split(AppStrings.USER_SEPARATOR);
 
-                if (UserRole.isAdmin(myUser.userRole) && allUsers.length > 1) {
+                if (UserRole.isAdmin(myUser.userRole) && taskUsers.length > 1) {
                   bool confirmed = await selectUsersToDeleteTask(taskId);
                   if (confirmed) {
                     await taskAndUsers();
@@ -712,11 +618,10 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Widget viewTask(Task task, String users, bool isCompact) {
     users = users.replaceAll(AppStrings.USER_SEPARATOR, '\n');
+    
     List<Team> teams = teamTask.where((tt) => tt.task == task).map((tt) => tt.team).toSet().toList();
-    String teamsSTR = '';
-    for (var t in teams) {
-      teamsSTR += '${t.name}\n';
-    }
+    String teamsSTR = teamStr(task).replaceAll(AppStrings.USER_SEPARATOR, '\n');
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -746,22 +651,11 @@ class ToDoPage extends State<MyHomePageToDo> {
             Text('Usuaris relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(width: 10),
 
-            if (!isCompact)
-              ElevatedButton.icon(
-                onPressed: () {
-                  enterUserName(task);
-                },
-                label: Text('Compartir amb un altre usuari'),
-              ),
+            if (!isCompact) shareTask(task),
           ],
         ),
-        if (isCompact)
-          ElevatedButton.icon(
-            onPressed: () {
-              enterUserName(task);
-            },
-            label: Text('Compartir amb un altre usuari'),
-          ),
+        if (isCompact) shareTask(task),
+        SizedBox(height: isCompact ? 20 : 5),
         Text(users),
         SizedBox(height: 20),
 
@@ -769,25 +663,24 @@ class ToDoPage extends State<MyHomePageToDo> {
           children: [
             Text('Equips relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(width: 10),
-            if (!isCompact)
-              ElevatedButton.icon(
-                onPressed: () {
-                  //enterUserName(task);
-                },
-                label: Text('Compartir amb un altre equip'),
-              ),
+            if (!isCompact) shareTask(task, teams: teams),
           ],
         ),
-        if (isCompact)
-          ElevatedButton.icon(
-            onPressed: () {
-              //enterUserName(task);
-            },
-            label: Text('Compartir amb un altre equip'),
-          ),
+        if (isCompact) shareTask(task, teams: teams),
+        SizedBox(height: isCompact ? 20 : 5),
         Text(teamsSTR),
         SizedBox(height: 20),
       ],
+    );
+  }
+
+  ElevatedButton shareTask(Task task, {List<Team>? teams}) {
+    bool isTeam = teams != null;
+    return ElevatedButton.icon(
+      onPressed: () {
+        !isTeam ? enterUserName(task) : selectTeamToShare(task, teams);
+      },
+      label: !isTeam ? Text('Compartir amb un altre usuari') : Text('Compartir amb un altre equip'),
     );
   }
 
@@ -857,6 +750,70 @@ class ToDoPage extends State<MyHomePageToDo> {
                     }
 
                     Navigator.of(context).pop(true);
+                  },
+                  child: Text(AppStrings.CONFIRM),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                  child: Text(AppStrings.CANCEL),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  Future<bool> selectTeamToShare(Task task, List<Team> teams) async {
+    final TextEditingController teamNameController = TextEditingController();
+    allUserNames.removeWhere((str) => str == AppStrings.SHOWALL);
+
+    await teamController.loadAllTeamsWithUsers();
+    List<String> allTeams = teamController.allTeamsAndUsers.keys.map((t) => t.name).toList();
+    allTeams.removeWhere((t) => teams.map((tm) => tm.name).contains(t));
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Compartir Tasca'),
+          actions: <Widget>[
+            Row(children: [Text('Nom del equip a qui es vol compartir')]),
+
+            Autocomplete<String>(
+              displayStringForOption: (team) => team,
+
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
+                return allTeams.where((u) => u.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+              },
+
+              onSelected: (String selection) {
+                setState(() {
+                  teamNameController.text = selection;
+                });
+              },
+            ),
+
+            SizedBox(height: 10),
+
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    Team team = teamController.allTeamsAndUsers.keys.firstWhere(
+                      (t) => t.name == teamNameController.text,
+                    );
+                    TeamTask tt = TeamTask(team: team, task: task);
+                    teamController.addTaskToTeam(tt);
+                    teamTask.add(tt);
+                    setState(() {});
+                    Navigator.of(context).pop(true);
+                    Navigator.of(context).pop();
                   },
                   child: Text(AppStrings.CONFIRM),
                 ),
@@ -1176,7 +1133,16 @@ class ToDoPage extends State<MyHomePageToDo> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [TaskFilterPage(tasks: tasksToShow, allTasks: allTasks, isMBS: false)],
+                children: [
+                  TaskFilterPage(
+                    tasks: tasksToShow,
+                    allTasks: allTasks,
+                    isMBS: false,
+                    taskAndUsersMAP: taskAndUsersMAP,
+                    allUserNames: allUserNames,
+                    teamTask: teamTask,
+                  ),
+                ],
               ),
             ),
           ),
@@ -1197,7 +1163,14 @@ class ToDoPage extends State<MyHomePageToDo> {
           child: SizedBox(
             height: MediaQuery.of(context).size.height * 0.7,
             child: SingleChildScrollView(
-              child: TaskFilterPage(tasks: tasksToShow, allTasks: allTasks, isMBS: true),
+              child: TaskFilterPage(
+                tasks: tasksToShow,
+                allTasks: allTasks,
+                isMBS: true,
+                taskAndUsersMAP: taskAndUsersMAP,
+                allUserNames: allUserNames,
+                teamTask: teamTask,
+              ),
             ),
           ),
         );
@@ -1267,7 +1240,7 @@ class ToDoPage extends State<MyHomePageToDo> {
         ),
         IconButton(
           tooltip: 'Eliminar',
-          onPressed: () => confirmDelete(index, task.id, false),
+          onPressed: () => confirmDelete(index, task.id),
           icon: Icon(Icons.delete),
           style: ButtonStyle(
             foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
@@ -1404,5 +1377,20 @@ class ToDoPage extends State<MyHomePageToDo> {
     if (!showCompleted) {
       tasksToShow.removeWhere((t) => t.state.id == stateController.getStateByName(AppStrings.DEFAULT_STATES[2]).id);
     }
+  }
+
+  String teamStr(Task tsk) {
+    List<Team> teams = teamTask.where((tt) => tt.task == tsk).map((tt) => tt.team).toSet().toList();
+    String teamsSTR = '';
+    if (teams.isNotEmpty) {
+      teamsSTR = teams.first.name;
+      teams.removeAt(0);
+    }
+    if (teams.isNotEmpty) {
+      for (var t in teams) {
+        teamsSTR += AppStrings.USER_SEPARATOR + t.name;
+      }
+    }
+    return teamsSTR;
   }
 }
