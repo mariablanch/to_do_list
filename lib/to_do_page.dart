@@ -104,36 +104,6 @@ class ToDoPage extends State<MyHomePageToDo> {
     loadInitialData(UserRole.isAdmin(myUser.userRole));
   }
 
-  Future<void> loadInitialData(bool allTask) async {
-    setState(() {
-      isLoading = true;
-    });
-    if (allTask) {
-      await taskController.loadAllTasksFromDB();
-      await notController.loadALLNotificationsFromDB();
-    } else {
-      await taskController.loadTasksFromDB(myUser.userName);
-      await notController.loadNotificationsFromDB(myUser.userName);
-    }
-    await stateController.loadAllStates();
-
-    teamTask = await teamController.loadTeamTask();
-
-    notifications = notController.notifications;
-
-    allTasks = taskController.tasks;
-    _resetTasks(showCompleted);
-
-    allUserNames = (await userController.loadAllUsers()).map((User user) => user.userName).toSet().toList();
-    allUserNames.sort();
-    //allUserNames.insert(0, AppStrings.SHOWALL);
-
-    await taskAndUsers();
-
-    setState(() {
-      isLoading = false;
-    });
-  }
   //ScaffoldMessenger.of(context).showSnackBar(SnackBar())
 
   @override
@@ -302,6 +272,8 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
+  //VIEW
+
   AppBar _appbar() {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -374,63 +346,546 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  void openForm() {
-    showModalBottomSheet(
+  Widget viewNotifications() {
+    return (notifications.isEmpty)
+        ? Center(child: Text('No hi ha notificacions.'))
+        : ListView.builder(
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              final notification = notifications[index];
+
+              return Card(
+                color: Theme.of(context).colorScheme.inversePrimary,
+                child: ListTile(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: EdgeInsets.all(5),
+
+                  leading: Text('    ${index + 1}'),
+                  title: Text(notification.message),
+                  subtitle: Text(notification.description),
+
+                  trailing: SizedBox(
+                    width: 150,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        //ELIMINAR
+                        IconButton(
+                          tooltip: 'Eliminar',
+                          icon: Icon(Icons.delete),
+                          style: ButtonStyle(
+                            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                              if (states.contains(WidgetState.hovered)) {
+                                return Colors.red;
+                              }
+                              return Colors.black54;
+                            }),
+                          ),
+                          onPressed: () async {
+                            await notController.deleteNotificationByID(notification.id);
+                            //await notController.deleteNotificationInDatabase(index);
+                            await notController.loadNotificationsFromDB(myUser.userName);
+                            notifications = notController.notifications;
+                            setState(() {});
+                            Navigator.of(context).pop();
+                          },
+                        ),
+
+                        //ACCEPTAR
+                        IconButton(
+                          tooltip: 'Acceptar tasca',
+                          icon: Icon(Icons.check_circle, color: Colors.black54),
+                          onPressed: () async {
+                            await taskController.createRelation(notification.taskId, notification.userName);
+
+                            Task newTask = await taskController.getTaskByID(notification.taskId);
+                            await notController.deleteNotificationByID(notification.id);
+
+                            notifications.removeAt(index);
+
+                            //tasks.add(newTask);
+                            addTask(newTask);
+
+                            await loadTaskAndUsers();
+                            setState(() {});
+
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  //onTap: () => openShowTask(notification),
+                ),
+              );
+            },
+          );
+  }
+
+  Widget viewTask(Task task, String users, bool isCompact) {
+    users = users.replaceAll(AppStrings.USER_SEPARATOR, '\n');
+
+    List<Team> teams = teamTask.where((tt) => tt.task == task).map((tt) => tt.team).toSet().toList();
+    String teamsSTR = teamStr(task).replaceAll(AppStrings.USER_SEPARATOR, '\n');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(task.name, style: TextStyle(color: Theme.of(context).colorScheme.inverseSurface, fontSize: 20)),
+        SizedBox(height: 20),
+        Table(
+          columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+          children: [
+            tableRow('Descripció:', task.description),
+            tableRow('Prioritat:', Priorities.priorityToString(task.priority)),
+            tableRow('Data obertura:', DateFormat('dd/MM/yyyy').format(task.openDate)),
+            tableRow('Data límit:', DateFormat('dd/MM/yyyy').format(task.limitDate)),
+            if (task.completedDate != null)
+              tableRow(
+                'Data completada:',
+                //task.completedDate == null ? '' :
+                DateFormat('dd/MM/yyyy').format(task.completedDate!),
+              ),
+            tableRow('Estat:', task.state.name),
+          ],
+        ),
+
+        Divider(height: 20),
+
+        Row(
+          children: [
+            Text('Usuaris relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(width: 10),
+
+            if (!isCompact) shareTask(task),
+          ],
+        ),
+        if (isCompact) shareTask(task),
+        SizedBox(height: isCompact ? 20 : 5),
+        Text(users),
+        SizedBox(height: 20),
+
+        Row(
+          children: [
+            Text('Equips relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(width: 10),
+            if (!isCompact) shareTask(task, teams: teams),
+          ],
+        ),
+        if (isCompact) shareTask(task, teams: teams),
+        SizedBox(height: isCompact ? 20 : 5),
+        Text(teamsSTR),
+        SizedBox(height: 20),
+      ],
+    );
+  }
+
+  //OTHER
+  Color? backgroundColor(Task task, hasPassedDate) {
+    if (hasPassedDate) {
+      return Colors.red.shade300;
+    } else {
+      return stateController.getShade200(task.state.color);
+    }
+  }
+
+  Color? textColor(Task task, bool hasPassedDate) {
+    if (hasPassedDate) {
+      return Colors.white;
+    }
+    return null;
+  }
+
+  bool isColorRed(Task task) {
+    bool isDone = task.completedDate != null;
+    if (isDone) {
+      return task.limitDate.add(Duration(days: 1)).isBefore(task.completedDate!);
+    } else {
+      return task.limitDate.add(Duration(days: 1)).isBefore(DateTime.now());
+    }
+  }
+
+  void _resetTasks(bool showCompleted) {
+    allTasks.sort((task1, task2) {
+      return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+    });
+    tasksToShow.clear();
+    tasksToShow.addAll(allTasks);
+
+    if (!showCompleted) {
+      tasksToShow.removeWhere((t) => t.state.id == stateController.getStateByName(AppStrings.DEFAULT_STATES[2]).id);
+    }
+  }
+
+  static TableRow tableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20), child: Text(value)),
+      ],
+    );
+  }
+
+  void _endFilterTask(List<Task>? filteredTasks) {
+    isFiltering = false;
+    if (filteredTasks != null) {
+      tasksToShow = filteredTasks;
+    }
+    setState(() {});
+  }
+
+  ElevatedButton shareTask(Task task, {List<Team>? teams}) {
+    bool isTeam = teams != null;
+    return ElevatedButton.icon(
+      onPressed: () {
+        !isTeam ? enterUserName(task) : selectTeamToShare(task, teams);
+      },
+      label: !isTeam ? Text('Compartir amb un altre usuari') : Text('Compartir amb un altre equip'),
+    );
+  }
+
+  void addTask(Task newTask) {
+    bool contains = tasksToShow.any((task) => task.id == newTask.id);
+    if (!contains) {
+      _resetTasks(showCompleted);
+      tasksToShow.add(newTask);
+      allTasks.add(newTask);
+      tasksToShow.sort((task1, task2) {
+        return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+      });
+      allTasks.sort((task1, task2) {
+        return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+      });
+      setState(() {});
+    }
+    //taskAndUsersMAP[newTask.id] = myUser.userName;
+  }
+
+  Row buttons(Task task, int index) {
+    Color defaultColor = const Color.fromARGB(165, 0, 0, 0);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Editar',
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.blue.shade700;
+              }
+              return defaultColor;
+            }),
+          ),
+          onPressed: () => openEditTask(task, index),
+          icon: Icon(Icons.edit),
+        ),
+        IconButton(
+          tooltip: 'Eliminar',
+          onPressed: () => confirmDelete(index, task.id),
+          icon: Icon(Icons.delete),
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.red;
+              }
+              return defaultColor;
+            }),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Canviar estat (dels predeterminats)',
+          icon: Icon(Icons.check_circle, color: stateController.getShade600(task.state.color)),
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.green.shade700;
+              }
+              return defaultColor;
+            }),
+          ),
+          onPressed: () async {
+            List<String> stateNames = AppStrings.DEFAULT_STATES;
+            int index = 0;
+            if (stateNames.contains(task.state.name)) {
+              index = stateNames.indexOf(task.state.name) + 1;
+
+              if (index == stateNames.length) {
+                index = 0;
+              }
+            }
+            task.state = stateController.getStateByName(stateNames[index]);
+            await taskController.updateTask(task);
+            setState(() {});
+          },
+        ),
+      ],
+    );
+  }
+
+  //FILTER BUTTONS
+  Row filterButtons(bool isCompact) {
+    return Row(
+      children: [
+        taskSort(),
+        Container(width: 10),
+        if (UserRole.isAdmin(myUser.userRole)) userFilter(),
+        if (UserRole.isAdmin(myUser.userRole)) Container(width: 10),
+        taskFilter(isCompact),
+        Container(width: 10),
+        showAllTask(),
+        Container(width: 10),
+        showDoneTask(),
+      ],
+    );
+  }
+
+  Container taskSort() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: PopupMenuButton(
+        tooltip: 'Sobre quin element voleu ordenar',
+
+        itemBuilder: (BuildContext context) => [
+          _menuSortItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
+          _menuSortItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
+          _menuSortItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
+          _menuSortItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
+        ],
+        child: Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+
+          child: Text('Ordenar', style: TextStyle(fontSize: 17)),
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem _menuSortItem(IconData icon, String label, SortType st) {
+    return PopupMenuItem(
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.black54),
+          SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+      onTap: () {
+        setState(() {
+          sortType = st;
+          tasksToShow.sort((task1, task2) {
+            return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
+          });
+        });
+      },
+    );
+  }
+
+  Container userFilter() {
+    allUserNames.insert(0, AppStrings.SHOWALL);
+    allUserNames = allUserNames.toSet().toList();
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: PopupMenuButton(
+        tooltip: 'Filtrar tasques per usuari',
+
+        itemBuilder: (BuildContext context) => [
+          for (String userName in allUserNames)
+            PopupMenuItem(value: userName, child: Text(userName == myUser.userName ? 'Veure les meves' : userName)),
+        ],
+
+        onSelected: (userSelected) {
+          if (userSelected == AppStrings.SHOWALL) {
+            _resetTasks(showCompleted);
+          } else {
+            tasksToShow = allTasks.where((t) => taskAndUsersMAP[t.id]!.contains(userSelected)).toList();
+          }
+          setState(() {});
+        },
+
+        child: Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+
+          child: Text('Usuaris', style: TextStyle(fontSize: 17)),
+        ),
+      ),
+    );
+  }
+
+  Container taskFilter(bool isCompact) {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: Tooltip(
+        message: 'Filtrar tasques',
+
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                isFiltering = true;
+                setState(() {});
+                isCompact ? openFilterTaskMBS() : openFilterTaskSD();
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  //color: Theme.of(context).colorScheme.primaryContainer,
+                  color: !isFiltering
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.inversePrimary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('Filtrar', style: TextStyle(fontSize: 17)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Container showAllTask() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: Tooltip(
+        message: 'Mostrar totes',
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                sortType = SortType.NONE;
+                _resetTasks(showCompleted);
+                setState(() {});
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('Treure filtres', style: TextStyle(fontSize: 17)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Container showDoneTask() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      margin: EdgeInsets.only(bottom: 10),
+
+      child: Tooltip(
+        message: 'Veure/amagar tasques completades',
+
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                showCompleted = !showCompleted;
+                _resetTasks(showCompleted);
+                setState(() {});
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: !showCompleted
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.inversePrimary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('Mostrar completades', style: TextStyle(fontSize: 17)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  //SHOW DIALOG - MODAL BOTTOM SHEET
+  Future<void> openFilterTaskSD() async {
+    final filteredTasks = await showDialog<List<Task>>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.7,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          //surfaceTintColor: Theme.of(context).colorScheme.primaryContainer,
+          //title: Text('Filtrar tasques'),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.5,
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: TaskForm(
-                isAdmin: UserRole.isAdmin(myUser.userRole),
-                onTaskCreated: (task, users, teams) async {
-                  String usersToAdd = '';
-                  if (UserRole.isAdmin(myUser.userRole)) {
-                    if (users.isNotEmpty) {
-                      await taskController.addTaskToDataBaseUser(task, users.first.userName);
-                      usersToAdd += users.first.userName;
-                      users.remove(users.first);
-                      if (users.isNotEmpty) {
-                        for (User user in users) {
-                          taskController.createRelation(task.id, user.userName);
-                          usersToAdd += '${AppStrings.USER_SEPARATOR}${user.userName}';
-                        }
-                      }
-                      taskAndUsersMAP[task.id] = usersToAdd;
-                    }
-
-                    if (teams.isNotEmpty) {
-                      TeamTask tt = TeamTask(team: teams.first, task: task);
-                      await taskController.addTaskToDataBaseTeam(tt);
-                      teams.remove(teams.first);
-                      for (Team team in teams) {
-                        tt = TeamTask(team: team, task: task);
-                        await teamController.addTaskToTeam(tt);
-                        teamTask.add(tt);
-                      }
-                    }
-                  } else {
-                    await taskController.addTaskToDataBaseUser(task, myUser.userName);
-                    taskAndUsersMAP[task.id] = myUser.userName;
-                  }
-
-                  addTask(task);
-                  setState(() {
-                    taskAndUsersMAP;
-                  });
-                  //taskAndUsersMAP;
-                },
-                task: Task.empty(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TaskFilterPage(
+                    tasks: tasksToShow,
+                    allTasks: allTasks,
+                    isMBS: false,
+                    taskAndUsersMAP: taskAndUsersMAP,
+                    allUserNames: allUserNames,
+                    teamTask: teamTask,
+                  ),
+                ],
               ),
             ),
           ),
         );
       },
     );
+    _endFilterTask(filteredTasks);
+  }
+
+  Future<void> openFilterTaskMBS() async {
+    final filteredTasks = await showModalBottomSheet<List<Task>>(
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
+
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: SingleChildScrollView(
+              child: TaskFilterPage(
+                tasks: tasksToShow,
+                allTasks: allTasks,
+                isMBS: true,
+                taskAndUsersMAP: taskAndUsersMAP,
+                allUserNames: allUserNames,
+                teamTask: teamTask,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    _endFilterTask(filteredTasks);
   }
 
   confirmDelete(int index, String taskId) {
@@ -448,7 +903,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                 if (UserRole.isAdmin(myUser.userRole) && taskUsers.length > 1) {
                   bool confirmed = await selectUsersToDeleteTask(taskId);
                   if (confirmed) {
-                    await taskAndUsers();
+                    await loadTaskAndUsers();
                     if (taskAndUsersMAP[taskId]!.isEmpty) {
                       tasksToShow.removeAt(index);
                       allTasks.removeWhere((task) => task.id == taskId);
@@ -619,74 +1074,6 @@ class ToDoPage extends State<MyHomePageToDo> {
           ),
         );
       },
-    );
-  }
-
-  Widget viewTask(Task task, String users, bool isCompact) {
-    users = users.replaceAll(AppStrings.USER_SEPARATOR, '\n');
-
-    List<Team> teams = teamTask.where((tt) => tt.task == task).map((tt) => tt.team).toSet().toList();
-    String teamsSTR = teamStr(task).replaceAll(AppStrings.USER_SEPARATOR, '\n');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(task.name, style: TextStyle(color: Theme.of(context).colorScheme.inverseSurface, fontSize: 20)),
-        SizedBox(height: 20),
-        Table(
-          columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
-          children: [
-            tableRow('Descripció:', task.description),
-            tableRow('Prioritat:', Priorities.priorityToString(task.priority)),
-            tableRow('Data obertura:', DateFormat('dd/MM/yyyy').format(task.openDate)),
-            tableRow('Data límit:', DateFormat('dd/MM/yyyy').format(task.limitDate)),
-            if (task.completedDate != null)
-              tableRow(
-                'Data completada:',
-                //task.completedDate == null ? '' :
-                DateFormat('dd/MM/yyyy').format(task.completedDate!),
-              ),
-            tableRow('Estat:', task.state.name),
-          ],
-        ),
-
-        Divider(height: 20),
-
-        Row(
-          children: [
-            Text('Usuaris relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(width: 10),
-
-            if (!isCompact) shareTask(task),
-          ],
-        ),
-        if (isCompact) shareTask(task),
-        SizedBox(height: isCompact ? 20 : 5),
-        Text(users),
-        SizedBox(height: 20),
-
-        Row(
-          children: [
-            Text('Equips relacionats amb aquesta tasca:', style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(width: 10),
-            if (!isCompact) shareTask(task, teams: teams),
-          ],
-        ),
-        if (isCompact) shareTask(task, teams: teams),
-        SizedBox(height: isCompact ? 20 : 5),
-        Text(teamsSTR),
-        SizedBox(height: 20),
-      ],
-    );
-  }
-
-  ElevatedButton shareTask(Task task, {List<Team>? teams}) {
-    bool isTeam = teams != null;
-    return ElevatedButton.icon(
-      onPressed: () {
-        !isTeam ? enterUserName(task) : selectTeamToShare(task, teams);
-      },
-      label: !isTeam ? Text('Compartir amb un altre usuari') : Text('Compartir amb un altre equip'),
     );
   }
 
@@ -894,512 +1281,66 @@ class ToDoPage extends State<MyHomePageToDo> {
     );
   }
 
-  Widget viewNotifications() {
-    return (notifications.isEmpty)
-        ? Center(child: Text('No hi ha notificacions.'))
-        : ListView.builder(
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notification = notifications[index];
-
-              return Card(
-                color: Theme.of(context).colorScheme.inversePrimary,
-                child: ListTile(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: EdgeInsets.all(5),
-
-                  leading: Text('    ${index + 1}'),
-                  title: Text(notification.message),
-                  subtitle: Text(notification.description),
-
-                  trailing: SizedBox(
-                    width: 150,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        //ELIMINAR
-                        IconButton(
-                          tooltip: 'Eliminar',
-                          icon: Icon(Icons.delete),
-                          style: ButtonStyle(
-                            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                              if (states.contains(WidgetState.hovered)) {
-                                return Colors.red;
-                              }
-                              return Colors.black54;
-                            }),
-                          ),
-                          onPressed: () async {
-                            await notController.deleteNotificationByID(notification.id);
-                            //await notController.deleteNotificationInDatabase(index);
-                            await notController.loadNotificationsFromDB(myUser.userName);
-                            notifications = notController.notifications;
-                            setState(() {});
-                            Navigator.of(context).pop();
-                          },
-                        ),
-
-                        //ACCEPTAR
-                        IconButton(
-                          tooltip: 'Acceptar tasca',
-                          icon: Icon(Icons.check_circle, color: Colors.black54),
-                          onPressed: () async {
-                            await taskController.createRelation(notification.taskId, notification.userName);
-
-                            Task newTask = await taskController.getTaskByID(notification.taskId);
-                            await notController.deleteNotificationByID(notification.id);
-
-                            notifications.removeAt(index);
-
-                            //tasks.add(newTask);
-                            addTask(newTask);
-
-                            await taskAndUsers();
-                            setState(() {});
-
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  //onTap: () => openShowTask(notification),
-                ),
-              );
-            },
-          );
-  }
-
-  Future<void> taskAndUsers() async {
-    String users;
-    taskAndUsersMAP.clear();
-    for (Task task in allTasks) {
-      users = await taskController.getUsersRelatedWithTask(task.id);
-      if (taskAndUsersMAP.containsKey(task.id)) {
-        logWarning('ID duplicat ${task.id}');
-      } else {
-        taskAndUsersMAP[task.id] = users;
-      }
-    }
-  }
-
-  void addTask(Task newTask) {
-    bool contains = tasksToShow.any((task) => task.id == newTask.id);
-    if (!contains) {
-      _resetTasks(showCompleted);
-      tasksToShow.add(newTask);
-      allTasks.add(newTask);
-      tasksToShow.sort((task1, task2) {
-        return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-      });
-      allTasks.sort((task1, task2) {
-        return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-      });
-      setState(() {});
-    }
-    //taskAndUsersMAP[newTask.id] = myUser.userName;
-  }
-
-  Container taskSort() {
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 10),
-
-      child: PopupMenuButton(
-        tooltip: 'Sobre quin element voleu ordenar',
-
-        itemBuilder: (BuildContext context) => [
-          _menuSortItem(Icons.error_outline_rounded, 'Prioritat', SortType.NONE),
-          _menuSortItem(Icons.calendar_month_rounded, 'Data', SortType.DATE),
-          _menuSortItem(Icons.text_fields_rounded, 'Nom', SortType.NAME),
-          _menuSortItem(Icons.supervised_user_circle_rounded, 'Usuari', SortType.USER),
-        ],
-        child: Container(
-          padding: EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-
-          child: Text('Ordenar', style: TextStyle(fontSize: 17)),
-        ),
-      ),
-    );
-  }
-
-  Container userFilter() {
-    allUserNames.insert(0, AppStrings.SHOWALL);
-    allUserNames = allUserNames.toSet().toList();
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 10),
-
-      child: PopupMenuButton(
-        tooltip: 'Filtrar tasques per usuari',
-
-        itemBuilder: (BuildContext context) => [
-          for (String userName in allUserNames)
-            PopupMenuItem(value: userName, child: Text(userName == myUser.userName ? 'Veure les meves' : userName)),
-        ],
-
-        onSelected: (userSelected) {
-          if (userSelected == AppStrings.SHOWALL) {
-            _resetTasks(showCompleted);
-          } else {
-            tasksToShow = allTasks.where((t) => taskAndUsersMAP[t.id]!.contains(userSelected)).toList();
-          }
-          setState(() {});
-        },
-
-        child: Container(
-          padding: EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-
-          child: Text('Usuaris', style: TextStyle(fontSize: 17)),
-        ),
-      ),
-    );
-  }
-
-  Container taskFilter(bool isCompact) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 10),
-
-      child: Tooltip(
-        message: 'Filtrar tasques',
-
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Material(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                isFiltering = true;
-                setState(() {});
-                isCompact ? openFilterTaskMBS() : openFilterTaskSD();
-              },
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  //color: Theme.of(context).colorScheme.primaryContainer,
-                  color: !isFiltering
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Theme.of(context).colorScheme.inversePrimary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text('Filtrar', style: TextStyle(fontSize: 17)),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Container showAllTask() {
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 10),
-
-      child: Tooltip(
-        message: 'Mostrar totes',
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Material(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                sortType = SortType.NONE;
-                _resetTasks(showCompleted);
-                setState(() {});
-              },
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text('Treure filtres', style: TextStyle(fontSize: 17)),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /*PopupMenuItem _menuFilterItem(IconData icon, String label, TaskFilter filter) {
-    return PopupMenuItem(
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.black54),
-          SizedBox(width: 8),
-          Text(label),
-        ],
-      ),
-      onTap: () {
-        openFilterTask(tasksToShow);
-        setState(() {
-          //TaskFilterPage filterTask(tasksToShow, filter);
-        });
-      },
-    );
-  }*/
-
-  Future<void> openFilterTaskSD() async {
-    final filteredTasks = await showDialog<List<Task>>(
+  void openForm() {
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          //surfaceTintColor: Theme.of(context).colorScheme.primaryContainer,
-          //title: Text('Filtrar tasques'),
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.5,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TaskFilterPage(
-                    tasks: tasksToShow,
-                    allTasks: allTasks,
-                    isMBS: false,
-                    taskAndUsersMAP: taskAndUsersMAP,
-                    allUserNames: allUserNames,
-                    teamTask: teamTask,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-    _endFilterTask(filteredTasks);
-  }
-
-  Future<void> openFilterTaskMBS() async {
-    final filteredTasks = await showModalBottomSheet<List<Task>>(
       isScrollControlled: true,
-      context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
-
           child: SizedBox(
             height: MediaQuery.of(context).size.height * 0.7,
             child: SingleChildScrollView(
-              child: TaskFilterPage(
-                tasks: tasksToShow,
-                allTasks: allTasks,
-                isMBS: true,
-                taskAndUsersMAP: taskAndUsersMAP,
-                allUserNames: allUserNames,
-                teamTask: teamTask,
+              padding: EdgeInsets.all(16),
+              child: TaskForm(
+                isAdmin: UserRole.isAdmin(myUser.userRole),
+                onTaskCreated: (task, users, teams) async {
+                  String usersToAdd = '';
+                  if (UserRole.isAdmin(myUser.userRole)) {
+                    if (users.isNotEmpty) {
+                      await taskController.addTaskToDataBaseUser(task, users.first.userName);
+                      usersToAdd += users.first.userName;
+                      users.remove(users.first);
+                      if (users.isNotEmpty) {
+                        for (User user in users) {
+                          taskController.createRelation(task.id, user.userName);
+                          usersToAdd += '${AppStrings.USER_SEPARATOR}${user.userName}';
+                        }
+                      }
+                      taskAndUsersMAP[task.id] = usersToAdd;
+                    }
+
+                    if (teams.isNotEmpty) {
+                      TeamTask tt = TeamTask(team: teams.first, task: task);
+                      await taskController.addTaskToDataBaseTeam(tt);
+                      teams.remove(teams.first);
+                      for (Team team in teams) {
+                        tt = TeamTask(team: team, task: task);
+                        await teamController.addTaskToTeam(tt);
+                        teamTask.add(tt);
+                      }
+                    }
+                  } else {
+                    await taskController.addTaskToDataBaseUser(task, myUser.userName);
+                    taskAndUsersMAP[task.id] = myUser.userName;
+                  }
+
+                  addTask(task);
+                  setState(() {
+                    taskAndUsersMAP;
+                  });
+                  //taskAndUsersMAP;
+                },
+                task: Task.empty(),
               ),
             ),
           ),
         );
       },
     );
-    _endFilterTask(filteredTasks);
   }
 
-  void _endFilterTask(List<Task>? filteredTasks) {
-    isFiltering = false;
-    if (filteredTasks != null) {
-      tasksToShow = filteredTasks;
-    }
-    setState(() {});
-  }
-
-  static TableRow tableRow(String label, String value) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20), child: Text(value)),
-      ],
-    );
-  }
-
-  PopupMenuItem _menuSortItem(IconData icon, String label, SortType st) {
-    return PopupMenuItem(
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.black54),
-          SizedBox(width: 8),
-          Text(label),
-        ],
-      ),
-      onTap: () {
-        setState(() {
-          sortType = st;
-          tasksToShow.sort((task1, task2) {
-            return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-          });
-        });
-      },
-    );
-  }
-
-  Row buttons(Task task, int index) {
-    Color defaultColor = const Color.fromARGB(165, 0, 0, 0);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        IconButton(
-          tooltip: 'Editar',
-          style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-              if (states.contains(WidgetState.hovered)) {
-                return Colors.blue.shade700;
-              }
-              return defaultColor;
-            }),
-          ),
-          onPressed: () => openEditTask(task, index),
-          icon: Icon(Icons.edit),
-        ),
-        IconButton(
-          tooltip: 'Eliminar',
-          onPressed: () => confirmDelete(index, task.id),
-          icon: Icon(Icons.delete),
-          style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-              if (states.contains(WidgetState.hovered)) {
-                return Colors.red;
-              }
-              return defaultColor;
-            }),
-          ),
-        ),
-        IconButton(
-          tooltip: 'Canviar estat (dels predeterminats)',
-          icon: Icon(Icons.check_circle, color: stateController.getShade600(task.state.color)),
-          style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-              if (states.contains(WidgetState.hovered)) {
-                return Colors.green.shade700;
-              }
-              return defaultColor;
-            }),
-          ),
-          onPressed: () async {
-            List<String> stateNames = AppStrings.DEFAULT_STATES;
-            int index = 0;
-            if (stateNames.contains(task.state.name)) {
-              index = stateNames.indexOf(task.state.name) + 1;
-
-              if (index == stateNames.length) {
-                index = 0;
-              }
-            }
-            task.state = stateController.getStateByName(stateNames[index]);
-            await taskController.updateTask(task);
-            setState(() {});
-          },
-        ),
-      ],
-    );
-  }
-
-  Color? backgroundColor(Task task, hasPassedDate) {
-    if (hasPassedDate) {
-      return Colors.red.shade300;
-    } else {
-      return stateController.getShade200(task.state.color);
-    }
-  }
-
-  Color? textColor(Task task, bool hasPassedDate) {
-    if (hasPassedDate) {
-      return Colors.white;
-    }
-    return null;
-  }
-
-  bool isColorRed(Task task) {
-    bool isDone = task.completedDate != null;
-    if (isDone) {
-      return task.limitDate.add(Duration(days: 1)).isBefore(task.completedDate!);
-    } else {
-      return task.limitDate.add(Duration(days: 1)).isBefore(DateTime.now());
-    }
-  }
-
-  Row filterButtons(bool isCompact) {
-    return Row(
-      children: [
-        taskSort(),
-        Container(width: 10),
-        if (UserRole.isAdmin(myUser.userRole)) userFilter(),
-        if (UserRole.isAdmin(myUser.userRole)) Container(width: 10),
-        taskFilter(isCompact),
-        Container(width: 10),
-        showAllTask(),
-        Container(width: 10),
-        showDoneTask(),
-      ],
-    );
-  }
-
-  Container showDoneTask() {
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 10),
-
-      child: Tooltip(
-        message: 'Veure/amagar tasques completades',
-
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Material(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                showCompleted = !showCompleted;
-                _resetTasks(showCompleted);
-                setState(() {});
-              },
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: !showCompleted
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Theme.of(context).colorScheme.inversePrimary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text('Mostrar completades', style: TextStyle(fontSize: 17)),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Text shownTasks() {
-    return Text(AppStrings.shownTasks(tasksToShow.length));
-  }
-
-  void _resetTasks(bool showCompleted) {
-    allTasks.sort((task1, task2) {
-      return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
-    });
-    tasksToShow.clear();
-    tasksToShow.addAll(allTasks);
-
-    if (!showCompleted) {
-      tasksToShow.removeWhere((t) => t.state.id == stateController.getStateByName(AppStrings.DEFAULT_STATES[2]).id);
-    }
-  }
-
+  //STRING - LABELS
   String teamStr(Task tsk) {
     List<Team> teams = teamTask.where((tt) => tt.task == tsk).map((tt) => tt.team).toSet().toList();
     String teamsSTR = '';
@@ -1413,5 +1354,54 @@ class ToDoPage extends State<MyHomePageToDo> {
       }
     }
     return teamsSTR;
+  }
+
+  Text shownTasks() {
+    return Text(AppStrings.shownTasks(tasksToShow.length));
+  }
+
+  //LOAD
+  Future<void> loadTaskAndUsers() async {
+    String users;
+    taskAndUsersMAP.clear();
+    for (Task task in allTasks) {
+      users = await taskController.getUsersRelatedWithTask(task.id);
+      if (taskAndUsersMAP.containsKey(task.id)) {
+        logWarning('ID duplicat ${task.id}');
+      } else {
+        taskAndUsersMAP[task.id] = users;
+      }
+    }
+  }
+
+  Future<void> loadInitialData(bool allTask) async {
+    setState(() {
+      isLoading = true;
+    });
+    if (allTask) {
+      await taskController.loadAllTasksFromDB();
+      await notController.loadALLNotificationsFromDB();
+    } else {
+      await taskController.loadTasksFromDB(myUser.userName);
+      await notController.loadNotificationsFromDB(myUser.userName);
+    }
+    await stateController.loadAllStates();
+
+    teamTask = await teamController.loadTeamTask();
+
+    notifications = notController.notifications;
+
+    allTasks = taskController.tasks;
+    _resetTasks(showCompleted);
+
+    allUserNames = (await userController.loadAllUsers()).map((User user) => user.userName).toSet().toList();
+    allUserNames.sort();
+    //allUserNames.insert(0, AppStrings.SHOWALL);
+
+    await loadTaskAndUsers();
+
+    setState(() {
+      isLoading = false;
+    });
   }
 }

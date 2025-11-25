@@ -139,26 +139,6 @@ class ConfigPage extends State<ConfigHP> {
   bool isLoading = true;
 
   @override
-  void dispose() {
-    userNameController.dispose();
-    nameController.dispose();
-    surnameController.dispose();
-    mailController.dispose();
-    passwordController.dispose();
-    //colorController.dispose();
-    super.dispose();
-  }
-
-  void clear() {
-    userNameController.clear();
-    nameController.clear();
-    surnameController.clear();
-    mailController.clear();
-    passwordController.clear();
-    //colorController.clear();
-  }
-
-  @override
   void initState() {
     super.initState();
     loadInitialData();
@@ -715,7 +695,6 @@ class ConfigPage extends State<ConfigHP> {
 
   //STATE PAGE
   Widget statePage() {
-    logInfo('$isLoading');
     return isLoading
         ? Center(child: CircularProgressIndicator())
         : Column(
@@ -1168,32 +1147,6 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  // MY TEAMS
-  /* Widget myTeamsPage() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          pageLabel(AppStrings.MY_TEAMS.toUpperCase()),
-          SizedBox(height: 20),
-          viewTeamList
-              ? teamList(false)
-              : Expanded(
-                  child: viewTeam(
-                    editTeam,
-                    teamsAndUsers[editTeam]!.any(
-                      (ut) => ut.user.userName == myUser.userName && TeamRole.isAdmin(ut.role),
-                    ),
-                  ),
-                ),
-
-          //          teamList(false),
-        ],
-      ),
-    );
-  }*/
-
   //DELETE ACC
   Widget deleteAccountPage() {
     return Column(
@@ -1224,6 +1177,26 @@ class ConfigPage extends State<ConfigHP> {
   //OTHER
   Text pageLabel(String text) {
     return Text(text, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20));
+  }
+
+  @override
+  void dispose() {
+    userNameController.dispose();
+    nameController.dispose();
+    surnameController.dispose();
+    mailController.dispose();
+    passwordController.dispose();
+    //colorController.dispose();
+    super.dispose();
+  }
+
+  void clear() {
+    userNameController.clear();
+    nameController.clear();
+    surnameController.clear();
+    mailController.clear();
+    passwordController.clear();
+    //colorController.clear();
   }
 
   //TABLE - DRAWER - RAIL
