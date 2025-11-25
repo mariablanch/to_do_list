@@ -88,6 +88,8 @@ class TaskFilterPageState extends State<TaskFilterPage> {
       //mainAxisAlignment: MainAxisAlignment.center,
       //crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         isMobile
             ? Table(
@@ -99,21 +101,27 @@ class TaskFilterPageState extends State<TaskFilterPage> {
                   ), //SELECCIONAR 2 DATES (O 1) I MIRAR SI ESTA ENTRE LES DOS (O ABANS O DESPRES SI NOMES HA POSAT 1)
 
                   _tableRow('Data obertura', Column(children: [openDateInit(), SizedBox(height: 10), openDateFin()])),
-                  _tableRow('Estat', state()),
-                  _tableRow('Prioritat', priorities()),
                   _tableRow(
                     'Nom i\nDescripció',
                     Column(children: [name(), SizedBox(height: 10), description()]),
                   ), //NOMS QUE COMTIMGUIN EL STRING ESCRIT
                   _tableRow(
                     'Usuari(s)',
-                    Column(children: [selectUser(), SizedBox(height: 10), showUsersSelected()]),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [selectUser(), SizedBox(height: 10), showUsersSelected()],
+                    ),
                   ), //USUARI SELECCIONAT O USUARIS QUE CONTINGUIN STRING
                   if (teams.isNotEmpty)
                     _tableRow(
                       'Equip',
-                      Column(children: [selectTeam(), SizedBox(height: 10), showTeamsSelected()]),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [selectTeam(), SizedBox(height: 10), showTeamsSelected()],
+                      ),
                     ), //EQUIP SELECCIONAT (S'HA DE FER EQUIPS)
+                  _tableRow('Estat', state()),
+                  _tableRow('Prioritat', priorities()),
                 ],
               )
             : widePage(),
@@ -294,7 +302,10 @@ class TaskFilterPageState extends State<TaskFilterPage> {
 
   void _teamFilter() {
     if (selectedTeamIds.isNotEmpty) {
-      List<Task> tasks = widget.teamTask.where((tt) => selectedTeamIds.contains(tt.team.name)).map((tt) => tt.task).toList();
+      List<Task> tasks = widget.teamTask
+          .where((tt) => selectedTeamIds.contains(tt.team.name))
+          .map((tt) => tt.task)
+          .toList();
       tasksToShow = tasksToShow.where((task) => tasks.contains(task)).toList();
     }
   }

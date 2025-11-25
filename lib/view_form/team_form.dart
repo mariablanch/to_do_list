@@ -66,8 +66,8 @@ class TeamFormState extends State<TeamForm> {
               ),
             ),
 
-            SizedBox(height: 20),
-            if (isCreating) Text('Afegir usuaris:'),
+            SizedBox(height: 15),
+            if (isCreating) Text('Afegir usuaris:', style: TextStyle(fontWeight: FontWeight.bold),),
             if (isCreating)
               Autocomplete<User>(
                 displayStringForOption: (user) => user.userName,
@@ -85,6 +85,17 @@ class TeamFormState extends State<TeamForm> {
                   setState(() {
                     selectedUsers.add(selection);
                   });
+                },
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+
+                    decoration: InputDecoration(
+                      //labelText: 'Nom equip',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                    ),
+                  );
                 },
               ),
             if (isCreating) SizedBox(height: 20),
@@ -108,7 +119,7 @@ class TeamFormState extends State<TeamForm> {
                   .toList(),
             ),
 
-            SizedBox(height: 20),
+            SizedBox(height: 15),
 
             ElevatedButton.icon(
               onPressed: () {

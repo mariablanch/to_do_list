@@ -93,6 +93,8 @@ class ToDoPage extends State<MyHomePageToDo> {
   StateController stateController = StateController();
   TeamController teamController = TeamController();
 
+  bool isLoading = true;
+
   Set<String> usersSelected = {};
 
   @override
@@ -103,6 +105,9 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Future<void> loadInitialData(bool allTask) async {
+    setState(() {
+      isLoading = true;
+    });
     if (allTask) {
       await taskController.loadAllTasksFromDB();
       await notController.loadALLNotificationsFromDB();
@@ -125,7 +130,9 @@ class ToDoPage extends State<MyHomePageToDo> {
 
     await taskAndUsers();
 
-    setState(() {});
+    setState(() {
+      isLoading = false;
+    });
   }
   //ScaffoldMessenger.of(context).showSnackBar(SnackBar())
 
@@ -135,76 +142,7 @@ class ToDoPage extends State<MyHomePageToDo> {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 500;
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-
-            title: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(children: [myUser.icon, Container(width: 7), Text(myUser.userName)]),
-                  Row(
-                    children: [
-                      IconButton(
-                        tooltip: 'Notificacions',
-                        onPressed: () {
-                          openNotifications();
-                        },
-                        icon: (notifications.isEmpty)
-                            ? Icon(Icons.notifications)
-                            : Icon(Icons.notifications_active, color: Colors.red),
-                      ),
-
-                      PopupMenuButton(
-                        icon: Icon(Icons.menu),
-                        tooltip: 'Menú',
-                        itemBuilder: (BuildContext context) => [
-                          PopupMenuItem(
-                            child: const Row(
-                              children: [
-                                Icon(Icons.settings, color: Colors.black54),
-                                SizedBox(width: 8),
-                                Text('Configuració'),
-                              ],
-                            ),
-
-                            onTap: () async {
-                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-                              final updatedUser = await Navigator.push<User>(
-                                context,
-                                MaterialPageRoute(builder: (context) => ConfigHP(user: myUser)),
-                              );
-
-                              if (updatedUser != null) {
-                                setState(() {
-                                  myUser = User.copy(updatedUser);
-                                });
-                              }
-                              loadInitialData(UserRole.isAdmin(myUser.userRole));
-                            },
-                          ),
-                          PopupMenuItem(
-                            child: const Row(
-                              children: [
-                                Icon(Icons.exit_to_app, color: Colors.black54),
-                                SizedBox(width: 8),
-                                Text('Tancar sessió'),
-                              ],
-                            ),
-                            onTap: () =>
-                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MyApp())),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+          appBar: _appbar(),
           body: Container(
             margin: const EdgeInsets.all(30),
             child: Column(
@@ -242,13 +180,14 @@ class ToDoPage extends State<MyHomePageToDo> {
                 SizedBox(height: 10),
 
                 Expanded(
-                  child: tasksToShow.isEmpty
+                  child: isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : tasksToShow.isEmpty
                       ? Center(child: Text('No hi ha tasques.'))
                       : ListView.builder(
                           itemCount: tasksToShow.length,
                           itemBuilder: (context, index) {
                             final task = tasksToShow[index];
-                            //final hasPassedDate = task.limitDate.add(Duration(days: 1)).isBefore(DateTime.now());
                             final hasPassedDate = isColorRed(task);
 
                             return LayoutBuilder(
@@ -324,11 +263,6 @@ class ToDoPage extends State<MyHomePageToDo> {
                                           leading: SizedBox(
                                             height: 30,
                                             width: 30,
-                                            /*decoration: const BoxDecoration(
-                                              color: Colors.amber,
-                                              shape: BoxShape.circle,
-                                            ),*/
-                                            //color: Colors.white,
                                             child: Priorities.getIconPriority(task.priority, hasPassedDate),
                                           ),
 
@@ -365,6 +299,78 @@ class ToDoPage extends State<MyHomePageToDo> {
               : FloatingActionButton.extended(heroTag: 'addTask', label: Icon(Icons.add), onPressed: () => openForm()),
         );
       },
+    );
+  }
+
+  AppBar _appbar() {
+    return AppBar(
+      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+
+      title: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(children: [myUser.icon, Container(width: 7), Text(myUser.userName)]),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Notificacions',
+                  onPressed: () {
+                    openNotifications();
+                  },
+                  icon: (notifications.isEmpty)
+                      ? Icon(Icons.notifications)
+                      : Icon(Icons.notifications_active, color: Colors.red),
+                ),
+
+                PopupMenuButton(
+                  icon: Icon(Icons.menu),
+                  tooltip: 'Menú',
+                  itemBuilder: (BuildContext context) => [
+                    PopupMenuItem(
+                      child: const Row(
+                        children: [
+                          Icon(Icons.settings, color: Colors.black54),
+                          SizedBox(width: 8),
+                          Text('Configuració'),
+                        ],
+                      ),
+
+                      onTap: () async {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                        final updatedUser = await Navigator.push<User>(
+                          context,
+                          MaterialPageRoute(builder: (context) => ConfigHP(user: myUser)),
+                        );
+
+                        if (updatedUser != null) {
+                          setState(() {
+                            myUser = User.copy(updatedUser);
+                          });
+                        }
+                        loadInitialData(UserRole.isAdmin(myUser.userRole));
+                      },
+                    ),
+                    PopupMenuItem(
+                      child: const Row(
+                        children: [
+                          Icon(Icons.exit_to_app, color: Colors.black54),
+                          SizedBox(width: 8),
+                          Text('Tancar sessió'),
+                        ],
+                      ),
+                      onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MyApp())),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -618,10 +624,10 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Widget viewTask(Task task, String users, bool isCompact) {
     users = users.replaceAll(AppStrings.USER_SEPARATOR, '\n');
-    
+
     List<Team> teams = teamTask.where((tt) => tt.task == task).map((tt) => tt.team).toSet().toList();
     String teamsSTR = teamStr(task).replaceAll(AppStrings.USER_SEPARATOR, '\n');
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -714,6 +720,17 @@ class ToDoPage extends State<MyHomePageToDo> {
                   userNameController.text = selection;
                 });
               },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+
+                  decoration: InputDecoration(
+                    //labelText: 'Nom equip',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                  ),
+                );
+              },
             ),
 
             SizedBox(height: 10),
@@ -796,6 +813,18 @@ class ToDoPage extends State<MyHomePageToDo> {
                 setState(() {
                   teamNameController.text = selection;
                 });
+              },
+
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+
+                  decoration: InputDecoration(
+                    //labelText: 'Nom equip',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                  ),
+                );
               },
             ),
 
@@ -1221,7 +1250,6 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Row buttons(Task task, int index) {
     Color defaultColor = const Color.fromARGB(165, 0, 0, 0);
-    //String tooltip = AppStrings.tooltipTextState(task.state);
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -1253,13 +1281,7 @@ class ToDoPage extends State<MyHomePageToDo> {
         ),
         IconButton(
           tooltip: 'Canviar estat (dels predeterminats)',
-          icon: Icon(
-            Icons.check_circle,
-            /*color: TaskState.isDone(task.state)
-                ? (hasPasssedDate) ? Colors.green.shade400 : Colors.green.shade700)
-                : null,*/
-            color: stateController.getShade600(task.state.color),
-          ),
+          icon: Icon(Icons.check_circle, color: stateController.getShade600(task.state.color)),
           style: ButtonStyle(
             foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
               if (states.contains(WidgetState.hovered)) {
@@ -1289,7 +1311,6 @@ class ToDoPage extends State<MyHomePageToDo> {
 
   Color? backgroundColor(Task task, hasPassedDate) {
     if (hasPassedDate) {
-      //logInfo('message');
       return Colors.red.shade300;
     } else {
       return stateController.getShade200(task.state.color);

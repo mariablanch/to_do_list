@@ -33,11 +33,14 @@ class AppStrings {
   static const List<String> DEFAULT_STATES = ['Pendent', 'En procés', 'Completada'];
 
   static String subtitleText(String description, String users, String teams) {
+    String desc = description.split('\n')[0];
+    if (desc.length > 28) {
+      desc = '${desc.substring(0, 28)}...';
+    }
     if (users == '') {
-    
-      return '$description\n${AppStrings.TEAMS} $teams';
+      return '$desc\n${AppStrings.TEAMS} $teams';
     } else {
-      return '$description\n${AppStrings.USERS} $users';
+      return '$desc\n${AppStrings.USERS} $users';
     }
   }
 

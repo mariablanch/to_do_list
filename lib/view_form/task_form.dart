@@ -105,6 +105,7 @@ class TaskFormState extends State<TaskForm> {
             TextFormField(
               controller: descriptionController,
               decoration: InputDecoration(labelText: 'Descripció', border: OutlineInputBorder()),
+              maxLines: null,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Es requereix de la descripció';
@@ -124,15 +125,15 @@ class TaskFormState extends State<TaskForm> {
               onTap: () async {
                 DateTime? picked = await showDatePicker(
                   context: context,
-                  initialDate: newTask.openDate,
-                  firstDate: newTask.openDate,
+                  initialDate: selectedOpenDate,
+                  firstDate: DateTime.now(),
                   lastDate: DateTime(2050),
                   locale: const Locale('es', 'ES'),
                 );
                 if (picked != null) {
                   setState(() {
                     selectedOpenDate = picked;
-                    finalDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                    openDateController.text = DateFormat('dd/MM/yyyy').format(picked);
                   });
                 }
               },
@@ -149,9 +150,7 @@ class TaskFormState extends State<TaskForm> {
               onTap: () async {
                 DateTime? picked = await showDatePicker(
                   context: context,
-                  //initialDate: widget.task.limitDate,
-                  initialDate: newTask.limitDate,
-                  //firstDate: DateTime.now(),
+                  initialDate: selectedFinalDate,
                   firstDate: newTask.limitDate.isBefore(DateTime.now()) ? newTask.limitDate : DateTime.now(),
                   lastDate: DateTime(2050),
                   locale: const Locale('es', 'ES'),
@@ -198,6 +197,7 @@ class TaskFormState extends State<TaskForm> {
                   textAlign: TextAlign.left,
                 ),
               ),
+            if (isAdmin && isCreating) SizedBox(height: 5),
             if (isAdmin && isCreating)
               Autocomplete<User>(
                 displayStringForOption: (user) => user.userName,
@@ -210,34 +210,51 @@ class TaskFormState extends State<TaskForm> {
                         !selectedUserIds.contains(u),
                   );
                 },
-
                 onSelected: (User selection) {
                   setState(() {
                     selectedUserIds.add(selection);
                   });
                 },
-              ),
-            if (isAdmin && isCreating) SizedBox(height: 20),
-            if (isAdmin && isCreating)
-              Wrap(
-                spacing: 8,
-                children: selectedUserIds
-                    .map(
-                      (u) => Chip(
-                        label: Text(u.userName),
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
-                        side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
 
-                        onDeleted: () {
-                          setState(() {
-                            selectedUserIds.remove(u);
-                          });
-                        },
-                        deleteButtonTooltipMessage: 'Eliminar',
-                      ),
-                    )
-                    .toList(),
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+
+                    decoration: InputDecoration(
+                      //labelText: 'Nom d\'usuari',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                    ),
+                  );
+                },
               ),
+            if (isAdmin && isCreating) SizedBox(height: 10),
+            if (isAdmin && isCreating)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  alignment: WrapAlignment.start,
+                  spacing: 8,
+                  children: selectedUserIds
+                      .map(
+                        (u) => Chip(
+                          label: Text(u.userName),
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                          side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+
+                          onDeleted: () {
+                            setState(() {
+                              selectedUserIds.remove(u);
+                            });
+                          },
+                          deleteButtonTooltipMessage: 'Eliminar',
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+
+            if (isAdmin && isCreating) SizedBox(height: 10),
 
             //AFEGIR EQUIPS
             if (isAdmin && isCreating)
@@ -253,6 +270,7 @@ class TaskFormState extends State<TaskForm> {
                   textAlign: TextAlign.left,
                 ),
               ),
+            if (isAdmin && isCreating) SizedBox(height: 5),
             if (isAdmin && isCreating)
               Autocomplete<Team>(
                 displayStringForOption: (team) => team.name,
@@ -271,27 +289,41 @@ class TaskFormState extends State<TaskForm> {
                     selectedTeams.add(selection);
                   });
                 },
-              ),
-            if (isAdmin && isCreating) SizedBox(height: 20),
-            if (isAdmin && isCreating)
-              Wrap(
-                spacing: 8,
-                children: selectedTeams
-                    .map(
-                      (t) => Chip(
-                        label: Text(t.name),
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
-                        side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
 
-                        onDeleted: () {
-                          setState(() {
-                            selectedTeams.remove(t);
-                          });
-                        },
-                        deleteButtonTooltipMessage: 'Eliminar',
-                      ),
-                    )
-                    .toList(),
+                    decoration: InputDecoration(
+                      //labelText: 'Nom equip',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                    ),
+                  );
+                },
+              ),
+            if (isAdmin && isCreating) SizedBox(height: 10),
+            if (isAdmin && isCreating)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8,
+                  children: selectedTeams
+                      .map(
+                        (t) => Chip(
+                          label: Text(t.name),
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                          side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+
+                          onDeleted: () {
+                            setState(() {
+                              selectedTeams.remove(t);
+                            });
+                          },
+                          deleteButtonTooltipMessage: 'Eliminar',
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
 
             if (isAdmin && !isCreating)
@@ -332,6 +364,8 @@ class TaskFormState extends State<TaskForm> {
                 setState(() {});
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
+
+                  description = trimDescription(description);
 
                   Task updatedTask = widget.task.copyWith(
                     name: name,
@@ -376,6 +410,20 @@ class TaskFormState extends State<TaskForm> {
   Future<void> loadTeams() async {
     await teamController.loadAllTeamsWithUsers();
     allTeams = teamController.allTeamsAndUsers.keys.toList();
+  }
+
+  String trimDescription(String desc) {
+    String str = '';
+    List<String> lines = desc.split('\n');
+    for (int pos = 0; pos < lines.length; pos++) {
+      lines[pos].trim();
+      str += lines[pos].isEmpty ? '' : lines[pos];
+
+      if ((pos + 1 < lines.length) && lines[pos + 1].isNotEmpty) {
+        str += '\n';
+      }
+    }
+    return str;
   }
 
   @override

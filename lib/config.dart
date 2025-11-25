@@ -136,6 +136,8 @@ class ConfigPage extends State<ConfigHP> {
 
   late bool isWide, isTall;
 
+  bool isLoading = true;
+
   @override
   void dispose() {
     userNameController.dispose();
@@ -159,14 +161,7 @@ class ConfigPage extends State<ConfigHP> {
   @override
   void initState() {
     super.initState();
-    myUser = User.copy(widget.user);
-    isAdmin = UserRole.isAdmin(myUser.userRole);
-    if (isAdmin) {}
-    loadAdminData();
-    loadData();
-    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
-    isUserAdmin = isAdmin;
-    setState(() {});
+    loadInitialData();
   }
 
   @override
@@ -218,13 +213,13 @@ class ConfigPage extends State<ConfigHP> {
                   },
                   labelType: NavigationRailLabelType.all,
                   destinations: [
-                    _railItem(Icons.person, AppStrings.PROFILE, false),
-                    _railItem(Icons.settings, AppStrings.CONFIG, false),
-                    if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL, allUsers.isEmpty),
-                    if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES, states.isEmpty),
-                    if (isAdmin) _railItem(Icons.groups_2, AppStrings.TEAMS_LABEL, teamsAndUsers.isEmpty),
-                    _railItem(Icons.group_work, AppStrings.MY_TEAMS, teamsAndUsers.isEmpty),
-                    _railItem(Icons.delete, AppStrings.DELETEACC, false),
+                    _railItem(Icons.person, AppStrings.PROFILE),
+                    _railItem(Icons.settings, AppStrings.CONFIG),
+                    if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL),
+                    if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES),
+                    if (isAdmin) _railItem(Icons.groups_2, AppStrings.TEAMS_LABEL),
+                    _railItem(Icons.group_work, AppStrings.MY_TEAMS),
+                    _railItem(Icons.delete, AppStrings.DELETEACC),
                   ],
                 );
 
@@ -594,7 +589,7 @@ class ConfigPage extends State<ConfigHP> {
         itemCount: allUsers.isEmpty ? 0 : allUsers.length,
         itemBuilder: (context, index) {
           final user = allUsers[index];
-          if(user == myUser) {
+          if (user == myUser) {
             return SizedBox();
           }
 
@@ -720,35 +715,30 @@ class ConfigPage extends State<ConfigHP> {
 
   //STATE PAGE
   Widget statePage() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            /*Text(
-              AppStrings.TASKSTATES.toUpperCase(),
-              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
-            ),*/
-            pageLabel(AppStrings.TASKSTATES.toUpperCase()),
-          ],
-        ),
+    logInfo('$isLoading');
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [pageLabel(AppStrings.TASKSTATES.toUpperCase())]),
 
-        SizedBox(height: 20),
-        taskStateList(),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: FloatingActionButton.extended(
-            heroTag: 'createState',
-            onPressed: () {
-              openFormCreateState(true, TaskState.empty());
-            },
-            label: Text('Crear nou estat'),
-            icon: Icon(Icons.add),
-          ),
-        ),
-      ],
-    );
+              SizedBox(height: 20),
+              taskStateList(),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: FloatingActionButton.extended(
+                  heroTag: 'createState',
+                  onPressed: () {
+                    openFormCreateState(true, TaskState.empty());
+                  },
+                  label: Text('Crear nou estat'),
+                  icon: Icon(Icons.add),
+                ),
+              ),
+            ],
+          );
   }
 
   Expanded taskStateList() {
@@ -758,7 +748,6 @@ class ConfigPage extends State<ConfigHP> {
         itemBuilder: (context, index) {
           final state = states[index];
           bool canDelete = AppStrings.DEFAULT_STATES.contains(state.name);
-          //canDelete = false;
 
           return Card(
             color: stateController.getShade200(state.color),
@@ -772,41 +761,46 @@ class ConfigPage extends State<ConfigHP> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    MouseRegion(
-                      cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: !canDelete ? () => openFormCreateState(false, state) : null,
-                        child: Icon(Icons.edit, color: !canDelete ? null : Colors.grey),
+                    Tooltip(
+                      message: canDelete ? 'No editable' : 'Editar estat',
+                      child: MouseRegion(
+                        cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: !canDelete ? () => openFormCreateState(false, state) : null,
+                          child: Icon(Icons.edit, color: !canDelete ? null : Colors.grey),
+                        ),
                       ),
                     ),
 
                     SizedBox(width: 10),
 
-                    MouseRegion(
-                      cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: !canDelete
-                            ? () async {
-                                bool contains = tasksFromUsers.values.any((list) {
-                                  return list.any((task) => task.state.id == state.id);
-                                });
+                    Tooltip(
+                      message: canDelete ? 'No editable' : 'Editar estat',
+                      child: MouseRegion(
+                        cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: !canDelete
+                              ? () async {
+                                  bool contains = tasksFromUsers.values.any((list) {
+                                    return list.any((task) => task.state.id == state.id);
+                                  });
 
-                                bool isValid = await deleteState(state);
-                                TaskState tState = TaskState.empty();
-                                if (isValid) {
-                                  if (contains) {
-                                    tState = await choseState(state);
+                                  bool isValid = await deleteState(state);
+                                  TaskState tState = TaskState.empty();
+                                  if (isValid) {
+                                    if (contains) {
+                                      tState = await choseState(state);
+                                    }
+                                    stateController.deleteState(state.id, tState);
+                                    states.remove(state);
+                                    setState(() {});
                                   }
-                                  stateController.deleteState(state.id, tState);
-                                  states.remove(state);
-                                  setState(() {});
                                 }
-                              }
-                            : null,
-                        child: Icon(Icons.delete, color: !canDelete ? null : Colors.grey),
+                              : null,
+                          child: Icon(Icons.delete, color: !canDelete ? null : Colors.grey),
+                        ),
                       ),
                     ),
-
                     SizedBox(width: 20),
                   ],
                 ),
@@ -820,55 +814,57 @@ class ConfigPage extends State<ConfigHP> {
 
   //TEAMS PAGE
   Widget teamsPage(bool admin) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (!viewTeamList)
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    viewTeamList = true;
-                  });
-                },
-                icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
-              ),
-            /*Text(
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (!viewTeamList)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          viewTeamList = true;
+                        });
+                      },
+                      icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
+                    ),
+                  /*Text(
               viewTeamList ? AppStrings.TEAMS_LABEL.toUpperCase() : editTeam.name,
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
             ),*/
-            pageLabel(
-              viewTeamList
-                  ? (admin ? AppStrings.TEAMS_LABEL.toUpperCase() : AppStrings.MY_TEAMS.toUpperCase())
-                  : editTeam.name,
-            ),
-          ],
-        ),
-        SizedBox(height: 20),
-        // if (!viewTeamList && TeamRole.isAdmin(teamsAndUsers[editTeam]!.firstWhere((u) => u.user == myUser).role))
-        if (!viewTeamList && isTeamAdmin) editTeamButton(),
+                  pageLabel(
+                    viewTeamList
+                        ? (admin ? AppStrings.TEAMS_LABEL.toUpperCase() : AppStrings.MY_TEAMS.toUpperCase())
+                        : editTeam.name,
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              // if (!viewTeamList && TeamRole.isAdmin(teamsAndUsers[editTeam]!.firstWhere((u) => u.user == myUser).role))
+              if (!viewTeamList && isTeamAdmin) editTeamButton(),
 
-        SizedBox(height: 10),
+              SizedBox(height: 10),
 
-        viewTeamList ? teamList(admin) : Expanded(child: viewTeam(editTeam, admin)),
+              viewTeamList ? teamList(admin) : Expanded(child: viewTeam(editTeam, admin)),
 
-        if (viewTeamList)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: FloatingActionButton.extended(
-              heroTag: 'createTeam',
-              onPressed: () async {
-                openFormCreateTeam(Team.empty(), true);
-                //logToDo('crear equip', 'ConfigPage(teamsPage)');
-              },
-              label: Text('Crear Equip'),
-              icon: Icon(Icons.add),
-            ),
-          ),
-      ],
-    );
+              if (viewTeamList)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: FloatingActionButton.extended(
+                    heroTag: 'createTeam',
+                    onPressed: () async {
+                      openFormCreateTeam(Team.empty(), true);
+                      //logToDo('crear equip', 'ConfigPage(teamsPage)');
+                    },
+                    label: Text('Crear Equip'),
+                    icon: Icon(Icons.add),
+                  ),
+                ),
+            ],
+          );
   }
 
   Expanded teamList(bool allteams) {
@@ -1246,8 +1242,8 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  NavigationRailDestination _railItem(IconData icon, String label, bool disabled) {
-    return NavigationRailDestination(icon: Icon(icon), label: Text(label), disabled: disabled);
+  NavigationRailDestination _railItem(IconData icon, String label) {
+    return NavigationRailDestination(icon: Icon(icon), label: Text(label));
   }
 
   TableRow tableRowUser(Widget label, UserTeam ut) {
@@ -1424,7 +1420,7 @@ class ConfigPage extends State<ConfigHP> {
     }
   }
 
-  Future<void> loadAdminData() async {
+  Future<void> _loadAdminData() async {
     tasksFromTeams.clear();
 
     await _loadUsers();
@@ -1439,13 +1435,28 @@ class ConfigPage extends State<ConfigHP> {
     setState(() {});
   }
 
-  Future<void> loadData() async {
+  Future<void> _loadData() async {
     await teamController.loadTeamsbyUser(myUser);
     myTeams = teamController.myTeamsAndUsers;
     setState(() {});
   }
 
-  // SHOW DIALOG:
+  Future<void> loadInitialData() async {
+    setState(() {
+      isLoading = true;
+    });
+    myUser = User.copy(widget.user);
+    isAdmin = UserRole.isAdmin(myUser.userRole);
+    await _loadAdminData();
+    await _loadData();
+    iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    isUserAdmin = isAdmin;
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  // SHOW DIALOG
   void nameExists(String type) {
     showDialog(
       context: context,
