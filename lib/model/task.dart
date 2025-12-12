@@ -15,6 +15,7 @@ class Task implements Comparable<Task> {
   DateTime _openDate;
   DateTime? _completedDate;
   TaskState _state;
+  bool _deleted;
 
   Task.empty()
     : _id = '',
@@ -24,7 +25,8 @@ class Task implements Comparable<Task> {
       _limitDate = DateTime.now(),
       _openDate = DateTime.now(),
       _completedDate = null,
-      _state = TaskState.empty();
+      _state = TaskState.empty(),
+      _deleted = false;
 
   Task.copy(Task task)
     : _name = task.name,
@@ -34,7 +36,8 @@ class Task implements Comparable<Task> {
       _openDate = task.openDate,
       _completedDate = task.completedDate,
       _state = TaskState.copy(task.state),
-      _id = task.id;
+      _id = task.id,
+      _deleted = task.deleted;
 
   Task copyWith({
     String? id,
@@ -45,7 +48,9 @@ class Task implements Comparable<Task> {
     DateTime? openDate,
     DateTime? completedDate,
     TaskState? state,
+    bool? deleted,
   }) {
+    
     return Task(
       id: id ?? _id,
       name: name ?? _name,
@@ -55,6 +60,7 @@ class Task implements Comparable<Task> {
       openDate: openDate ?? _openDate,
       completedDate: completedDate,
       state: state ?? _state,
+      deleted: deleted ?? _deleted,
     );
   }
 
@@ -67,6 +73,7 @@ class Task implements Comparable<Task> {
     required DateTime openDate,
     required DateTime? completedDate,
     required TaskState state,
+    required bool deleted,
   }) : _name = name,
        _description = description,
        _priority = priority,
@@ -74,7 +81,8 @@ class Task implements Comparable<Task> {
        _openDate = openDate,
        _completedDate = completedDate,
        _state = TaskState.copy(state),
-       _id = id;
+       _id = id,
+       _deleted = deleted;
 
   String get name => _name;
   String get description => _description;
@@ -84,6 +92,7 @@ class Task implements Comparable<Task> {
   DateTime? get completedDate => _completedDate;
   TaskState get state => _state;
   String get id => _id;
+  bool get deleted => _deleted;
 
   set id(String newId) => _id = newId;
   set state(TaskState newState) => _state = newState;
@@ -101,7 +110,8 @@ class Task implements Comparable<Task> {
     str += 'Data límit: $limitDateF \n';
     str += 'Data completada: $completedDateF \n';
     str += 'Data obertura: $openDateF \n';
-    str += 'Estat: ${_state.toString()}';
+    str += 'Estat: ${_state.toString()} \n';
+    str += 'Eliminada: $deleted \n ';
     return str;
   }
 
@@ -114,6 +124,7 @@ class Task implements Comparable<Task> {
       DbConstants.OPEN_DATE: Timestamp.fromDate(_openDate),
       DbConstants.COMPLETED_DATE: _completedDate != null ? Timestamp.fromDate(_completedDate!) : null,
       DbConstants.STATE: _state.id,
+      DbConstants.DELETED: deleted,
     };
   }
 
@@ -128,17 +139,12 @@ class Task implements Comparable<Task> {
         (p) => p.name.toLowerCase() == (data?['priority'] ?? '').toString().toLowerCase(),
       ),
       limitDate: (data?[DbConstants.LIMIT_DATE] as Timestamp).toDate(),
-
-      //openDate: (data?[DbConstants.OPEN_DATE] as Timestamp).toDate(),
       completedDate: data?[DbConstants.COMPLETED_DATE] != null
           ? (data?[DbConstants.COMPLETED_DATE] as Timestamp).toDate()
           : null,
-
-      //openDate: data[DbConstants.OPEN_DATE] == null ? DateTime.now() : (data[DbConstants.OPEN_DATE] as Timestamp).toDate(),
-      openDate: (data?[DbConstants.OPEN_DATE] as Timestamp?)?.toDate() ?? DateTime.now(),
-
-      // completedDate: null,
+      openDate: (data?[DbConstants.OPEN_DATE] as Timestamp).toDate(),
       state: TaskState(id: data?['state'] ?? '', color: null, name: ''),
+      deleted: data?[DbConstants.DELETED] ?? false,
     );
   }
 

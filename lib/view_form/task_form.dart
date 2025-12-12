@@ -17,10 +17,10 @@ class TaskForm extends StatefulWidget {
   final bool isAdmin;
 
   //const TaskForm({super.key, this.onTaskCreated, required this.task, this.onTaskEdited, required this.isAdmin})
-  //: assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited');
+  //: assert(onTaskCreated != null || onTaskEdited != null, "S'ha de proporcionar onTaskCreated o onTaskEdited");
 
   const TaskForm({super.key, this.onTaskCreated, this.onTaskEdited, required this.task, required this.isAdmin})
-    : assert(onTaskCreated != null || onTaskEdited != null, 'S\'ha de proporcionar onTaskCreated o onTaskEdited');
+    : assert(onTaskCreated != null || onTaskEdited != null, "S'ha de proporcionar onTaskCreated o onTaskEdited");
 
   @override
   TaskFormState createState() => TaskFormState();
@@ -47,7 +47,7 @@ class TaskFormState extends State<TaskForm> {
   bool isCreating = false;
   List<TaskState> states = [];
 
-  String validator = '';
+  String validator = "";
 
   @override
   void initState() {
@@ -59,11 +59,11 @@ class TaskFormState extends State<TaskForm> {
     if (widget.onTaskCreated != null) {
       isCreating = true;
       finalDateController = TextEditingController(text: null);
-      openDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(DateTime.now()));
+      openDateController = TextEditingController(text: DateFormat("dd/MM/yyyy").format(DateTime.now()));
       stateSTR = AppStrings.DEFAULT_STATES[0];
     } else {
-      finalDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.limitDate));
-      openDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(widget.task.openDate));
+      finalDateController = TextEditingController(text: DateFormat("dd/MM/yyyy").format(widget.task.limitDate));
+      openDateController = TextEditingController(text: DateFormat("dd/MM/yyyy").format(widget.task.openDate));
       stateSTR = widget.task.state.name;
     }
 
@@ -94,8 +94,8 @@ class TaskFormState extends State<TaskForm> {
             //NOM
             TextFormField(
               controller: nameController,
-              decoration: InputDecoration(labelText: 'Nom', border: OutlineInputBorder()),
-              validator: (value) => (value == null || value.isEmpty) ? 'El nom no pot ser buit' : null,
+              decoration: InputDecoration(labelText: "Nom", border: OutlineInputBorder()),
+              validator: (value) => (value == null || value.isEmpty) ? "El nom no pot ser buit" : null,
               onSaved: (value) => name = value!,
             ),
 
@@ -104,11 +104,11 @@ class TaskFormState extends State<TaskForm> {
             //DESCRIPCIÓ
             TextFormField(
               controller: descriptionController,
-              decoration: InputDecoration(labelText: 'Descripció', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: "Descripció", border: OutlineInputBorder()),
               maxLines: null,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Es requereix de la descripció';
+                  return "Es requereix de la descripció";
                 }
                 return null;
               },
@@ -120,7 +120,7 @@ class TaskFormState extends State<TaskForm> {
             //DATA INICI
             TextFormField(
               controller: openDateController,
-              decoration: InputDecoration(labelText: 'Data obertura/inici', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: "Data obertura/inici", border: OutlineInputBorder()),
               readOnly: true,
               onTap: () async {
                 DateTime? picked = await showDatePicker(
@@ -128,16 +128,16 @@ class TaskFormState extends State<TaskForm> {
                   initialDate: selectedOpenDate,
                   firstDate: DateTime.now(),
                   lastDate: DateTime(2050),
-                  locale: const Locale('es', 'ES'),
+                  locale: const Locale("es", "ES"),
                 );
                 if (picked != null) {
                   setState(() {
                     selectedOpenDate = picked;
-                    openDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                    openDateController.text = DateFormat("dd/MM/yyyy").format(picked);
                   });
                 }
               },
-              validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
+              validator: (value) => (value == null || value.isEmpty) ? "Siusplau, seleccioneu una data" : null,
             ),
 
             SizedBox(height: 10),
@@ -145,7 +145,7 @@ class TaskFormState extends State<TaskForm> {
             //DATA LIMIT
             TextFormField(
               controller: finalDateController,
-              decoration: InputDecoration(labelText: 'Data límit', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: "Data límit", border: OutlineInputBorder()),
               readOnly: true,
               onTap: () async {
                 DateTime? picked = await showDatePicker(
@@ -153,16 +153,16 @@ class TaskFormState extends State<TaskForm> {
                   initialDate: selectedFinalDate,
                   firstDate: newTask.limitDate.isBefore(DateTime.now()) ? newTask.limitDate : DateTime.now(),
                   lastDate: DateTime(2050),
-                  locale: const Locale('es', 'ES'),
+                  locale: const Locale("es", "ES"),
                 );
                 if (picked != null) {
                   setState(() {
                     selectedFinalDate = picked;
-                    finalDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                    finalDateController.text = DateFormat("dd/MM/yyyy").format(picked);
                   });
                 }
               },
-              validator: (value) => (value == null || value.isEmpty) ? 'Siusplau, seleccioneu una data' : null,
+              validator: (value) => (value == null || value.isEmpty) ? "Siusplau, seleccioneu una data" : null,
             ),
 
             SizedBox(height: 10),
@@ -170,7 +170,7 @@ class TaskFormState extends State<TaskForm> {
             //PRIORITAT
             DropdownButtonFormField<String>(
               decoration: InputDecoration(border: OutlineInputBorder()),
-              hint: Text('Selecciona nivell de prioritat'),
+              hint: Text("Selecciona nivell de prioritat"),
               value: prioritySTR!.isNotEmpty ? prioritySTR : null,
               items: AppStrings.PRIORITIES_STR.map((line) => DropdownMenuItem(value: line, child: Text(line))).toList(),
               onChanged: (value) {
@@ -178,7 +178,7 @@ class TaskFormState extends State<TaskForm> {
                   prioritySTR = value;
                 });
               },
-              validator: (value) => value == null ? 'Siusplau, seleccioneu una prioritat' : null,
+              validator: (value) => value == null ? "Siusplau, seleccioneu una prioritat" : null,
             ),
 
             SizedBox(height: 10),
@@ -188,7 +188,7 @@ class TaskFormState extends State<TaskForm> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Usuaris que tindran aquesta tasca:',
+                  "Usuaris que tindran aquesta tasca:",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -222,7 +222,7 @@ class TaskFormState extends State<TaskForm> {
                     focusNode: focusNode,
 
                     decoration: InputDecoration(
-                      //labelText: 'Nom d\'usuari',
+                      //labelText: "Nom d'usuari",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
                     ),
                   );
@@ -247,7 +247,7 @@ class TaskFormState extends State<TaskForm> {
                               selectedUserIds.remove(u);
                             });
                           },
-                          deleteButtonTooltipMessage: 'Eliminar',
+                          deleteButtonTooltipMessage: "Eliminar",
                         ),
                       )
                       .toList(),
@@ -261,7 +261,7 @@ class TaskFormState extends State<TaskForm> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Equips que tindran aquesta tasca:',
+                  "Equips que tindran aquesta tasca:",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -295,7 +295,7 @@ class TaskFormState extends State<TaskForm> {
                     focusNode: focusNode,
 
                     decoration: InputDecoration(
-                      //labelText: 'Nom equip',
+                      //labelText: "Nom equip",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
                     ),
                   );
@@ -319,7 +319,7 @@ class TaskFormState extends State<TaskForm> {
                               selectedTeams.remove(t);
                             });
                           },
-                          deleteButtonTooltipMessage: 'Eliminar',
+                          deleteButtonTooltipMessage: "Eliminar",
                         ),
                       )
                       .toList(),
@@ -329,7 +329,7 @@ class TaskFormState extends State<TaskForm> {
             if (isAdmin && !isCreating)
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(border: OutlineInputBorder()),
-                hint: Text('Canviar el estat'),
+                hint: Text("Canviar el estat"),
                 value: stateSTR!.isNotEmpty ? stateSTR : null,
                 items: states
                     .map(
@@ -345,7 +345,7 @@ class TaskFormState extends State<TaskForm> {
                     stateSTR = value;
                   });
                 },
-                validator: (value) => value == null ? 'Siusplau, seleccioneu un estat' : null,
+                validator: (value) => value == null ? "Siusplau, seleccioneu un estat" : null,
               ),
 
             SizedBox(height: 10),
@@ -355,12 +355,12 @@ class TaskFormState extends State<TaskForm> {
             ElevatedButton.icon(
               onPressed: () {
                 if (isCreating && isAdmin && (selectedUserIds.isEmpty && selectedTeams.isEmpty)) {
-                  validator = 'S\'ha de seleccionar mínim un usuari';
+                  validator = "S'ha de seleccionar mínim un usuari";
                   setState(() {});
                   return;
                 }
 
-                validator = '';
+                validator = "";
                 setState(() {});
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
@@ -373,11 +373,12 @@ class TaskFormState extends State<TaskForm> {
                     priority: Priorities.priorityFromString(prioritySTR!),
                     limitDate: selectedFinalDate!,
                     openDate: selectedOpenDate!,
+                    completedDate: widget.task.completedDate,
                     state: stateController.getStateByName(stateSTR!),
-                  );
+                  );                  
 
                   if (isCreating) {
-                    widget.onTaskCreated!(updatedTask.copyWith(id: ''), selectedUserIds, selectedTeams);
+                    widget.onTaskCreated!(updatedTask.copyWith(id: ""), selectedUserIds, selectedTeams);
                   } else if (widget.onTaskEdited != null) {
                     widget.onTaskEdited!(updatedTask);
                   }
@@ -386,7 +387,7 @@ class TaskFormState extends State<TaskForm> {
                 }
               },
               icon: Icon(isCreating ? Icons.add : Icons.edit),
-              label: Text(isCreating ? 'Crear' : 'Editar'),
+              label: Text(isCreating ? "Crear" : "Editar"),
             ),
           ],
         ),
@@ -413,14 +414,14 @@ class TaskFormState extends State<TaskForm> {
   }
 
   String trimDescription(String desc) {
-    String str = '';
-    List<String> lines = desc.split('\n');
+    String str = "";
+    List<String> lines = desc.split("\n");
     for (int pos = 0; pos < lines.length; pos++) {
       lines[pos].trim();
-      str += lines[pos].isEmpty ? '' : lines[pos];
+      str += lines[pos].isEmpty ? "" : lines[pos];
 
       if ((pos + 1 < lines.length) && lines[pos + 1].isNotEmpty) {
-        str += '\n';
+        str += "\n";
       }
     }
     return str;

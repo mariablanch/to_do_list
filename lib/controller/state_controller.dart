@@ -44,7 +44,7 @@ class StateController {
   Future<void> deleteState(String stateId, TaskState tstate) async {
     try {
       TaskController tc = TaskController();
-      await tc.loadAllTasksFromDB();
+      await tc.loadAllTasksFromDB(true);
       var tasks = tc.tasks;
       tasks = tasks.where((Task tsk) => tsk.state.id == stateId).toList();
       

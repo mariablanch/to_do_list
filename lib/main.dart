@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Iniciar Sessió',
+      title: "Iniciar Sessió",
       home: MyHomePage(),
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
 
@@ -35,8 +35,8 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: [
-        Locale('en'), // English
-        Locale('es'), // Spanish
+        Locale("en"), // English
+        Locale("es"), // Spanish
       ],
     );
   }
@@ -50,14 +50,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class LogInPage extends State<MyHomePage> {
-  String _userName = '', _pasword = '';
+  String _userName = "", _pasword = "";
   bool _hasAccount = true;
   final _formKey = GlobalKey<FormState>();
   User retUser = User.empty();
 
   UserController userController = UserController();
 
-  String control = '';
+  String control = "";
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController pswrdController = TextEditingController();
@@ -91,7 +91,7 @@ class LogInPage extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(_hasAccount ? 'Iniciar sessió' : 'Crear compte'),
+        title: Text(_hasAccount ? "Iniciar sessió" : "Crear compte"),
       ),
       body: Container(
         margin: EdgeInsets.symmetric(horizontal: 50, vertical: 30),
@@ -105,11 +105,11 @@ class LogInPage extends State<MyHomePage> {
                 onPressed: () {
                   setState(() {
                     _hasAccount = !_hasAccount;
-                    control = '';
+                    control = "";
                     clear();
                   });
                 },
-                child: Text(_hasAccount ? 'No tens compte? Registra\'t' : 'Ja tens compte? Inicia sessió'),
+                child: Text(_hasAccount ? "No tens compte? Registra't" : "Ja tens compte? Inicia sessió"),
               ),
             ],
           ),
@@ -130,12 +130,12 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 10),
             child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom usuari'),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Nom usuari"),
               controller: nameController,
 
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Es requereix del nom d\'usuari';
+                  return "Es requereix del nom d'usuari";
                 }
                 return null;
               },
@@ -147,12 +147,12 @@ class LogInPage extends State<MyHomePage> {
 
           TextFormField(
             controller: pswrdController,
-            decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Contrasenya'),
+            decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Contrasenya"),
 
             obscureText: true,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Es requereix de la contrasenya';
+                return "Es requereix de la contrasenya";
               }
               return null;
             },
@@ -175,21 +175,22 @@ class LogInPage extends State<MyHomePage> {
                     //createUser(_userName, _pasword);
                     if (await logIn(_userName, _pasword)) {
                       setState(() {
-                        //control = 'Entrant a la pàgina';
-                        control = '';
+                        //control = "Entrant a la pàgina";
+                        control = "";
                       });
                       Navigator.push(context, MaterialPageRoute(builder: (context) => MyAppToDo(user: retUser)));
+                      //Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePageToDo(user: retUser)));
                     } else {
                       setState(() {
-                        control = 'L\'usuari no s\'ha trobat, reviseu les dades';
+                        control = "L'usuari no s'ha trobat, reviseu les dades";
                       });
                     }
                   } catch (e) {
-                    logError('LOG IN FORM', e);
+                    logError("LOG IN FORM", e);
                   }
                 }
               },
-              label: Text('Iniciar sessió'),
+              label: Text("Iniciar sessió"),
               //icon: Icon(Icons.login),
             ),
           ),
@@ -200,11 +201,11 @@ class LogInPage extends State<MyHomePage> {
   }
 
   Form createAccountForm() {
-    String name = '';
-    String surname = '';
-    String userName = '';
-    String mail = '';
-    String password = '';
+    String name = "";
+    String surname = "";
+    String userName = "";
+    String mail = "";
+    String password = "";
     User user;
 
     return Form(
@@ -215,11 +216,11 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Nom"),
               controller: nameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
+                  return "Aquest camp és obligatori";
                 }
                 return null;
               },
@@ -231,11 +232,11 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Cognom'),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Cognom"),
               controller: surnameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
+                  return "Aquest camp és obligatori";
                 }
                 return null;
               },
@@ -247,11 +248,11 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom d\'usuari'),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Nom d'usuari"),
               controller: userNameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
+                  return "Aquest camp és obligatori";
                 }
                 return null;
               },
@@ -263,13 +264,14 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Correu'),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Correu"),
+              keyboardType: TextInputType.emailAddress,
               controller: mailController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
-                } else if (!value.contains('@')) {
-                  return 'No té el format adequat';
+                  return "Aquest camp és obligatori";
+                } else if (!value.contains("@")) {
+                  return "No té el format adequat";
                 }
                 return null;
               },
@@ -281,11 +283,12 @@ class LogInPage extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 5),
             child: TextFormField(
-              decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Contrasenya'),
+              decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Contrasenya"),
               controller: paswordController,
+              obscureText: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Aquest camp és obligatori';
+                  return "Aquest camp és obligatori";
                 }
                 return null;
               },
@@ -326,24 +329,24 @@ class LogInPage extends State<MyHomePage> {
                   try {
                     if (accountError == DbConstants.USERNOTEXISTS) {
                       setState(() {
-                        control = 'Usuari creat, inicia sessió';
+                        control = "Usuari creat, inicia sessió";
                         _hasAccount = true;
                       });
                     } else if (accountError == DbConstants.USEREXISTS) {
                       setState(() {
-                        control = 'El nom d\'usuari ja existeix, prova a fer-ne un altre';
+                        control = "El nom d'usuari ja existeix, prova a fer-ne un altre";
                       });
                     } else {
                       setState(() {
-                        control = 'Ha hagut un problema amb la base de dades, torna-ho a provar més tard';
+                        control = "Ha hagut un problema amb la base de dades, torna-ho a provar més tard";
                       });
                     }
                   } catch (e) {
-                    logError('CREATE ACCOUNT FORM', e);
+                    logError("CREATE ACCOUNT FORM", e);
                   }
                 }
               },
-              label: Text('Crear compte'),
+              label: Text("Crear compte"),
             ),
           ),
           Text(control),
@@ -369,7 +372,7 @@ class LogInPage extends State<MyHomePage> {
 
       ret = lines.docs.length == 1;
     } catch (e) {
-      logError('LOG IN', e);
+      logError("LOG IN", e);
       ret = false;
     }
 

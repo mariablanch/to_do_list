@@ -18,10 +18,10 @@ class DefaultFirebaseOptions {
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.fuchsia:
-        // TODO: Handle this case.
+        //  Handle this case.
         throw UnimplementedError();
       case TargetPlatform.linux:
-        // TODO: Handle this case.
+        //  Handle this case.
         throw UnimplementedError();
     }
 

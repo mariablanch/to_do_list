@@ -288,7 +288,7 @@ class TaskFilterPageState extends State<TaskFilterPage> {
     if (selectedUserIds.isNotEmpty) {
       final taskFromUser = taskAndUsersMAP.entries
           .where((e) {
-            final usersInTask = e.value.split(AppStrings.USER_SEPARATOR).map((u) => u.trim()).toList();
+            final usersInTask = e.value.split(AppStrings.SEPARATOR).map((u) => u.trim()).toList();
             return usersInTask.any((u) => selectedUserIds.contains(u));
           })
           .map((e) {

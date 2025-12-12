@@ -173,16 +173,12 @@ class TeamController {
     return null;
   }
 
-  Future<void> addTaskToTeam(TeamTask tt) async {
-    await FirebaseFirestore.instance.collection(DbConstants.TEAMTASK).add(tt.toFirestore());
-  }
-
-  Future<List<TeamTask>> loadTeamTask() async {
+  Future<List<TeamTask>> loadTeamTask(bool configPage) async {
     final db = await FirebaseFirestore.instance.collection(DbConstants.TEAMTASK).get();
     TeamTask tt;
     List<TeamTask> list = [];
     TaskController tc = TaskController();
-    await tc.loadAllTasksFromDB();
+    await tc.loadAllTasksFromDB(configPage);
 
     for (var doc in db.docs) {
       Team team;

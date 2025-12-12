@@ -14,10 +14,12 @@ import 'package:to_do_list/to_do_page.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
+import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/main.dart';
 import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/widgets.dart';
 import 'package:to_do_list/view_form/state_form.dart';
 import 'package:to_do_list/view_form/team_form.dart';
 
@@ -26,19 +28,19 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   /*User userProva = User.parameter(
-    '111',
-    '111',
-    '111',
-    '111',
-    'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
+    "111",
+    "111",
+    "111",
+    "111",
+    "f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae",
     UserRole.ADMIN,
   );*/
   User userProva = User(
-    name: '111',
-    surname: '111',
-    userName: '111',
-    mail: '111',
-    password: 'f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae',
+    name: "111",
+    surname: "111",
+    userName: "111",
+    mail: "111",
+    password: "f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae",
     userRole: UserRole.ADMIN,
     iconName: Icon(User.getRandomIcon()),
   );
@@ -52,13 +54,13 @@ class MyAppConfig extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Configuració',
+      title: "Configuració",
       home: ConfigHP(user: user),
       theme: ThemeData(
         //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         colorScheme: (!UserRole.isAdmin(user.userRole))
             ? ColorScheme.fromSeed(seedColor: Colors.deepPurple)
-            : ColorScheme.fromSeed(seedColor: Colors.amber),
+            : ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
     );
     //return ConfigHP(user: user);
@@ -82,30 +84,33 @@ class ConfigPage extends State<ConfigHP> {
       isUserAdmin = false,
       isTeamAdmin = false,
       isViewTeam = true,
-      isAddToTeam = true;
+      isAddToTeam = true,
+      showOnlyDeleted = false;
   late bool isAdmin;
   User editUser = User.empty();
   Team editTeam = Team.empty();
 
-  String iconSelected = 'person';
+  String iconSelected = "person";
 
   List<Widget> get pages => [profilePage(), editAccountPage(), teamsPage(false), deleteAccountPage()];
-  List<Widget> get adminPages => [
+  List<Widget> get adminPagess => [
     profilePage(),
     editAccountPage(),
     usersPage(),
     statePage(),
     teamsPage(true),
     teamsPage(false),
+    taskPage(),
     deleteAccountPage(),
   ];
-  List<Widget> get adminPagess => [
-    teamsPage(false),
+  List<Widget> get adminPages => [
+    taskPage(),
     profilePage(),
     editAccountPage(),
     usersPage(),
     statePage(),
     teamsPage(true),
+    teamsPage(false),
     deleteAccountPage(),
   ];
 
@@ -122,6 +127,7 @@ class ConfigPage extends State<ConfigHP> {
   Map<Team, List<UserTeam>> teamsAndUsers = {};
   Map<Team, List<UserTeam>> myTeams = {};
   Map<Team, List<Task>> tasksFromTeams = {};
+  List<Task> allTasks = [];
 
   Set<User> usersAdded = {};
 
@@ -131,8 +137,9 @@ class ConfigPage extends State<ConfigHP> {
       mailController = TextEditingController(),
       passwordController = TextEditingController();
 
-  String? stateSTR = '';
-  String nameFilter = '';
+  String? stateSTR = "";
+  String nameFilter = "";
+  String taskFilter = "";
 
   late bool isWide, isTall;
 
@@ -173,7 +180,8 @@ class ConfigPage extends State<ConfigHP> {
                   if (isAdmin) _drawerItem(AppStrings.TASKSTATES, 3),
                   if (isAdmin) _drawerItem(AppStrings.TEAMS_LABEL, 4),
                   _drawerItem(AppStrings.MY_TEAMS, isAdmin ? 5 : 2),
-                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 6 : 3),
+                  if (isAdmin) _drawerItem(AppStrings.TASKS, 6),
+                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 7 : 3),
                 ],
               ),
             ),
@@ -199,6 +207,7 @@ class ConfigPage extends State<ConfigHP> {
                     if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES),
                     if (isAdmin) _railItem(Icons.groups_2, AppStrings.TEAMS_LABEL),
                     _railItem(Icons.group_work, AppStrings.MY_TEAMS),
+                    if (isAdmin) _railItem(Icons.task, AppStrings.TASKS),
                     _railItem(Icons.delete, AppStrings.DELETEACC),
                   ],
                 );
@@ -237,15 +246,7 @@ class ConfigPage extends State<ConfigHP> {
             ),*/
             pageLabel(AppStrings.PROFILE.toUpperCase()),
             SizedBox(height: 20),
-            Table(
-              columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
-              children: [
-                ToDoPage.tableRow('Nom:', myUser.name),
-                ToDoPage.tableRow('Cognom:', myUser.surname),
-                ToDoPage.tableRow('Nom d\'usuari:', myUser.userName),
-                ToDoPage.tableRow('Correu:', myUser.mail),
-              ],
-            ),
+            Tables.viewUsers(myUser, false),
           ],
         ),
       ),
@@ -261,7 +262,7 @@ class ConfigPage extends State<ConfigHP> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //Text('EDITAR PERFIL', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
+            //Text("EDITAR PERFIL", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
             pageLabel(AppStrings.EDIT_PROFILE.toUpperCase()),
 
             SizedBox(height: 20),
@@ -302,11 +303,11 @@ class ConfigPage extends State<ConfigHP> {
             Container(
               margin: EdgeInsets.symmetric(vertical: 5),
               child: TextFormField(
-                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom'),
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Nom"),
                 controller: nameController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Aquest camp és obligatori';
+                    return "Aquest camp és obligatori";
                   }
                   return null;
                 },
@@ -318,11 +319,11 @@ class ConfigPage extends State<ConfigHP> {
             Container(
               margin: EdgeInsets.symmetric(vertical: 5),
               child: TextFormField(
-                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Cognom'),
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Cognom"),
                 controller: surnameController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Aquest camp és obligatori';
+                    return "Aquest camp és obligatori";
                   }
                   return null;
                 },
@@ -334,11 +335,11 @@ class ConfigPage extends State<ConfigHP> {
             Container(
               margin: EdgeInsets.symmetric(vertical: 5),
               child: TextFormField(
-                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nom d\'usuari'),
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Nom d'usuari"),
                 controller: userNameController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Aquest camp és obligatori';
+                    return "Aquest camp és obligatori";
                   }
                   return null;
                 },
@@ -350,13 +351,13 @@ class ConfigPage extends State<ConfigHP> {
             Container(
               margin: EdgeInsets.symmetric(vertical: 5),
               child: TextFormField(
-                decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Correu'),
+                decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Correu"),
                 controller: mailController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Aquest camp és obligatori';
-                  } else if (!(value.contains('@') && value.contains('.'))) {
-                    return 'No té el format adequat';
+                    return "Aquest camp és obligatori";
+                  } else if (!(value.contains("@") && value.contains("."))) {
+                    return "No té el format adequat";
                   }
                   return null;
                 },
@@ -370,12 +371,12 @@ class ConfigPage extends State<ConfigHP> {
               Container(
                 margin: EdgeInsets.symmetric(vertical: 5),
                 child: TextFormField(
-                  decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Nova contrasenya'),
+                  decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Nova contrasenya"),
                   obscureText: true,
                   //controller: paswordController,
                   validator: (value) {
                     if (isNew && (value == null || value.isEmpty)) {
-                      return 'Aquest camp és obligatori';
+                      return "Aquest camp és obligatori";
                     }
                     return null;
                   },
@@ -386,7 +387,7 @@ class ConfigPage extends State<ConfigHP> {
               ),
             Container(height: 5),
 
-            if (isNew) Text('La contrasenya és generada automaticament', style: TextStyle(fontSize: 14)),
+            if (isNew) Text("La contrasenya és generada automaticament", style: TextStyle(fontSize: 14)),
 
             Container(height: 5),
 
@@ -394,7 +395,7 @@ class ConfigPage extends State<ConfigHP> {
             if (adminEdit && !isNew)
               Row(
                 children: [
-                  Text('Permisos d\'administrador'),
+                  Text("Permisos d'administrador"),
 
                   Container(width: 10),
 
@@ -412,7 +413,7 @@ class ConfigPage extends State<ConfigHP> {
             if (!isNew)
               Row(
                 children: [
-                  Text('Icona'),
+                  Text("Icona"),
 
                   Container(width: 10),
 
@@ -447,7 +448,7 @@ class ConfigPage extends State<ConfigHP> {
                     bool usernameExists = await userController.userNameExists(userName);
 
                     if (userName != editUser.userName && usernameExists) {
-                      nameExists('usuari');
+                      nameExists("usuari");
                     } else if (isNew) {
                       User user = editUser.copyWith(
                         name: name,
@@ -486,12 +487,7 @@ class ConfigPage extends State<ConfigHP> {
                           icon: Icon(User.iconMap[iconSelected]),
                         );
 
-                        try {
-                          await userController.updateProfileDB(updatedUser, editUser);
-                        } catch (e) {
-                          logError('EDIT ACCOUNT configPage', e);
-                        }
-                        //user = updatedUser;
+                        await userController.updateProfileDB(updatedUser, editUser);
 
                         setState(() {
                           viewUserList = true;
@@ -507,7 +503,7 @@ class ConfigPage extends State<ConfigHP> {
                     }
                   }
                 },
-                label: Text(!isNew ? 'Guardar canvis' : 'Crear compte'),
+                label: Text(!isNew ? "Guardar canvis" : "Crear compte"),
               ),
             ),
           ],
@@ -550,12 +546,12 @@ class ConfigPage extends State<ConfigHP> {
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: FloatingActionButton.extended(
-              heroTag: 'createUser',
+              heroTag: "createUser",
               onPressed: () async {
                 await openFormCreateUser();
                 await _loadUsers();
               },
-              label: Text('Crear Usuari'),
+              label: Text("Crear Usuari"),
               icon: Icon(Icons.add),
             ),
           ),
@@ -580,7 +576,7 @@ class ConfigPage extends State<ConfigHP> {
 
               leading: SizedBox(width: 35, child: user.icon),
               title: Text(user.userName),
-              subtitle: Text('${user.name} ${user.surname}'),
+              subtitle: Text("${user.name} ${user.surname}"),
 
               trailing: SizedBox(
                 width: 150,
@@ -588,7 +584,7 @@ class ConfigPage extends State<ConfigHP> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      tooltip: 'Veure dades',
+                      tooltip: "Veure dades",
                       onPressed: () async {
                         //await taskController.loadTasksFromDB(allUsers[index].userName);
                         setState(() {
@@ -600,7 +596,7 @@ class ConfigPage extends State<ConfigHP> {
                       icon: Icon(Icons.remove_red_eye),
                     ),
                     IconButton(
-                      tooltip: 'Editar',
+                      tooltip: "Editar",
                       onPressed: () {
                         setState(() {
                           editUser = allUsers[index];
@@ -630,19 +626,10 @@ class ConfigPage extends State<ConfigHP> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Table(
-                  columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
-                  children: [
-                    ToDoPage.tableRow('Nom:', user.name),
-                    ToDoPage.tableRow('Cognom:', user.surname),
-                    ToDoPage.tableRow('Nom d\'usuari:', user.userName),
-                    ToDoPage.tableRow('Correu:', user.mail),
-                    ToDoPage.tableRow('Rol:', (UserRole.isAdmin(user.userRole)) ? 'Administrador' : 'Usuari'),
-                  ],
-                ),
+                Tables.viewUsers(user, true),
 
                 Container(height: 10),
-                //Text('------------------------------------------------', style: TextStyle(fontWeight: FontWeight.bold)),
+                //Text("------------------------------------------------", style: TextStyle(fontWeight: FontWeight.bold)),
                 //Divider(height: 20, endIndent: 1000),
                 SizedBox(height: 30, width: 500, child: Divider(thickness: 2)),
 
@@ -651,11 +638,11 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    ToDoPage.tableRow(
-                      'Tasques de l\'usuari:',
-                      tasks.isEmpty ? 'Aquest usuari no té tasques assignades.' : tasks.first.name,
+                    Tables.tableRow2(
+                      "Tasques de l'usuari:",
+                      tasks.isEmpty ? "Aquest usuari no té tasques assignades." : tasks.first.name,
                     ),
-                    for (Task task in tasks.skip(1).toList()) ToDoPage.tableRow('', task.name),
+                    for (Task task in tasks.skip(1).toList()) Tables.tableRow2("", task.name),
                   ],
                 ),
 
@@ -668,7 +655,7 @@ class ConfigPage extends State<ConfigHP> {
                       userController.resetPswrd(user);
                     }
                   },
-                  child: Text('Reiniciar contrasenya'),
+                  child: Text("Reiniciar contrasenya"),
                 ),
 
                 Container(height: 15),
@@ -686,7 +673,7 @@ class ConfigPage extends State<ConfigHP> {
                       });
                     }
                   },
-                  child: Text('Eliminar usuari'),
+                  child: Text("Eliminar usuari"),
                 ),
               ],
             ),
@@ -708,11 +695,11 @@ class ConfigPage extends State<ConfigHP> {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: FloatingActionButton.extended(
-                  heroTag: 'createState',
+                  heroTag: "createState",
                   onPressed: () {
                     openFormCreateState(true, TaskState.empty());
                   },
-                  label: Text('Crear nou estat'),
+                  label: Text("Crear nou estat"),
                   icon: Icon(Icons.add),
                 ),
               ),
@@ -741,7 +728,7 @@ class ConfigPage extends State<ConfigHP> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Tooltip(
-                      message: canDelete ? 'No editable' : 'Editar estat',
+                      message: canDelete ? "No editable" : "Editar estat",
                       child: MouseRegion(
                         cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
                         child: GestureDetector(
@@ -754,7 +741,7 @@ class ConfigPage extends State<ConfigHP> {
                     SizedBox(width: 10),
 
                     Tooltip(
-                      message: canDelete ? 'No editable' : 'Editar estat',
+                      message: canDelete ? "No editable" : "Editar estat",
                       child: MouseRegion(
                         cursor: canDelete ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
                         child: GestureDetector(
@@ -833,12 +820,12 @@ class ConfigPage extends State<ConfigHP> {
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: FloatingActionButton.extended(
-                    heroTag: 'createTeam',
+                    heroTag: "createTeam",
                     onPressed: () async {
                       openFormCreateTeam(Team.empty(), true);
-                      //logToDo('crear equip', 'ConfigPage(teamsPage)');
+                      //logToDo("crear equip", "ConfigPage(teamsPage)");
                     },
-                    label: Text('Crear Equip'),
+                    label: Text("Crear Equip"),
                     icon: Icon(Icons.add),
                   ),
                 ),
@@ -879,9 +866,9 @@ class ConfigPage extends State<ConfigHP> {
                 children: [
                   Text(teamKey.name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   //if (isWide) SizedBox(height: 4),
-                  //if (isWide) Text('data', style: TextStyle(color: Colors.grey.shade800)),
+                  //if (isWide) Text("data", style: TextStyle(color: Colors.grey.shade800)),
                   const SizedBox(height: 4),
-                  Text('${users!.length} membres', style: TextStyle(color: Colors.grey[600])),
+                  Text("${users!.length} membres", style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
             ),
@@ -968,11 +955,11 @@ class ConfigPage extends State<ConfigHP> {
       alignment: Alignment.centerLeft,
 
       child: PopupMenuButton(
-        tooltip: 'Editar equip',
+        tooltip: "Editar equip",
 
         itemBuilder: (BuildContext context) => [
           PopupMenuItem(
-            child: Text('Veure equip'),
+            child: Text("Veure equip"),
             onTap: () {
               setState(() {
                 viewTeamList = false;
@@ -982,15 +969,15 @@ class ConfigPage extends State<ConfigHP> {
             },
           ),
           /*PopupMenuItem(
-            child: Text('Editar equip'),
+            child: Text("Editar equip"),
             onTap: () {
               setState(() {
-                logToDo('Editar equip', 'ToDoPage(editTeamButton)');
+                logToDo("Editar equip", "ToDoPage(editTeamButton)");
               });
             },
           ),*/
           PopupMenuItem(
-            child: Text('Afegir membres'),
+            child: Text("Afegir membres"),
             onTap: () {
               setState(() {
                 viewTeamList = false;
@@ -1000,7 +987,7 @@ class ConfigPage extends State<ConfigHP> {
             },
           ),
           PopupMenuItem(
-            child: Text('Treure membres'),
+            child: Text("Treure membres"),
             onTap: () {
               setState(() {
                 viewTeamList = false;
@@ -1016,7 +1003,7 @@ class ConfigPage extends State<ConfigHP> {
             color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text('Editar', style: TextStyle(fontSize: 17)),
+          child: Text("Editar", style: TextStyle(fontSize: 17)),
         ),
       ),
     );
@@ -1027,19 +1014,19 @@ class ConfigPage extends State<ConfigHP> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (isAdmin || isTeamAdmin)
-          TextButton(onPressed: () => openFormCreateTeam(team, false), child: Text('Editar dades')),
+          TextButton(onPressed: () => openFormCreateTeam(team, false), child: Text("Editar dades")),
         SizedBox(height: 10),
-        Text('Tasques del equip: ', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+        Text("Tasques del equip: ", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         SizedBox(height: 20),
-        teamTasks(team, isAdmin),
+        teamTasks(team),
 
         Divider(height: 40),
 
-        Text('Membres del equip:', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+        Text("Membres del equip:", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         SizedBox(height: 15),
 
         teamsAndUsers[team]!.isEmpty
-            ? Text('\t\tNo hi ha usuaris')
+            ? Text("\t\tNo hi ha usuaris")
             : Table(
                 columnWidths: {
                   0: IntrinsicColumnWidth(),
@@ -1051,7 +1038,7 @@ class ConfigPage extends State<ConfigHP> {
                 children: [
                   for (UserTeam ut in teamsAndUsers[team]!)
                     tableRowUser(
-                      Text('${teamsAndUsers[team]!.indexOf(ut) + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text("${teamsAndUsers[team]!.indexOf(ut) + 1}", style: TextStyle(fontWeight: FontWeight.bold)),
                       ut,
                     ),
                 ],
@@ -1067,7 +1054,7 @@ class ConfigPage extends State<ConfigHP> {
             children: [
               Row(
                 children: [
-                  Text('Afegir membres: ', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  Text("Afegir membres: ", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   SizedBox(width: 20),
 
                   ElevatedButton(
@@ -1078,7 +1065,7 @@ class ConfigPage extends State<ConfigHP> {
                       usersAdded.clear();
                       setState(() {});
                     },
-                    child: Text('Afegir'),
+                    child: Text("Afegir"),
                   ),
                 ],
               ),
@@ -1096,7 +1083,7 @@ class ConfigPage extends State<ConfigHP> {
     return SizedBox(
       width: 300,
       child: TextField(
-        decoration: InputDecoration(labelText: 'Buscar', border: OutlineInputBorder()),
+        decoration: InputDecoration(labelText: "Buscar", border: OutlineInputBorder()),
         onChanged: (value) {
           nameFilter = value.toLowerCase();
           setState(() {});
@@ -1111,7 +1098,7 @@ class ConfigPage extends State<ConfigHP> {
       children: [
         Row(
           children: [
-            Text('Treure membres: ', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            Text("Treure membres: ", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             SizedBox(width: 20),
             if (teamsAndUsers[team]!.isNotEmpty)
               ElevatedButton(
@@ -1124,19 +1111,19 @@ class ConfigPage extends State<ConfigHP> {
                   usersAdded.clear();
                   setState(() {});
                 },
-                child: Text('Guardar'),
+                child: Text("Guardar"),
               ),
           ],
         ),
         SizedBox(height: 15),
         searchUsers(),
         SizedBox(height: 15),
-        teamsAndUsers[team]!.isEmpty ? Text('\t\tNo hi ha usuaris') : Container(child: showUsersToSelect(team, false)),
+        teamsAndUsers[team]!.isEmpty ? Text("\t\tNo hi ha usuaris") : Container(child: showUsersToSelect(team, false)),
       ],
     );
   }
 
-  Table teamTasks(Team team, bool isAdmin) {
+  Table teamTasks(Team team) {
     List<Task>? teamTask = tasksFromTeams[team];
     return Table(
       columnWidths: {0: IntrinsicColumnWidth(), 1: IntrinsicColumnWidth()},
@@ -1145,6 +1132,190 @@ class ConfigPage extends State<ConfigHP> {
           for (Task tsk in teamTask) tableRowTask(tsk),
       ],
     );
+  }
+
+  //TASK PAGE
+  Widget taskPage() {
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [pageLabel(AppStrings.TASKS.toUpperCase())]),
+
+              SizedBox(height: 20),
+              filterButtons(),
+              SizedBox(height: 10),
+
+              taskList(), // --> LLISTA TASQUES + BOTÓ PER VEURE NOMES LES ELIMINADES + FILTRE/BUSCADOR
+            ],
+          );
+  }
+
+  Widget filterButtons() {
+    return !isWide
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start, //FER MES PETIT Ñ
+            children: [
+              searchTask(),
+              SizedBox(height: 10),
+              showOnlyDeletedBtn(),
+              //SizedBox(height: 10), shownTasks()
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [searchTask(), SizedBox(width: 10), showOnlyDeletedBtn()]),
+                ),
+              ),
+              shownTasks(),
+            ],
+          );
+  }
+
+  Widget showOnlyDeletedBtn() {
+    return SizedBox(
+      height: 50,
+      child: FilledButton(
+        onPressed: () {
+          showOnlyDeleted = !showOnlyDeleted;
+          setState(() {});
+        },
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(
+            showOnlyDeleted
+                ? Theme.of(context).colorScheme.inversePrimary
+                : Theme.of(context).colorScheme.primaryContainer,
+          ),
+          foregroundColor: WidgetStatePropertyAll(Colors.black),
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+        ),
+        child: Text(
+          isWide ? "Vreure només les tasques eliminades" : "Veure només eliminades",
+          style: TextStyle(fontSize: 17),
+        ),
+      ),
+    );
+  }
+
+  Text shownTasks() {
+    return Text(
+      AppStrings.shownTasks(
+        allTasks.where((task) => (task.name.contains(taskFilter) || task.description.contains(taskFilter))).length,
+      ),
+    );
+  }
+
+  Widget searchTask() {
+    return SizedBox(
+      width: 300,
+      child: TextField(
+        decoration: InputDecoration(labelText: "Buscar", prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+        onChanged: (value) {
+          taskFilter = value.toLowerCase();
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  Expanded taskList() {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: allTasks.length,
+        itemBuilder: (context, index) {
+          final task = allTasks[index];
+          bool hasPassedDate = task.completedDate != null
+              ? task.limitDate.add(Duration(days: 1)).isBefore(task.completedDate!)
+              : task.limitDate.add(Duration(days: 1)).isBefore(DateTime.now());
+
+          // filtrar per taskName (si escrit)
+          if (!(task.name.contains(taskFilter) || task.description.contains(taskFilter))) {
+            return SizedBox();
+          }
+
+          if (showOnlyDeleted && !task.deleted) {
+            return SizedBox();
+          }
+
+          return Card(
+            color: taskColor(task, hasPassedDate),
+            child: ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: EdgeInsets.all(5),
+
+              title: SizedBox(child: Row(children: [SizedBox(width: 15), Text(task.name)])),
+              subtitle: SizedBox(child: Row(children: [SizedBox(width: 15), Text(task.description)])),
+              onTap: () => openViewTask(task),
+
+              textColor: textColor(task, hasPassedDate),
+              trailing: SizedBox(
+                width: 150,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    !isWide
+                        ? TextButton(
+                            onPressed: () async {
+                              restoreTask();
+                              setState(() {});
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Restaurar",
+                                  style: TextStyle(color: textColor(task, hasPassedDate), fontSize: 16),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.restart_alt, color: textColor(task, hasPassedDate), size: 20),
+                              ],
+                            ),
+                          )
+                        : IconButton(
+                            tooltip: "Restaurar",
+                            onPressed: () async {
+                              restoreTask();
+                              setState(() {});
+                            },
+                            icon: Icon(Icons.restart_alt),
+                            style: ButtonStyle(
+                              foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                                return textColor(task, hasPassedDate);
+                              }),
+                            ),
+                          ),
+                    SizedBox(width: 10),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void restoreTask() {
+    logToDo("restaurar tasca", "ConfigPage(restoreTask)");
+  }
+
+  Color? taskColor(Task task, bool hasPassedDate) {
+    if (task.deleted) {
+      return Colors.black54;
+    }
+    return ToDoPage.backgroundColor(task, hasPassedDate);
+  }
+
+  Color textColor(Task task, bool hasPassedDate) {
+    if (task.deleted || hasPassedDate) {
+      return Colors.white;
+    }
+    return Colors.black87;
   }
 
   //DELETE ACC
@@ -1258,7 +1429,7 @@ class ConfigPage extends State<ConfigHP> {
 
         Padding(
           padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
-          child: Text(DateFormat('dd/MM/yyyy').format(task.limitDate)),
+          child: Text(DateFormat("dd/MM/yyyy").format(task.limitDate)),
         ),
       ],
     );
@@ -1282,7 +1453,7 @@ class ConfigPage extends State<ConfigHP> {
                       bool contains = states.any((TaskState s) => s.name == tState.name);
 
                       if (contains) {
-                        nameExists('estat');
+                        nameExists("estat");
                       } else {
                         await stateController.createState(tState);
                         states.add(tState);
@@ -1304,7 +1475,7 @@ class ConfigPage extends State<ConfigHP> {
                       }
 
                       if (contains) {
-                        nameExists('estat');
+                        nameExists("estat");
                       } else {
                         await stateController.updateState(tState);
                         int num = states.indexWhere((s) => state.id == s.id);
@@ -1352,7 +1523,7 @@ class ConfigPage extends State<ConfigHP> {
                       //List<User> filteredUsers = users;
                       //allUsers.where((user) => users.contains(user)).toList();
                       if (teamsAndUsers.keys.any((t) => t.name == team.name)) {
-                        nameExists('equip');
+                        nameExists("equip");
                       } else {
                         await teamController.createTeam(team);
                         for (final u in users) {
@@ -1367,9 +1538,33 @@ class ConfigPage extends State<ConfigHP> {
                     team: team,
                     allUsers: allUsers,
                     onTeamEdited: (team) {
-                      logToDo('Editar equip (funció)', 'ConfigPage(openFormCreateTeam)');
+                      logToDo("Editar equip (funció)", "ConfigPage(openFormCreateTeam)");
                     },
                   ),
+          ),
+        );
+      },
+    );
+  }
+
+  openViewTask(Task task) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsetsGeometry.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 30,
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Tables.viewTasks(task, Theme.of(context).colorScheme.inverseSurface),
+            ),
           ),
         );
       },
@@ -1383,20 +1578,28 @@ class ConfigPage extends State<ConfigHP> {
     setState(() {
       allUsers = users;
     });
-    await _loadTask();
   }
 
-  Future<void> _loadTask() async {
+  Future<void> _loadTaskByUser() async {
     for (User user in allUsers) {
       await taskController.loadTasksFromDB(user.userName);
       tasksFromUsers[user.userName] = taskController.tasks;
     }
   }
 
+  Future<void> _loadAllTask() async {
+    await taskController.loadAllTasksFromDB(true);
+    allTasks = taskController.tasks;
+    allTasks.sort((task1, task2) => TaskController.sortTask(SortType.DATE, task1, task2, {}));
+  }
+
   Future<void> _loadAdminData() async {
     tasksFromTeams.clear();
-
     await _loadUsers();
+    await _loadTaskByUser();
+    if (isAdmin) {
+      await _loadAllTask();
+    }
     await stateController.loadAllStates();
     states = stateController.states;
     await teamController.loadAllTeamsWithUsers();
@@ -1435,14 +1638,14 @@ class ConfigPage extends State<ConfigHP> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Aquest $type ja existeix'),
-          content: Text('Tria un altre nom'),
+          title: Text("Aquest $type ja existeix"),
+          content: Text("Tria un altre nom"),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Tancar'),
+              child: Text("Tancar"),
             ),
           ],
         );
@@ -1456,8 +1659,8 @@ class ConfigPage extends State<ConfigHP> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Eliminar estat'),
-          content: Text('Per  continuar, introdueixi el nom del estat: '),
+          title: Text("Eliminar estat"),
+          content: Text("Per  continuar, introdueixi el nom del estat: "),
           actions: <Widget>[
             TextField(
               controller: controller,
@@ -1499,8 +1702,8 @@ class ConfigPage extends State<ConfigHP> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Nom d\'usuari'),
-          content: Text('Per continuar, introdueixi el nom de l\'usuari'),
+          title: Text("Nom d'usuari"),
+          content: Text("Per continuar, introdueixi el nom de l'usuari"),
           actions: <Widget>[
             TextField(
               controller: userNameController,
@@ -1546,8 +1749,8 @@ class ConfigPage extends State<ConfigHP> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(deleteAcc ? 'Eliminar compte' : 'Contrasenya'),
-          content: Text('Per continuar, introdueixi la contrasenya'),
+          title: Text(deleteAcc ? "Eliminar compte" : "Contrasenya"),
+          content: Text("Per continuar, introdueixi la contrasenya"),
           actions: <Widget>[
             TextField(
               controller: passwordController,
@@ -1595,12 +1798,12 @@ class ConfigPage extends State<ConfigHP> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Estat'),
-          content: Text('Tria el estat que voldrà assignar a les tasques.'),
+          title: Text("Estat"),
+          content: Text("Tria el estat que voldrà assignar a les tasques."),
           actions: <Widget>[
             DropdownButtonFormField<String>(
               decoration: InputDecoration(border: OutlineInputBorder()),
-              hint: Text('Estat'),
+              hint: Text("Estat"),
               value: stateSTR!.isNotEmpty ? stateSTR : null,
               items: states
                   .where((s) => s.id != state.id)
@@ -1617,7 +1820,7 @@ class ConfigPage extends State<ConfigHP> {
                   stateSTR = value;
                 });
               },
-              validator: (value) => value == null ? 'Siusplau, seleccioneu un estat' : null,
+              validator: (value) => value == null ? "Siusplau, seleccioneu un estat" : null,
             ),
 
             Row(
