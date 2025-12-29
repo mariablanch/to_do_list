@@ -9,6 +9,7 @@ import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
 class User implements Comparable<User> {
+  String _id;
   String _name;
   String _surname;
   String _userName;
@@ -76,7 +77,8 @@ class User implements Comparable<User> {
   }
 
   User.empty()
-    : this._name = '',
+    : this._id = '',
+      this._name = '',
       this._surname = '',
       this._userName = '',
       this._mail = '',
@@ -104,9 +106,11 @@ class User implements Comparable<User> {
       this._mail = user.mail,
       this._password = user.password,
       this._userRole = user.userRole,
-      this._icon = user.icon;
+      this._icon = user.icon,
+      this._id = user.id;
 
   User copyWith({
+    String? id,
     String? name,
     String? surname,
     String? userName,
@@ -116,6 +120,7 @@ class User implements Comparable<User> {
     Icon? icon,
   }) {
     return User(
+      id: id ?? this.id,
       name: name ?? this.name,
       surname: surname ?? this.surname,
       userName: userName ?? this.userName,
@@ -126,6 +131,7 @@ class User implements Comparable<User> {
     );
   }
 
+  String get id => this._id;
   String get name => this._name;
   String get surname => this._surname;
   String get userName => this._userName;
@@ -135,6 +141,9 @@ class User implements Comparable<User> {
   Icon get icon => this._icon;
 
   void setPassword(String password) => _password = password;
+    set id(String newId) => _id = newId;
+
+
 
   @override
   String toString() {
@@ -159,6 +168,7 @@ class User implements Comparable<User> {
   }
 
   User({
+    required String id,
     required String name,
     required String surname,
     required String userName,
@@ -166,11 +176,12 @@ class User implements Comparable<User> {
     required String password,
     required UserRole userRole,
     required Icon iconName,
-  }) : _password = password,
-       _mail = mail,
-       _userName = userName,
-       _surname = surname,
+  }) : _id = id,
        _name = name,
+       _surname = surname,
+       _userName = userName,
+       _mail = mail,
+       _password = password,
        _userRole = userRole,
        _icon = iconName;
 
@@ -179,6 +190,7 @@ class User implements Comparable<User> {
     final iconName = data?[DbConstants.ICON] ?? 'person';
 
     return User(
+      id: snapshot.id,
       name: data?['name'] ?? '',
       surname: data?['surname'] ?? '',
       userName: data?['userName'] ?? '',

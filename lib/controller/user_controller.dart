@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
-import 'package:to_do_list/model/relation_tables/user_task.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
@@ -19,7 +18,8 @@ class UserController {
 
     if (!await userNameExists(newUser.userName)) {
       try {
-        await FirebaseFirestore.instance.collection(DbConstants.USER).add(newUser.toFirestore());
+        final docRef = await FirebaseFirestore.instance.collection(DbConstants.USER).add(newUser.toFirestore());
+        user.id = docRef.id;
         ret = DbConstants.USERNOTEXISTS;
       } catch (e) {
         logError('CREATE ACCOUNT', e);
@@ -44,21 +44,21 @@ class UserController {
     }
   }
 
-  Future<void> deleteUser(String userName) async {
+  Future<void> deleteUser(User user) async {
     TaskController taskController = TaskController();
 
     try {
-      await taskController.deleteUserTaskRelationsByUser(userName);
-      await _deleteUser(userName);
-      await NotificationController().deleteNotificationByUser(userName);
+      await taskController.deleteUserTaskRelationsByUser(user);
+      await _deleteUser(user);
+      await NotificationController().deleteNotificationByUser(user);
     } catch (e) {
       logError('DELETE USER', e);
     }
   }
 
-  Future<void> _deleteUser(String userName) async {
+  Future<void> _deleteUser(User user) async {
     try {
-      final db = await _getUserByUserName(userName);
+      final db = await _getUserByUserName(user.userName);
 
       if (db.docs.isNotEmpty) {
         await db.docs.first.reference.delete();
@@ -66,6 +66,18 @@ class UserController {
     } catch (e) {
       logError('DELETE USER', e);
     }
+  }
+
+  Future<User> getUserByUserName(String userName) async {
+    try {
+      final db = await _getUserByUserName(userName);
+      if (db.docs.isNotEmpty) {
+        return User.fromFirestore(db.docs.first, null);
+      }
+    } catch (e) {
+      logError("GET USER BY USER NAME", e);
+    }
+    return User.empty();
   }
 
   Future<List<User>> loadAllUsers() async {
@@ -102,13 +114,13 @@ class UserController {
     }
   }
 
-  Future<bool> userHasTask(String userName, String taskId) async {
+  Future<bool> userHasTask(User user, String taskId) async {
     bool ret = false;
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
           .where(DbConstants.TASKID, isEqualTo: taskId)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: user.id)
           .get();
 
       if (db.docs.isNotEmpty) {
@@ -125,32 +137,9 @@ class UserController {
       final id = await _getUserIdByUserName(oldUser.userName);
       if (id != null) {
         await _updateUserById(id, updatedUser);
-        if (oldUser.userName != updatedUser.userName) {
-          await _updateUserTask(oldUser.userName, updatedUser);
-        }
       }
     } catch (e) {
       logError('UPDATE PROFILE DB', e);
-    }
-  }
-
-  Future<void> _updateUserTask(String oldUserName, User updatedUser) async {
-    try {
-      final db = await FirebaseFirestore.instance
-          .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: oldUserName)
-          .get();
-
-      final docs = db.docs;
-
-      for (final doc in docs) {
-        final taskId = doc[DbConstants.TASKID] as String;
-        UserTask ut = UserTask(taskId: taskId, userName: updatedUser.userName);
-
-        await FirebaseFirestore.instance.collection(DbConstants.USERTASK).doc(doc.id).update(ut.toFirestore());
-      }
-    } catch (e) {
-      logError('UPDATE USER', e);
     }
   }
 
@@ -172,11 +161,21 @@ class UserController {
     return ret;
   }
 
-  Future<QuerySnapshot> _getUserByUserName(String userName) async {
+  Future<QuerySnapshot<Map<String, dynamic>>> _getUserByUserName(String userName) async {
     return await FirebaseFirestore.instance
         .collection(DbConstants.USER)
         .where(DbConstants.USERNAME, isEqualTo: userName)
         .get();
+  }
+
+  Future<User> getUserById(String userId) async {
+    try {
+      final db = await FirebaseFirestore.instance.collection(DbConstants.USER).doc(userId).get();
+      return User.fromFirestore(db, null);
+    } catch (e) {
+      logError("GET USER BY ID", e);
+    }
+    return User.empty();
   }
 
   Future<void> _updateUserById(String id, User user) async {

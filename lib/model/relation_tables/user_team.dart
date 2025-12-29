@@ -24,7 +24,7 @@ class UserTeam implements Comparable<UserTeam> {
   TeamRole get role => _role;
 
   Map<String, dynamic> toFirestore() {
-    return {DbConstants.USERNAME: user.userName, DbConstants.TEAMID: team.id, DbConstants.USERROLE: role.name};
+    return {DbConstants.USERID: user.id, DbConstants.TEAMID: team.id, DbConstants.USERROLE: role.name};
   }
 
   factory UserTeam.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
@@ -34,7 +34,7 @@ class UserTeam implements Comparable<UserTeam> {
       orElse: () => TeamRole.USER,
     );
     Team team = Team.empty().copyWith(id: data?[DbConstants.TEAMID] ?? '');
-    User user = User.empty().copyWith(userName: data?[DbConstants.USERNAME] ?? '');
+    User user = User.empty().copyWith(id: data?[DbConstants.USERID] ?? '');
     
     return UserTeam(team: team, user: user, role: role);
   }

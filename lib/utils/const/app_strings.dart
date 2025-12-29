@@ -24,6 +24,7 @@ class AppStrings {
   static const String TASKS = "Tasques";
   static const String TEAMS_LABEL = "Equips";
   static const String MY_TEAMS = "Els meus equips";
+  static const String HISTORY = "Historial";
   static const String DELETEACC = "Eliminar compte";
 
   static const String PR_HIGH = "Alt";

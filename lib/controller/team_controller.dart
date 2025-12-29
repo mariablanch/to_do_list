@@ -80,11 +80,11 @@ class TeamController {
   }
 
   /// Elimina un usuari [userName] del equip [team].
-  Future<void> deleteUserTeamRelationByUser(Team team, String userName) async {
+  Future<void> deleteUserTeamRelationByUser(Team team, String userId) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTEAM)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: userId)
           .where(DbConstants.TEAMID, isEqualTo: team.id)
           .get();
       for (var doc in db.docs) {
@@ -95,11 +95,11 @@ class TeamController {
     }
   }
 
-  Future<void> removeUserFromAllTeams(String userName) async {
+  Future<void> removeUserFromAllTeams(String userId) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTEAM)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: userId)
           .get();
 
       for (var doc in db.docs) {
@@ -120,19 +120,25 @@ class TeamController {
       await _loadAllTeams();
 
       final db = await FirebaseFirestore.instance.collection(DbConstants.USERTEAM).get();
+      if (db.docs.isNotEmpty) {
+        for (var doc in db.docs) {
+          UserTeam ut = UserTeam.fromFirestore(doc, null);
+          
+          user = allUsers.firstWhere((u) => u.id == ut.user.id);
+          team = allTeamsAndUsers.keys.firstWhere((t) => t.id == ut.team.id); 
 
-      for (var doc in db.docs) {
-        UserTeam ut = UserTeam.fromFirestore(doc, null);
-        user = allUsers.firstWhere((u) => u.userName == ut.user.userName);
-        team = allTeamsAndUsers.keys.firstWhere((t) => t.id == ut.team.id);
-
-        ut = ut.copyWith(user: user, team: team);
-        allTeamsAndUsers[team]?.add(ut);
+          ut = ut.copyWith(user: user, team: team);
+          allTeamsAndUsers[team]?.add(ut);
+        }
+        allTeamsAndUsers = sortMap(allTeamsAndUsers);
       }
-      allTeamsAndUsers = Map.fromEntries(allTeamsAndUsers.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
     } catch (e) {
-      logError('LOAD ALL TEAMS WTH USERS', e);
+      logError('LOAD ALL TEAMS WITH USERS', e);
     }
+  }
+
+  Map<Team, List<UserTeam>> sortMap(Map<Team, List<UserTeam>> map) {
+    return Map.fromEntries(map.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
   }
 
   Future<void> _loadAllTeams() async {
@@ -160,6 +166,7 @@ class TeamController {
           myTeamsAndUsers[team] = ut;
         }
       });
+      myTeamsAndUsers = sortMap(myTeamsAndUsers);
     } catch (e) {
       logError('LOAD TEAMS BY USER', e);
     }
@@ -190,5 +197,60 @@ class TeamController {
       list.add(tt);
     }
     return list;
+  }
+
+  Future<List<UserTeam>> updateAdmins(List<User> adminUsersSelected, List<UserTeam> teamUsers, Team team) async {
+    try {
+      List<User> users = teamUsers.where((ut) => ut.role == TeamRole.ADMIN).map((ut) => ut.user).toList();
+      UserTeam ut;
+
+      if (!adminUsersSelected.every((u) => users.contains(u))) {}
+
+      for (var user in users) {
+        if (!adminUsersSelected.contains(user)) {
+          users.remove(user);
+          ut = UserTeam(team: team, user: user, role: TeamRole.USER);
+          await _upadateRelation(ut);
+        }
+      }
+      users.addAll(adminUsersSelected);
+      users = users.toSet().toList();
+
+      for (var user in users) {
+        ut = UserTeam(team: team, user: user, role: TeamRole.ADMIN);
+        await _upadateRelation(ut);
+      }
+
+      List<UserTeam> ret = [];
+      for (var userTeam in teamUsers) {
+        if (users.contains(userTeam.user)) {
+          ret.add(userTeam.copyWith(role: TeamRole.ADMIN));
+        } else {
+          ret.add(userTeam.copyWith(role: TeamRole.USER));
+        }
+      }
+
+      return ret;
+    } catch (e) {
+      logError('MAKE ADMIN', e);
+      return [];
+    }
+  }
+
+  /// Entra un UserTeam amb el TeamRole ya canviat.
+  Future<void> _upadateRelation(UserTeam ut) async {
+    try {
+      final db = await FirebaseFirestore.instance
+          .collection(DbConstants.USERTEAM)
+          .where(DbConstants.USERID, isEqualTo: ut.user.id)
+          .where(DbConstants.TEAMID, isEqualTo: ut.team.id)
+          .get();
+
+      if (db.docs.isNotEmpty) {
+        db.docs.first.reference.update(ut.toFirestore());
+      }
+    } catch (e) {
+      logError('UPDATE RELATION', e);
+    }
   }
 }

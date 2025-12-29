@@ -1,14 +1,17 @@
 // ignore_for_file: unnecessary_this
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/history_controller.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
 import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/team_controller.dart';
+import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/relation_tables/team_task.dart';
 import 'package:to_do_list/model/relation_tables/user_task.dart';
 import 'package:to_do_list/model/task_state.dart';
 import 'package:to_do_list/model/team.dart';
+import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/const/messages.dart';
@@ -22,7 +25,7 @@ class TaskController {
   //TaskController(List<Task> tasks) : this.tasks = tasks;
 
   //LOAD
-  Future<void> loadTasksFromDB(String userName) async {
+  Future<void> loadTasksFromDB(String userId) async {
     Task task;
     try {
       List<Task> loadedTasks = [];
@@ -30,7 +33,7 @@ class TaskController {
       //AGAFAR TASQUES DE LA RELACIÓ
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: userId)
           .get();
 
       List<String> taskIds = db.docs.map((doc) => doc[DbConstants.TASKID] as String).toList();
@@ -163,6 +166,7 @@ class TaskController {
     List<String> userNames = [];
     String str = '';
     String userName = '';
+    UserController uc = UserController();
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
@@ -170,7 +174,8 @@ class TaskController {
           .get();
 
       for (var doc in db.docs) {
-        userName = doc.get(DbConstants.USERNAME);
+        String userId = doc.get(DbConstants.USERID);
+        userName = (await uc.getUserById(userId)).userName;
         userNames.add(userName);
       }
 
@@ -186,28 +191,30 @@ class TaskController {
 
   //CREATE
   //    TASK
-  Future<void> addTaskToDataBase(Task newTask) async {
+  Future<void> addTaskToDataBase(Task newTask, User creator) async {
     try {
       final docRef = await FirebaseFirestore.instance.collection(DbConstants.TASK).add(newTask.toFirestore());
       String taskId = docRef.id;
       newTask.id = taskId;
+
+      HistoryController.createTask(newTask, creator);
     } catch (e) {
       logError('ADD TASK TO DATABASE', e);
     }
   }
 
   //    USER RELATION
-  Future<void> addTaskToDataBaseUser(Task newTask, String userName) async {
+  Future<void> addTaskToDataBaseUser(Task newTask, User user, User creator) async {
     try {
-      await addTaskToDataBase(newTask);
-      await createUserTaskRelation(newTask.id, userName);
+      await addTaskToDataBase(newTask, creator);
+      await createUserTaskRelation(newTask, user);
     } catch (e) {
       logError('ADD TASK TO DATABASE USER', e);
     }
   }
 
-  Future<void> createUserTaskRelation(String taskId, String userName) async {
-    UserTask ut = UserTask(taskId: taskId, userName: userName);
+  Future<void> createUserTaskRelation(Task task, User user) async {
+    UserTask ut = UserTask(task: task, user: user);
     try {
       await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add(ut.toFirestore());
     } catch (e) {
@@ -260,16 +267,16 @@ class TaskController {
     }
   }
 
-  Future<void> deleteUserTaskRelationsByUser(String userName) async {
+  Future<void> deleteUserTaskRelationsByUser(User user) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: user.id)
           .get();
 
       for (var doc in db.docs) {
         final taskId = doc.get(DbConstants.TASKID);
-        await removeTaskUser(taskId, userName);
+        await removeTaskUser(taskId, user.id);
       }
     } catch (e) {
       logError('DELETE USER-TASK BY USER', e);
@@ -291,12 +298,12 @@ class TaskController {
     }
   }
 
-  Future<void> _deleteUserTaskRelation(String userName, String taskId) async {
+  Future<void> _deleteUserTaskRelation(String userId, String taskId) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
           .where(DbConstants.TASKID, isEqualTo: taskId)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: userId)
           .get();
       for (var doc in db.docs) {
         await doc.reference.delete();
@@ -306,7 +313,7 @@ class TaskController {
     }
   }
 
-  Future<void> removeTaskUser(String taskId, String userName) async {
+  Future<void> removeTaskUser(String taskId, String userId) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
@@ -316,7 +323,7 @@ class TaskController {
       if (db.docs.length == 1) {
         await _deleteUserTask(taskId);
       } else {
-        await _deleteUserTaskRelation(userName, taskId);
+        await _deleteUserTaskRelation(userId, taskId);
       }
     } catch (e) {
       logError('REMOVE TASK', e);

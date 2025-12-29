@@ -1,4 +1,5 @@
 enum TeamRole {
+  NONE,
   USER,
   ADMIN;
 

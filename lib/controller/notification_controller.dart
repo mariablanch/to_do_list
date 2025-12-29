@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/model/notification.dart';
@@ -13,7 +14,7 @@ class NotificationController {
 
   NotificationController({List<Notifications>? notifications}) : this.notifications = notifications ?? [];
 
-  Future<void> loadNotificationsFromDB(String userName) async {
+  Future<void> loadNotificationsFromDB(String userId) async {
     Notifications notification;
     try {
       List<Notifications> loadedNotifications = [];
@@ -21,7 +22,7 @@ class NotificationController {
       //AGAFAR TASQUES DE LA RELACIÓ
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: userId)
           .get();
 
       //AGAFAR LES NOTIFICACIONS
@@ -70,11 +71,11 @@ class NotificationController {
     }
   }
 
-  Future<void> deleteNotificationByUser(String userName) async {
+  Future<void> deleteNotificationByUser(User user) async {
     try {
       final notification = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: user.id)
           .get();
 
       for (var doc in notification.docs) {
@@ -104,11 +105,11 @@ class NotificationController {
     await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).add(not.toFirestore());
   }
 
-  Future<bool> taskInvitation(String destinationUserName, Task task, String userName, String userDescription) async {
+  Future<bool> taskInvitation(User destinationUser, Task task, String userName, String userDescription) async {
     String message = 'L\'usuari $userName t\'ha compartit una tasca (${task.name})';
     Notifications notification = Notifications(
       id: '',
-      userName: destinationUserName,
+      user: destinationUser,
       message: message,
       description: userDescription,
       taskId: task.id,
@@ -116,8 +117,8 @@ class NotificationController {
 
     bool ret = false;
     try {
-      bool notExists = await notificationExists(task.id, destinationUserName);
-      bool userHasTask = await UserController().userHasTask(destinationUserName, task.id);
+      bool notExists = await notificationExists(task.id, destinationUser);
+      bool userHasTask = await UserController().userHasTask(destinationUser, task.id);
 
       if (!(notExists || userHasTask)) {
         //await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).add(notification.toFirestore());
@@ -130,13 +131,13 @@ class NotificationController {
     return ret;
   }
 
-  Future<bool> notificationExists(String taskId, String userName) async {
+  Future<bool> notificationExists(String taskId, User user) async {
     bool ret = false;
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
           .where(DbConstants.TASKID, isEqualTo: taskId)
-          .where(DbConstants.USERNAME, isEqualTo: userName)
+          .where(DbConstants.USERID, isEqualTo: user.id)
           .get();
 
       if (db.docs.isNotEmpty) {

@@ -8,10 +8,11 @@ class DbConstants {
   static const String TEAM = "team";
   static const String USERTEAM = "userteam";
   static const String TEAMTASK = "teamtask";
-
+  static const String HISTORY = "history";
 
   //FIELD
   static const String USERNAME = "userName";
+  static const String USERID = "userId";
   static const String PASSWORD = "password";
   static const String USERROLE = "userRole";
   static const String TASKID = "taskId";

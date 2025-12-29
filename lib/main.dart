@@ -7,8 +7,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
-import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
+import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/to_do_page.dart';
@@ -156,6 +156,7 @@ class LogInPage extends State<MyHomePage> {
               }
               return null;
             },
+            onFieldSubmitted: (value) => logIn(),
             onSaved: (value) {
               _pasword = value!;
             },
@@ -165,31 +166,7 @@ class LogInPage extends State<MyHomePage> {
             margin: EdgeInsets.symmetric(vertical: 20),
 
             child: ElevatedButton.icon(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  pswrdController.clear();
-                  nameController.clear();
-
-                  try {
-                    //createUser(_userName, _pasword);
-                    if (await logIn(_userName, _pasword)) {
-                      setState(() {
-                        //control = "Entrant a la pàgina";
-                        control = "";
-                      });
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => MyAppToDo(user: retUser)));
-                      //Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePageToDo(user: retUser)));
-                    } else {
-                      setState(() {
-                        control = "L'usuari no s'ha trobat, reviseu les dades";
-                      });
-                    }
-                  } catch (e) {
-                    logError("LOG IN FORM", e);
-                  }
-                }
-              },
+              onPressed: () async => logIn(),
               label: Text("Iniciar sessió"),
               //icon: Icon(Icons.login),
             ),
@@ -307,6 +284,7 @@ class LogInPage extends State<MyHomePage> {
                   _formKey.currentState!.save();
                   //user = User.parameter(name, surname, userName, mail, password, UserRole.USER);
                   user = User(
+                    id: "",
                     name: name,
                     surname: surname,
                     userName: userName,
@@ -355,7 +333,7 @@ class LogInPage extends State<MyHomePage> {
     );
   }
 
-  Future<bool> logIn(String username, String pswrd) async {
+  Future<bool> _logInComp(String username, String pswrd) async {
     bool ret = false;
     User user = User.empty();
     try {
@@ -381,5 +359,26 @@ class LogInPage extends State<MyHomePage> {
     });
 
     return ret;
+  }
+
+  Future<void> logIn() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      try {
+        if (await _logInComp(_userName, _pasword)) {
+          setState(() {
+            control = "";
+          });
+          clear();
+          Navigator.push(context, MaterialPageRoute(builder: (context) => MyAppToDo(user: retUser)));
+        } else {
+          setState(() {
+            control = "L'usuari no s'ha trobat, reviseu les dades";
+          });
+        }
+      } catch (e) {
+        logError("LOG IN FORM", e);
+      }
+    }
   }
 }

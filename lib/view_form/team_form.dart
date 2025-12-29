@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_list/model/relation_tables/user_team.dart';
 import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/model/user.dart';
+import 'package:to_do_list/utils/user_role_team.dart';
 
 class TeamForm extends StatefulWidget {
-  final Function(Team, List<User>)? onTeamCreated;
-  final Function(Team)? onTeamEdited;
+  final Function(Team newTeam, List<User> usersToAdd)? onTeamCreated;
+  final Function(Team teamEdited, List<User> toAdmin)? onTeamEdited;
   final Team team;
   final List<User> allUsers;
-  const TeamForm({super.key, this.onTeamCreated, this.onTeamEdited, required this.team, required this.allUsers});
+  final List<UserTeam>? usersInTeam;
+  const TeamForm({
+    super.key,
+    this.onTeamCreated,
+    this.onTeamEdited,
+    required this.team,
+    required this.allUsers,
+    this.usersInTeam,
+  });
 
   @override
   TeamFormState createState() => TeamFormState();
@@ -37,6 +47,14 @@ class TeamFormState extends State<TeamForm> {
     }
     team = Team.copy(widget.team);
     nameController = TextEditingController(text: team.name);
+    if (widget.onTeamEdited != null) {
+      users = widget.allUsers.where((u) => widget.usersInTeam!.any((ut) => ut.user.userName == u.userName)).toList();
+      selectedUsers.addAll(
+        widget.allUsers
+            .where((u) => widget.usersInTeam!.any((ut) => ut.user.userName == u.userName && ut.role == TeamRole.ADMIN))
+            .toList(),
+      );
+    }
   }
 
   @override
@@ -67,8 +85,9 @@ class TeamFormState extends State<TeamForm> {
             ),
 
             SizedBox(height: 15),
-            if (isCreating) Text('Afegir usuaris:', style: TextStyle(fontWeight: FontWeight.bold),),
-            if (isCreating)
+
+            if (isCreating) ...[
+              Text('Afegir usuaris:', style: TextStyle(fontWeight: FontWeight.bold)),
               Autocomplete<User>(
                 displayStringForOption: (user) => user.userName,
 
@@ -98,28 +117,82 @@ class TeamFormState extends State<TeamForm> {
                   );
                 },
               ),
-            if (isCreating) SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              children: selectedUsers
-                  .map(
-                    (u) => Chip(
-                      label: Text(u.userName),
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
-                      side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
+              SizedBox(height: 20),
+              Wrap(
+                spacing: 8,
+                children: selectedUsers
+                    .map(
+                      (u) => Chip(
+                        label: Text(u.userName),
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                        side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
 
-                      onDeleted: () {
-                        setState(() {
-                          selectedUsers.remove(u);
-                        });
-                      },
-                      deleteButtonTooltipMessage: 'Eliminar',
+                        onDeleted: () {
+                          setState(() {
+                            selectedUsers.remove(u);
+                          });
+                        },
+                        deleteButtonTooltipMessage: 'Eliminar',
+                      ),
+                    )
+                    .toList(),
+              ),
+              SizedBox(height: 15),
+            ],
+
+            if (!isCreating) ...[
+              Text('Usuaris administradors:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Autocomplete<User>(
+                displayStringForOption: (user) => user.userName,
+
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.isEmpty) return const Iterable<User>.empty();
+                  return users.where(
+                    (u) =>
+                        u.userName.toLowerCase().contains(textEditingValue.text.toLowerCase()) &&
+                        !selectedUsers.contains(u),
+                  );
+                },
+
+                onSelected: (User selection) {
+                  setState(() {
+                    selectedUsers.add(selection);
+                  });
+                },
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+
+                    decoration: InputDecoration(
+                      //labelText: 'Nom equip',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
                     ),
-                  )
-                  .toList(),
-            ),
+                  );
+                },
+              ),
+              SizedBox(height: 20),
+              Wrap(
+                spacing: 8,
+                children: selectedUsers
+                    .map(
+                      (u) => Chip(
+                        label: Text(u.userName),
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                        side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
 
-            SizedBox(height: 15),
+                        onDeleted: () {
+                          setState(() {
+                            selectedUsers.remove(u);
+                          });
+                        },
+                        deleteButtonTooltipMessage: 'Eliminar',
+                      ),
+                    )
+                    .toList(),
+              ),
+              SizedBox(height: 15),
+            ],
 
             ElevatedButton.icon(
               onPressed: () {
@@ -131,7 +204,7 @@ class TeamFormState extends State<TeamForm> {
                   if (isCreating) {
                     widget.onTeamCreated!(updatedTeam.copyWith(id: ''), selectedUsers);
                   } else if (widget.onTeamEdited != null) {
-                    widget.onTeamEdited!(updatedTeam);
+                    widget.onTeamEdited!(updatedTeam, selectedUsers);
                   }
                 }
               },

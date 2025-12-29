@@ -16,6 +16,7 @@ class Task implements Comparable<Task> {
   DateTime? _completedDate;
   TaskState _state;
   bool _deleted;
+  //static final Entity _entity = Entity.TASK;
 
   Task.empty()
     : _id = '',
@@ -50,7 +51,6 @@ class Task implements Comparable<Task> {
     TaskState? state,
     bool? deleted,
   }) {
-    
     return Task(
       id: id ?? _id,
       name: name ?? _name,
@@ -101,7 +101,7 @@ class Task implements Comparable<Task> {
   String toString() {
     String limitDateF = DateFormat('dd/MM/yyyy').format(_limitDate);
     String openDateF = DateFormat('dd/MM/yyyy').format(_openDate);
-    String completedDateF = DateFormat('dd/MM/yyyy').format(_completedDate!);
+    String completedDateF = _completedDate != null ? DateFormat('dd/MM/yyyy').format(_completedDate!) : "NO COMPLETADA";
 
     String str = 'Id: $_id \n';
     str += 'Nom: $_name \n';
@@ -110,7 +110,7 @@ class Task implements Comparable<Task> {
     str += 'Data límit: $limitDateF \n';
     str += 'Data completada: $completedDateF \n';
     str += 'Data obertura: $openDateF \n';
-    str += 'Estat: ${_state.toString()} \n';
+    str += 'Estat: ${_state.name} \n';
     str += 'Eliminada: $deleted \n ';
     return str;
   }

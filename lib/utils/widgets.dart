@@ -6,7 +6,7 @@ import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
 /// Taules que s'utilitzen més d'un cop a més d'una classe
-/// 
+///
 class Tables {
   static TableRow tableRow2(String label, String value) {
     return TableRow(
@@ -15,7 +15,10 @@ class Tables {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20), child: Text(value)),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          child: Text(value, style: label.isEmpty ? TextStyle(color: Colors.red) : null),
+        ),
       ],
     );
   }
@@ -34,11 +37,7 @@ class Tables {
             tableRow2("Data obertura:", DateFormat("dd/MM/yyyy").format(task.openDate)),
             tableRow2("Data límit:", DateFormat("dd/MM/yyyy").format(task.limitDate)),
             if (task.completedDate != null)
-              tableRow2(
-                "Data completada:",
-                //task.completedDate == null ? "" :
-                DateFormat("dd/MM/yyyy").format(task.completedDate!),
-              ),
+              tableRow2("Data completada:", DateFormat("dd/MM/yyyy").format(task.completedDate!)),
             tableRow2("Estat:", task.state.name),
             if (task.deleted) tableRow2("", "Tasca eliminada"),
           ],
@@ -57,6 +56,20 @@ class Tables {
         tableRow2("Correu:", user.mail),
         if (isviewTeam) tableRow2("Rol:", (UserRole.isAdmin(user.userRole)) ? "Administrador" : "Usuari"),
       ],
+    );
+  }
+
+  static Expanded header(String text) {
+    return Expanded(
+      flex: 1,
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
+
+  static Expanded cell(String text) {
+    return Expanded(
+      flex: 1,
+      child: Text(text, overflow: TextOverflow.ellipsis),
     );
   }
 }

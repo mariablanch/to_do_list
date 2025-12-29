@@ -1,35 +1,34 @@
-// ignore_for_file: unnecessary_this
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 
 class Notifications implements Comparable<Notifications> {
   String _id;
   String _taskId;
   String _description;
-  String _userName;
+  User _user;
   String _message;
 
   Notifications.empty()
     : this._id = '',
       this._taskId = '',
       this._description = '',
-      this._userName = '',
+      this._user = User.empty(),
       this._message = '';
 
-  Notifications.coppy(Notifications not)
+  Notifications.copy(Notifications not)
     : this._id = not.id,
       this._taskId = not.taskId,
       this._description = not.description,
-      this._userName = not.userName,
+      this._user = User.copy(not.user),
       this._message = not.message;
 
-  Notifications copyWith({String? id, String? taskId, String? description, String? userName, String? message}) {
+  Notifications copyWith({String? id, String? taskId, String? description, User? user, String? message}) {
     return Notifications(
       id: id ?? this._id,
       taskId: taskId ?? this._taskId,
       description: description ?? this._description,
-      userName: userName ?? this._userName,
+      user: user ?? this._user,
       message: message ?? this._message,
     );
   }
@@ -37,37 +36,39 @@ class Notifications implements Comparable<Notifications> {
   String get id => this._id;
   String get taskId => this._taskId;
   String get description => this._description;
-  String get userName => this._userName;
+  User get user => this._user;
   String get message => this._message;
 
   Notifications({
     required String id,
     required String taskId,
     required String description,
-    required String userName,
+    required User user,
     required String message,
   }) : this._id = id,
        this._taskId = taskId,
        this._description = description,
-       this._userName = userName,
+       this._user = user,
        this._message = message;
 
   Map<String, dynamic> toFirestore() {
     return {
       DbConstants.TASKID: _taskId,
       'description': _description,
-      DbConstants.USERNAME: _userName,
+      DbConstants.USERID: _user.id,
       'message': _message,
     };
   }
 
   factory Notifications.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
     final data = snapshot.data();
+    User u = User.empty();
+    u.id = data?[DbConstants.USERID] ?? '';
     return Notifications(
       id: snapshot.id,
       taskId: data?[DbConstants.TASKID] ?? '',
       description: data?['description'] ?? '',
-      userName: data?[DbConstants.USERNAME] ?? '',
+      user: u,
       message: data?['message'] ?? '',
     );
   }

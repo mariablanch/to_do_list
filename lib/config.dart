@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
+
+import 'package:to_do_list/controller/history_controller.dart';
 import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/team_controller.dart';
-
 import 'package:to_do_list/controller/user_controller.dart';
+import 'package:to_do_list/model/relation_tables/team_task.dart';
+import 'package:to_do_list/model/relation_tables/user_task.dart';
 import 'package:to_do_list/model/relation_tables/user_team.dart';
-import 'package:to_do_list/model/task.dart';
+import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/task_state.dart';
+import 'package:to_do_list/model/history.dart';
+import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/team.dart';
-import 'package:to_do_list/to_do_page.dart';
-import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
-import 'package:to_do_list/utils/sort.dart';
-import 'package:to_do_list/utils/user_role.dart';
-import 'package:to_do_list/model/user.dart';
-import 'package:to_do_list/main.dart';
+import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/history_enums.dart';
+import 'package:to_do_list/utils/user_role.dart';
 import 'package:to_do_list/utils/widgets.dart';
+import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/view_form/state_form.dart';
 import 'package:to_do_list/view_form/team_form.dart';
+import 'package:to_do_list/to_do_page.dart';
+import 'package:to_do_list/main.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +42,7 @@ Future<void> main() async {
     UserRole.ADMIN,
   );*/
   User userProva = User(
+    id: "yycmf4AXVmQ9aXANlZxe",
     name: "111",
     surname: "111",
     userName: "111",
@@ -92,25 +99,49 @@ class ConfigPage extends State<ConfigHP> {
 
   String iconSelected = "person";
 
-  List<Widget> get pages => [profilePage(), editAccountPage(), teamsPage(false), deleteAccountPage()];
-  List<Widget> get adminPagess => [
+  //List<Widget> get pages => [profilePage(), editAccountPage(), teamsPage(false), deleteAccountPage()];
+  List<String> get labels => [
+    AppStrings.PROFILE,
+    AppStrings.CONFIG,
+    if (isAdmin) AppStrings.USERS_LABEL,
+    if (isAdmin) AppStrings.TASKSTATES,
+    if (isAdmin) AppStrings.TEAMS_LABEL,
+    AppStrings.MY_TEAMS,
+    if (isAdmin) AppStrings.TASKS,
+    if (isAdmin) AppStrings.HISTORY,
+    AppStrings.DELETEACC,
+  ];
+  List<IconData> get icons => [
+    Icons.person,
+    Icons.settings,
+    if (isAdmin) Icons.people,
+    if (isAdmin) Icons.style,
+    if (isAdmin) Icons.groups_2,
+    Icons.group_work,
+    if (isAdmin) Icons.task,
+    if (isAdmin) Icons.history,
+    Icons.delete,
+  ];
+  List<Widget> get pagess => [
     profilePage(),
     editAccountPage(),
-    usersPage(),
-    statePage(),
-    teamsPage(true),
+    if (isAdmin) usersPage(),
+    if (isAdmin) statePage(),
+    if (isAdmin) teamsPage(true),
     teamsPage(false),
-    taskPage(),
+    if (isAdmin) taskPage(),
+    if (isAdmin) historyPage(),
     deleteAccountPage(),
   ];
-  List<Widget> get adminPages => [
-    taskPage(),
+  List<Widget> get pages => [
+    if (isAdmin) historyPage(),
     profilePage(),
     editAccountPage(),
-    usersPage(),
-    statePage(),
-    teamsPage(true),
+    if (isAdmin) usersPage(),
+    if (isAdmin) statePage(),
+    if (isAdmin) teamsPage(true),
     teamsPage(false),
+    if (isAdmin) taskPage(),
     deleteAccountPage(),
   ];
 
@@ -128,6 +159,7 @@ class ConfigPage extends State<ConfigHP> {
   Map<Team, List<UserTeam>> myTeams = {};
   Map<Team, List<Task>> tasksFromTeams = {};
   List<Task> allTasks = [];
+  Map<History, Object> history = {};
 
   Set<User> usersAdded = {};
 
@@ -173,16 +205,19 @@ class ConfigPage extends State<ConfigHP> {
           ? null
           : Drawer(
               child: ListView(
-                children: [
-                  _drawerItem(AppStrings.PROFILE, 0),
+                children: labels.asMap().entries.map((entry) {
+                  final int index = entry.key;
+                  final String label = entry.value;
+                  return _drawerItem(label, index);
+                }).toList(),
+                /*_drawerItem(AppStrings.PROFILE, 0),
                   _drawerItem(AppStrings.CONFIG, 1),
                   if (isAdmin) _drawerItem(AppStrings.USERS_LABEL, 2),
                   if (isAdmin) _drawerItem(AppStrings.TASKSTATES, 3),
                   if (isAdmin) _drawerItem(AppStrings.TEAMS_LABEL, 4),
                   _drawerItem(AppStrings.MY_TEAMS, isAdmin ? 5 : 2),
                   if (isAdmin) _drawerItem(AppStrings.TASKS, 6),
-                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 7 : 3),
-                ],
+                  _drawerItem(AppStrings.DELETEACC, isAdmin ? 7 : 3),*/
               ),
             ),
       body: Row(
@@ -200,16 +235,23 @@ class ConfigPage extends State<ConfigHP> {
                     setState(() => selectedIndex = index);
                   },
                   labelType: NavigationRailLabelType.all,
-                  destinations: [
+                  destinations: labels.asMap().entries.map((entry) {
+                    final int index = entry.key;
+                    final String label = entry.value;
+                    return _railItem(icons[index], label);
+                  }).toList(),
+                  /* [
+                    
                     _railItem(Icons.person, AppStrings.PROFILE),
                     _railItem(Icons.settings, AppStrings.CONFIG),
-                    if (isAdmin) _railItem(Icons.people, AppStrings.USERS_LABEL),
-                    if (isAdmin) _railItem(Icons.style, AppStrings.TASKSTATES),
-                    if (isAdmin) _railItem(Icons.groups_2, AppStrings.TEAMS_LABEL),
+                    _railItem(Icons.people, AppStrings.USERS_LABEL),
+                    _railItem(Icons.style, AppStrings.TASKSTATES),
+                    _railItem(Icons.groups_2, AppStrings.TEAMS_LABEL),
                     _railItem(Icons.group_work, AppStrings.MY_TEAMS),
-                    if (isAdmin) _railItem(Icons.task, AppStrings.TASKS),
+                    _railItem(Icons.task, AppStrings.TASKS),
+                    _railItem(Icons.history, AppStrings.HISTORY),
                     _railItem(Icons.delete, AppStrings.DELETEACC),
-                  ],
+                  ],*/
                 );
 
                 return SingleChildScrollView(
@@ -222,10 +264,7 @@ class ConfigPage extends State<ConfigHP> {
             ),
           if (isWide) VerticalDivider(width: 10),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(30),
-              child: isAdmin ? adminPages[selectedIndex] : pages[selectedIndex],
-            ),
+            child: Padding(padding: const EdgeInsets.all(30), child: pages[selectedIndex]),
           ),
         ],
       ),
@@ -663,7 +702,7 @@ class ConfigPage extends State<ConfigHP> {
                 ElevatedButton(
                   onPressed: () async {
                     if (await confirmPasword(true)) {
-                      await userController.deleteUser(user.userName);
+                      await userController.deleteUser(user);
 
                       int pos = allUsers.indexOf((user));
 
@@ -796,10 +835,7 @@ class ConfigPage extends State<ConfigHP> {
                       },
                       icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
                     ),
-                  /*Text(
-              viewTeamList ? AppStrings.TEAMS_LABEL.toUpperCase() : editTeam.name,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
-            ),*/
+
                   pageLabel(
                     viewTeamList
                         ? (admin ? AppStrings.TEAMS_LABEL.toUpperCase() : AppStrings.MY_TEAMS.toUpperCase())
@@ -808,7 +844,6 @@ class ConfigPage extends State<ConfigHP> {
                 ],
               ),
               SizedBox(height: 20),
-              // if (!viewTeamList && TeamRole.isAdmin(teamsAndUsers[editTeam]!.firstWhere((u) => u.user == myUser).role))
               if (!viewTeamList && isTeamAdmin) editTeamButton(),
 
               SizedBox(height: 10),
@@ -823,7 +858,6 @@ class ConfigPage extends State<ConfigHP> {
                     heroTag: "createTeam",
                     onPressed: () async {
                       openFormCreateTeam(Team.empty(), true);
-                      //logToDo("crear equip", "ConfigPage(teamsPage)");
                     },
                     label: Text("Crear Equip"),
                     icon: Icon(Icons.add),
@@ -895,7 +929,7 @@ class ConfigPage extends State<ConfigHP> {
       //USUARIS QUE NO ESTAN AL EQUIP
       usersAviable = allUsers
           .where((u) => !teamsAndUsers[team]!.any((ut) => ut.user.userName == u.userName))
-          .map((user) => UserTeam(team: team, user: user, role: TeamRole.USER))
+          .map((user) => UserTeam(team: team, user: user, role: TeamRole.NONE))
           .toList();
     } else {
       //USUARIS QUE ESTAN JA AL EQUIP PER A ELIMINAR-LOS
@@ -968,14 +1002,6 @@ class ConfigPage extends State<ConfigHP> {
               });
             },
           ),
-          /*PopupMenuItem(
-            child: Text("Editar equip"),
-            onTap: () {
-              setState(() {
-                logToDo("Editar equip", "ToDoPage(editTeamButton)");
-              });
-            },
-          ),*/
           PopupMenuItem(
             child: Text("Afegir membres"),
             onTap: () {
@@ -1015,6 +1041,7 @@ class ConfigPage extends State<ConfigHP> {
       children: [
         if (isAdmin || isTeamAdmin)
           TextButton(onPressed: () => openFormCreateTeam(team, false), child: Text("Editar dades")),
+
         SizedBox(height: 10),
         Text("Tasques del equip: ", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         SizedBox(height: 20),
@@ -1105,7 +1132,7 @@ class ConfigPage extends State<ConfigHP> {
                 onPressed: () async {
                   for (var user in usersAdded) {
                     //await teamController.addUserToTeam(team, user);
-                    await teamController.deleteUserTeamRelationByUser(team, user.userName);
+                    await teamController.deleteUserTeamRelationByUser(team, user.id);
                     teamsAndUsers[team]!.removeWhere((u) => u.user.userName == user.userName);
                   }
                   usersAdded.clear();
@@ -1123,15 +1150,14 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Table teamTasks(Team team) {
-    List<Task>? teamTask = tasksFromTeams[team];
-    return Table(
-      columnWidths: {0: IntrinsicColumnWidth(), 1: IntrinsicColumnWidth()},
-      children: [
-        if (teamTask != null)
-          for (Task tsk in teamTask) tableRowTask(tsk),
-      ],
-    );
+  Widget teamTasks(Team team) {
+    List<Task> teamTask = tasksFromTeams[team]!;
+    return teamTask.isNotEmpty
+        ? Table(
+            columnWidths: {0: IntrinsicColumnWidth(), 1: IntrinsicColumnWidth()},
+            children: [for (Task tsk in teamTask) tableRowTask(tsk)],
+          )
+        : Text("Aquest equip no té tasques assignades");
   }
 
   //TASK PAGE
@@ -1154,8 +1180,19 @@ class ConfigPage extends State<ConfigHP> {
 
   Widget filterButtons() {
     return !isWide
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start, //FER MES PETIT Ñ
+        ? Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [searchTask(), SizedBox(width: 10), showOnlyDeletedBtn()]),
+                ),
+              ),
+            ],
+          )
+        /*
+           * Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               searchTask(),
               SizedBox(height: 10),
@@ -1163,6 +1200,7 @@ class ConfigPage extends State<ConfigHP> {
               //SizedBox(height: 10), shownTasks()
             ],
           )
+           */
         : Row(
             children: [
               Expanded(
@@ -1194,10 +1232,12 @@ class ConfigPage extends State<ConfigHP> {
           shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
           padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
         ),
-        child: Text(
-          isWide ? "Vreure només les tasques eliminades" : "Veure només eliminades",
-          style: TextStyle(fontSize: 17),
-        ),
+        child: isWide
+            ? Text(
+                isWide ? "Vreure només les tasques eliminades" : "Veure només eliminades",
+                style: TextStyle(fontSize: 17),
+              )
+            : Icon(Icons.remove_red_eye),
       ),
     );
   }
@@ -1318,6 +1358,269 @@ class ConfigPage extends State<ConfigHP> {
     return Colors.black87;
   }
 
+  //HISTORY PAGE
+  Widget historyPage() {
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [pageLabel(AppStrings.HISTORY.toUpperCase())]),
+              SizedBox(height: 20),
+
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                color: Colors.grey.shade300,
+                child: Row(
+                  children: [
+                    Tables.header("Usuari"),
+                    Tables.header("Tipus entitat"),
+                    Tables.header("Data"),
+                    Tables.header("Nom"),
+                  ],
+                ),
+              ),
+              SizedBox(height: 5),
+              historyList(),
+
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Icon(Icons.circle, color: ChangeType.CREATE.getColor()),
+                  SizedBox(width: 5),
+                  Text("Crear"),
+                  SizedBox(width: 20),
+                  Icon(Icons.circle, color: ChangeType.UPDATE.getColor()),
+                  SizedBox(width: 5),
+                  Text("Editar"),
+                  SizedBox(width: 20),
+                  Icon(Icons.circle, color: ChangeType.DELETE.getColor()),
+                  SizedBox(width: 5),
+                  Text("Eliminar"),
+                ],
+              ),
+            ],
+          );
+  }
+
+  /*Expanded historyList() {
+    final entries = history.entries.toList();
+    return Expanded(
+      child: ListView.builder(
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          final hist = entries[index].key;
+          final obj = entries[index].value;
+
+          // final hist = history[index]; //ñ
+
+          // FILTRAR
+          //if ((hist.time.isBefore(DateTime.now()))) {return SizedBox();}
+
+          return histElement(hist, obj);
+          /*Card(
+            color: hist.changeType.getColor(),
+            child: ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: EdgeInsets.all(5),
+
+              //leadingAndTrailingTextStyle: TextStyle(wordSpacing: 10),
+              leading: Text(" ${hist.entity.name}"),
+              //SizedBox(height: 30,width: 30,child: Priorities.getIconPriority(task.priority, hasPassedDate),)
+              title: /*SizedBox(child: Row(children: [SizedBox(width: 15), */ Text(hist.field) /*]))*/,
+              subtitle: /*SizedBox(child: Row(children: [SizedBox(width: 15), */ Text(hist.newValue) /*]))*/,
+              onTap: () {},
+
+              textColor: hist.changeType.textColor(),
+              //trailing: SizedBox(width: 150,child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text("a"), SizedBox(width: 10)]),),
+            ),
+          );
+       */
+        },
+      ),
+    );
+  }
+
+  Card histElement(History history, Object obj) {
+    String title = "", subtitle = "Fet per l'usuari ${history.user.userName}";
+
+    switch (history.entity) {
+      case Entity.NONE:
+        title = "";
+        subtitle = "";
+        break;
+      case Entity.TASK:
+        if (obj is Task) {
+          title =
+              "${obj.name} - ${obj.description.substring(0, obj.description.length < 20 ? obj.description.length : 20)}";
+          // subtitle = task.description;
+        }
+        break;
+      case Entity.USER:
+        if (obj is User) {
+          title = "${obj.name} ${obj.surname} (${obj.userName})";
+          // subtitle = "";
+        }
+        break;
+      case Entity.TEAM:
+        if (obj is Team) {
+          title = obj.name;
+          //subtitle = "";
+        }
+        break;
+      case Entity.NOTIFICATION:
+        if (obj is Notifications) {
+          title = obj.message;
+          //subtitle = "";
+        }
+        break;
+      case Entity.TASKSTATE:
+        if (obj is TaskState) {
+          title = obj.name;
+          //subtitle = "";
+        }
+        break;
+      case Entity.TEAM_TASK:
+        if (obj is TeamTask) {
+          title = "${obj.task.name} - ${obj.team.name}";
+          //subtitle = "";
+        }
+        break;
+      case Entity.USER_TASK:
+        if (obj is UserTask) {
+          UserTask ut = UserTask.copy(obj);
+          title = ut.userName;
+          //subtitle = "";
+        }
+        break;
+      case Entity.USER_TEAM:
+        if (obj is UserTeam) {
+          title = obj.user.userName;
+          // subtitle = "";
+        }
+    }
+
+    return Card(
+      color: history.changeType.getColor(),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: EdgeInsets.all(5),
+        leading: Text(" ${history.entity.name}"),
+        title: SizedBox(child: Row(children: [SizedBox(width: 15), Text(title)])),
+        subtitle: SizedBox(child: Row(children: [SizedBox(width: 15), Text(subtitle)])),
+        onTap: () {
+          logToDo("Veure els canvis", "ConfigPage(histElement)");
+        },
+
+        textColor: history.changeType.textColor(),
+        //trailing: SizedBox(width: 150,child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text("a"), SizedBox(width: 10)]),),
+      ),
+    );
+  }
+*/
+
+  Expanded historyList() {
+    final entries = history.entries.toList();
+    return Expanded(
+      child: ListView.builder(
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          final hist = entries[index].key;
+          final obj = entries[index].value;
+
+          // final hist = history[index]; //ñ
+
+          // FILTRAR
+          //if ((hist.time.isBefore(DateTime.now()))) {return SizedBox();}
+
+          return historyRow(hist, obj);
+        },
+      ),
+    );
+  }
+
+  Widget historyRow(History h, Object obj) {
+    String nameObj = "";
+
+    switch (h.entity) {
+      case Entity.NONE:
+        nameObj = "";
+        break;
+      case Entity.TASK:
+        if (obj is Task) {
+          nameObj = obj.name;
+          // - ${obj.description.substring(0, obj.description.length < 20 ? obj.description.length : 20)}";
+          // subtitle = task.description;
+        }
+        break;
+      case Entity.USER:
+        if (obj is User) {
+          nameObj = "${obj.name} ${obj.surname} (${obj.userName})";
+          // subtitle = "";
+        }
+        break;
+      case Entity.TEAM:
+        if (obj is Team) {
+          nameObj = obj.name;
+          //subtitle = "";
+        }
+        break;
+      case Entity.NOTIFICATION:
+        if (obj is Notifications) {
+          nameObj = obj.message;
+          //subtitle = "";
+        }
+        break;
+      case Entity.TASKSTATE:
+        if (obj is TaskState) {
+          nameObj = obj.name;
+          //subtitle = "";
+        }
+        break;
+      case Entity.TEAM_TASK:
+        if (obj is TeamTask) {
+          nameObj = "${obj.task.name} - ${obj.team.name}";
+          //subtitle = "";
+        }
+        break;
+      case Entity.USER_TASK:
+        if (obj is UserTask) {
+          nameObj = obj.user.userName;
+          //subtitle = "";
+        }
+        break;
+      case Entity.USER_TEAM:
+        if (obj is UserTeam) {
+          nameObj = obj.user.userName;
+          // subtitle = "";
+        }
+    }
+    String userName = "${h.user.name} ${h.user.surname} (${h.user.userName})";
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      color: h.changeType.getColor(),
+      child: InkWell(
+        onTap: () => logToDo("Veure detall history", "ConfigPage(historyRow)"),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              Tables.cell(userName),
+              Tables.cell(h.entity.name),
+              Tables.cell(DateFormat("dd/MM/yyyy").format(h.time)),
+              Tables.cell(nameObj),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Row filterHistButtons() {
+    return Row();
+  }
+
   //DELETE ACC
   Widget deleteAccountPage() {
     return Column(
@@ -1335,7 +1638,7 @@ class ConfigPage extends State<ConfigHP> {
           onPressed: () async {
             //confirmDelete();
             if (await confirmPasword(true)) {
-              await userController.deleteUser(widget.user.userName);
+              await userController.deleteUser(widget.user);
               Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
             }
           },
@@ -1393,26 +1696,17 @@ class ConfigPage extends State<ConfigHP> {
   TableRow tableRowUser(Widget label, UserTeam ut) {
     double horizontal = isWide ? 30 : 10;
     double vertical = 8;
+    EdgeInsets padding = EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal);
+    String role = ut.role == TeamRole.NONE ? "" : ut.role.name;
     return TableRow(
       children: [
         Padding(
           padding: EdgeInsets.symmetric(vertical: vertical),
           child: label,
-          //Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
-          child: Text("${ut.user.name} ${ut.user.surname}"),
-        ),
-
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
-          child: Text(ut.user.userName),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
-          child: Text(ut.role.name),
-        ),
+        Padding(padding: padding, child: Text("${ut.user.name} ${ut.user.surname}")),
+        Padding(padding: padding, child: Text(ut.user.userName)),
+        Padding(padding: padding, child: Text(role)),
       ],
     );
   }
@@ -1529,6 +1823,7 @@ class ConfigPage extends State<ConfigHP> {
                         for (final u in users) {
                           await teamController.addUserToTeam(team, u);
                         }
+                        teamsAndUsers = teamController.sortMap(teamsAndUsers);
                         Navigator.of(context).pop();
                       }
                       setState(() {});
@@ -1537,8 +1832,19 @@ class ConfigPage extends State<ConfigHP> {
                 : TeamForm(
                     team: team,
                     allUsers: allUsers,
-                    onTeamEdited: (team) {
-                      logToDo("Editar equip (funció)", "ConfigPage(openFormCreateTeam)");
+                    usersInTeam: teamsAndUsers[team]!, //ñ
+                    onTeamEdited: (teamEdited, adminUsers) async {
+                      await teamController.updateTeam(teamEdited);
+                      var users = await teamController.updateAdmins(adminUsers, teamsAndUsers[team]!, team);
+
+                      Navigator.of(context).pop();
+
+                      team = teamEdited;
+                      teamsAndUsers.removeWhere((key, value) => key.id == team.id);
+                      teamsAndUsers[teamEdited] = users;
+                      teamsAndUsers = teamController.sortMap(teamsAndUsers);
+                      viewTeamList = true;
+                      setState(() {});
                     },
                   ),
           ),
@@ -1582,7 +1888,7 @@ class ConfigPage extends State<ConfigHP> {
 
   Future<void> _loadTaskByUser() async {
     for (User user in allUsers) {
-      await taskController.loadTasksFromDB(user.userName);
+      await taskController.loadTasksFromDB(user.id);
       tasksFromUsers[user.userName] = taskController.tasks;
     }
   }
@@ -1591,6 +1897,10 @@ class ConfigPage extends State<ConfigHP> {
     await taskController.loadAllTasksFromDB(true);
     allTasks = taskController.tasks;
     allTasks.sort((task1, task2) => TaskController.sortTask(SortType.DATE, task1, task2, {}));
+  }
+
+  Future<void> _loadHistory() async {
+    history = await HistoryController.eventMap();
   }
 
   Future<void> _loadAdminData() async {
@@ -1607,6 +1917,7 @@ class ConfigPage extends State<ConfigHP> {
     for (Team team in teamsAndUsers.keys) {
       tasksFromTeams[team] = await taskController.loadTaskByTeam(team);
     }
+    await _loadHistory();
     if (!mounted) return;
     setState(() {});
   }

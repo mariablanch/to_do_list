@@ -3,24 +3,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
+import 'package:to_do_list/controller/history_controller.dart';
 import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/team_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/relation_tables/team_task.dart';
+import 'package:to_do_list/model/notification.dart';
 import 'package:to_do_list/model/team.dart';
-import 'package:to_do_list/utils/widgets.dart';
-import 'package:to_do_list/view_form/task_filter.dart';
-import 'package:to_do_list/view_form/task_form.dart';
+import 'package:to_do_list/model/user.dart';
+import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/user_role.dart';
+import 'package:to_do_list/utils/widgets.dart';
 import 'package:to_do_list/utils/sort.dart';
-import 'package:to_do_list/model/notification.dart';
-import 'package:to_do_list/model/user.dart';
-import 'package:to_do_list/model/task.dart';
+import 'package:to_do_list/view_form/task_filter.dart';
+import 'package:to_do_list/view_form/task_form.dart';
 import 'package:to_do_list/config.dart';
 import 'package:to_do_list/main.dart';
 
@@ -29,6 +30,7 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   User userProva = User(
+    id: "yycmf4AXVmQ9aXANlZxe",
     name: "111",
     surname: "111",
     userName: "111",
@@ -289,7 +291,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                           onPressed: () async {
                             await notController.deleteNotificationByID(notification.id);
                             //await notController.deleteNotificationInDatabase(index);
-                            await notController.loadNotificationsFromDB(myUser.userName);
+                            await notController.loadNotificationsFromDB(myUser.id);
                             notifications = notController.notifications;
                             setState(() {});
                             Navigator.of(context).pop();
@@ -301,7 +303,9 @@ class ToDoPage extends State<MyHomePageToDo> {
                           tooltip: "Acceptar tasca",
                           icon: Icon(Icons.check_circle, color: Colors.black54),
                           onPressed: () async {
-                            await taskController.createUserTaskRelation(notification.taskId, notification.userName);
+                            Task task = Task.empty();
+                            task.id = notification.taskId;
+                            await taskController.createUserTaskRelation(task, notification.user);
 
                             Task newTask = await taskController.getTaskByID(notification.taskId);
                             await notController.deleteNotificationByID(notification.id);
@@ -338,7 +342,6 @@ class ToDoPage extends State<MyHomePageToDo> {
       children: [
         //Text(task.name, style: TextStyle(color: Theme.of(context).colorScheme.inverseSurface, fontSize: 20)),
         //SizedBox(height: 20),
-
         Tables.viewTasks(task, Theme.of(context).colorScheme.inverseSurface),
 
         Divider(height: 20),
@@ -952,10 +955,14 @@ class ToDoPage extends State<MyHomePageToDo> {
             ),
             */
             TextButton(
-              onPressed: () {
-                taskController.disableTask(task);
-
+              onPressed: () async {
+                await taskController.disableTask(task);
+                await HistoryController.deleteTask(task, myUser);
                 Navigator.of(context).pop();
+                task = task.copyWith(deleted: true);
+                allTasks.removeWhere((tsk) => tsk.id == task.id);
+                _resetTasks();
+                setState(() {});
               },
               style: ButtonStyle(
                 foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
@@ -1203,6 +1210,8 @@ class ToDoPage extends State<MyHomePageToDo> {
                 allTasks.sort((task1, task2) {
                   return TaskController.sortTask(sortType, task1, task2, taskAndUsersMAP);
                 });
+
+                await HistoryController.updateTask(taskToEdit, task, myUser);
                 setState(() {});
               },
               task: taskToEdit,
@@ -1294,8 +1303,10 @@ class ToDoPage extends State<MyHomePageToDo> {
                       return;
                     }
 
+                    User u = await userController.getUserByUserName(userName);
+
                     final invited = await notController.taskInvitation(
-                      userName,
+                      u,
                       task,
                       myUser.userName,
                       descriptionController.text,
@@ -1451,12 +1462,12 @@ class ToDoPage extends State<MyHomePageToDo> {
                   bool created = false;
                   if (UserRole.isAdmin(myUser.userRole)) {
                     if (users.isNotEmpty) {
-                      await taskController.addTaskToDataBaseUser(task, users.first.userName);
+                      await taskController.addTaskToDataBaseUser(task, users.first, myUser);
                       usersToAdd += users.first.userName;
                       users.remove(users.first);
                       if (users.isNotEmpty) {
                         for (User user in users) {
-                          await taskController.createUserTaskRelation(task.id, user.userName);
+                          await taskController.createUserTaskRelation(task, user);
                           usersToAdd += "${AppStrings.SEPARATOR}${user.userName}";
                         }
                       }
@@ -1480,7 +1491,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                       }
                     }
                   } else {
-                    await taskController.addTaskToDataBaseUser(task, myUser.userName);
+                    await taskController.addTaskToDataBaseUser(task, myUser, myUser);
                     taskAndUsersMAP[task.id] = myUser.userName;
                   }
 
@@ -1516,7 +1527,7 @@ class ToDoPage extends State<MyHomePageToDo> {
   }
 
   Text shownTasks() {
-    return Text(AppStrings.shownTasks(tasksToShow.length),);
+    return Text(AppStrings.shownTasks(tasksToShow.length));
   }
 
   //LOAD
@@ -1553,8 +1564,8 @@ class ToDoPage extends State<MyHomePageToDo> {
       await taskController.loadAllTasksFromDB(false);
       await notController.loadALLNotificationsFromDB();
     } else {
-      await taskController.loadTasksFromDB(myUser.userName);
-      await notController.loadNotificationsFromDB(myUser.userName);
+      await taskController.loadTasksFromDB(myUser.id);
+      await notController.loadNotificationsFromDB(myUser.id);
     }
     await stateController.loadAllStates();
 
