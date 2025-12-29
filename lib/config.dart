@@ -87,6 +87,7 @@ class ConfigPage extends State<ConfigHP> {
   late User myUser;
   bool viewUserList = true,
       viewTeamList = true,
+      viewHistoryList = true,
       userEdit = false,
       isUserAdmin = false,
       isTeamAdmin = false,
@@ -122,7 +123,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) Icons.history,
     Icons.delete,
   ];
-  List<Widget> get pagess => [
+  List<Widget> get pages => [
     profilePage(),
     editAccountPage(),
     if (isAdmin) usersPage(),
@@ -133,7 +134,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) historyPage(),
     deleteAccountPage(),
   ];
-  List<Widget> get pages => [
+  List<Widget> get pagess => [
     if (isAdmin) historyPage(),
     profilePage(),
     editAccountPage(),
@@ -170,8 +171,7 @@ class ConfigPage extends State<ConfigHP> {
       passwordController = TextEditingController();
 
   String? stateSTR = "";
-  String nameFilter = "";
-  String taskFilter = "";
+  String filter = "";
 
   late bool isWide, isTall;
 
@@ -228,11 +228,7 @@ class ConfigPage extends State<ConfigHP> {
                 final rail = NavigationRail(
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (int index) {
-                    if (index == 1) {
-                      iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
-                    }
-                    viewTeamList = true;
-                    setState(() => selectedIndex = index);
+                    pageChanged(index);
                   },
                   labelType: NavigationRailLabelType.all,
                   destinations: labels.asMap().entries.map((entry) {
@@ -563,6 +559,7 @@ class ConfigPage extends State<ConfigHP> {
                 onPressed: () {
                   setState(() {
                     viewUserList = true;
+                    filter = "";
                   });
                 },
                 icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
@@ -831,6 +828,7 @@ class ConfigPage extends State<ConfigHP> {
                       onPressed: () {
                         setState(() {
                           viewTeamList = true;
+                          filter = "";
                         });
                       },
                       icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary),
@@ -939,9 +937,9 @@ class ConfigPage extends State<ConfigHP> {
     usersAviable = usersAviable
         .where(
           (ut) =>
-              ut.user.userName.toLowerCase().contains(nameFilter) ||
-              ut.user.name.toLowerCase().contains(nameFilter) ||
-              ut.user.surname.toLowerCase().contains(nameFilter),
+              ut.user.userName.toLowerCase().contains(filter) ||
+              ut.user.name.toLowerCase().contains(filter) ||
+              ut.user.surname.toLowerCase().contains(filter),
         )
         .toList();
     usersAviable = usersAviable.toSet().toList();
@@ -1112,7 +1110,7 @@ class ConfigPage extends State<ConfigHP> {
       child: TextField(
         decoration: InputDecoration(labelText: "Buscar", border: OutlineInputBorder()),
         onChanged: (value) {
-          nameFilter = value.toLowerCase();
+          filter = value.toLowerCase();
           setState(() {});
         },
       ),
@@ -1245,7 +1243,7 @@ class ConfigPage extends State<ConfigHP> {
   Text shownTasks() {
     return Text(
       AppStrings.shownTasks(
-        allTasks.where((task) => (task.name.contains(taskFilter) || task.description.contains(taskFilter))).length,
+        allTasks.where((task) => (task.name.contains(filter) || task.description.contains(filter))).length,
       ),
     );
   }
@@ -1256,7 +1254,7 @@ class ConfigPage extends State<ConfigHP> {
       child: TextField(
         decoration: InputDecoration(labelText: "Buscar", prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
         onChanged: (value) {
-          taskFilter = value.toLowerCase();
+          filter = value.toLowerCase();
           setState(() {});
         },
       ),
@@ -1274,7 +1272,7 @@ class ConfigPage extends State<ConfigHP> {
               : task.limitDate.add(Duration(days: 1)).isBefore(DateTime.now());
 
           // filtrar per taskName (si escrit)
-          if (!(task.name.contains(taskFilter) || task.description.contains(taskFilter))) {
+          if (!(task.name.contains(filter) || task.description.contains(filter))) {
             return SizedBox();
           }
 
@@ -1404,122 +1402,6 @@ class ConfigPage extends State<ConfigHP> {
           );
   }
 
-  /*Expanded historyList() {
-    final entries = history.entries.toList();
-    return Expanded(
-      child: ListView.builder(
-        itemCount: entries.length,
-        itemBuilder: (context, index) {
-          final hist = entries[index].key;
-          final obj = entries[index].value;
-
-          // final hist = history[index]; //ñ
-
-          // FILTRAR
-          //if ((hist.time.isBefore(DateTime.now()))) {return SizedBox();}
-
-          return histElement(hist, obj);
-          /*Card(
-            color: hist.changeType.getColor(),
-            child: ListTile(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.all(5),
-
-              //leadingAndTrailingTextStyle: TextStyle(wordSpacing: 10),
-              leading: Text(" ${hist.entity.name}"),
-              //SizedBox(height: 30,width: 30,child: Priorities.getIconPriority(task.priority, hasPassedDate),)
-              title: /*SizedBox(child: Row(children: [SizedBox(width: 15), */ Text(hist.field) /*]))*/,
-              subtitle: /*SizedBox(child: Row(children: [SizedBox(width: 15), */ Text(hist.newValue) /*]))*/,
-              onTap: () {},
-
-              textColor: hist.changeType.textColor(),
-              //trailing: SizedBox(width: 150,child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text("a"), SizedBox(width: 10)]),),
-            ),
-          );
-       */
-        },
-      ),
-    );
-  }
-
-  Card histElement(History history, Object obj) {
-    String title = "", subtitle = "Fet per l'usuari ${history.user.userName}";
-
-    switch (history.entity) {
-      case Entity.NONE:
-        title = "";
-        subtitle = "";
-        break;
-      case Entity.TASK:
-        if (obj is Task) {
-          title =
-              "${obj.name} - ${obj.description.substring(0, obj.description.length < 20 ? obj.description.length : 20)}";
-          // subtitle = task.description;
-        }
-        break;
-      case Entity.USER:
-        if (obj is User) {
-          title = "${obj.name} ${obj.surname} (${obj.userName})";
-          // subtitle = "";
-        }
-        break;
-      case Entity.TEAM:
-        if (obj is Team) {
-          title = obj.name;
-          //subtitle = "";
-        }
-        break;
-      case Entity.NOTIFICATION:
-        if (obj is Notifications) {
-          title = obj.message;
-          //subtitle = "";
-        }
-        break;
-      case Entity.TASKSTATE:
-        if (obj is TaskState) {
-          title = obj.name;
-          //subtitle = "";
-        }
-        break;
-      case Entity.TEAM_TASK:
-        if (obj is TeamTask) {
-          title = "${obj.task.name} - ${obj.team.name}";
-          //subtitle = "";
-        }
-        break;
-      case Entity.USER_TASK:
-        if (obj is UserTask) {
-          UserTask ut = UserTask.copy(obj);
-          title = ut.userName;
-          //subtitle = "";
-        }
-        break;
-      case Entity.USER_TEAM:
-        if (obj is UserTeam) {
-          title = obj.user.userName;
-          // subtitle = "";
-        }
-    }
-
-    return Card(
-      color: history.changeType.getColor(),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: EdgeInsets.all(5),
-        leading: Text(" ${history.entity.name}"),
-        title: SizedBox(child: Row(children: [SizedBox(width: 15), Text(title)])),
-        subtitle: SizedBox(child: Row(children: [SizedBox(width: 15), Text(subtitle)])),
-        onTap: () {
-          logToDo("Veure els canvis", "ConfigPage(histElement)");
-        },
-
-        textColor: history.changeType.textColor(),
-        //trailing: SizedBox(width: 150,child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text("a"), SizedBox(width: 10)]),),
-      ),
-    );
-  }
-*/
-
   Expanded historyList() {
     final entries = history.entries.toList();
     return Expanded(
@@ -1529,7 +1411,7 @@ class ConfigPage extends State<ConfigHP> {
           final hist = entries[index].key;
           final obj = entries[index].value;
 
-          // final hist = history[index]; //ñ
+          // final hist = history[index];
 
           // FILTRAR
           //if ((hist.time.isBefore(DateTime.now()))) {return SizedBox();}
@@ -1596,8 +1478,8 @@ class ConfigPage extends State<ConfigHP> {
           // subtitle = "";
         }
     }
-    String userName = "${h.user.name} ${h.user.surname} (${h.user.userName})";
     return Card(
+      //ñ
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       color: h.changeType.getColor(),
       child: InkWell(
@@ -1606,7 +1488,7 @@ class ConfigPage extends State<ConfigHP> {
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
-              Tables.cell(userName),
+              Tables.cell("${h.user.name} ${h.user.surname} (${h.user.userName})"),
               Tables.cell(h.entity.name),
               Tables.cell(DateFormat("dd/MM/yyyy").format(h.time)),
               Tables.cell(nameObj),
@@ -1679,12 +1561,8 @@ class ConfigPage extends State<ConfigHP> {
       title: Text(title),
       selected: selectedIndex == index,
       onTap: () {
-        if (index == 1) iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
         Navigator.of(context).pop();
-        setState(() {
-          viewTeamList = true;
-          selectedIndex = index;
-        });
+        pageChanged(index);
       },
     );
   }
@@ -1727,6 +1605,15 @@ class ConfigPage extends State<ConfigHP> {
         ),
       ],
     );
+  }
+
+  void pageChanged(int index) {
+    selectedIndex = index;
+    filter = "";
+    viewTeamList = true;
+    viewUserList = true;
+    if (index == 1) iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    setState(() {});
   }
 
   // SHOW MODAL BOTTOM SHEET
@@ -1832,7 +1719,7 @@ class ConfigPage extends State<ConfigHP> {
                 : TeamForm(
                     team: team,
                     allUsers: allUsers,
-                    usersInTeam: teamsAndUsers[team]!, //ñ
+                    usersInTeam: teamsAndUsers[team]!,
                     onTeamEdited: (teamEdited, adminUsers) async {
                       await teamController.updateTeam(teamEdited);
                       var users = await teamController.updateAdmins(adminUsers, teamsAndUsers[team]!, team);
