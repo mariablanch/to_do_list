@@ -37,6 +37,7 @@ Future<void> main() async {
     mail: "111",
     password: "f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae",
     userRole: UserRole.ADMIN,
+    deleted: false,
     iconName: Icon(Icons.park),
   );
 
@@ -1387,7 +1388,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                     Team team = teamController.allTeamsAndUsers.keys.firstWhere(
                       (t) => t.name == teamNameController.text,
                     );
-                    TeamTask tt = TeamTask(team: team, task: task);
+                    TeamTask tt = TeamTask(team: team, task: task, id: "", deleted: false);
                     taskController.addTaskToTeam(tt);
                     teamTask.add(tt);
                     setState(() {});
@@ -1476,7 +1477,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                     }
 
                     if (teams.isNotEmpty) {
-                      TeamTask tt = TeamTask(team: teams.first, task: task);
+                      TeamTask tt = TeamTask(team: teams.first, task: task, id: "", deleted: false);
                       if (!created) {
                         await taskController.addTaskToDataBaseTeam(tt);
                       } else {
@@ -1485,7 +1486,7 @@ class ToDoPage extends State<MyHomePageToDo> {
                       teamTask.add(tt);
                       teams.remove(teams.first);
                       for (Team team in teams) {
-                        tt = TeamTask(team: team, task: task);
+                        tt = TeamTask(team: team, task: task, id: "", deleted: false);
                         await taskController.addTaskToTeam(tt);
                         teamTask.add(tt);
                       }
@@ -1576,7 +1577,7 @@ class ToDoPage extends State<MyHomePageToDo> {
     allTasks = taskController.tasks;
     _resetTasks();
 
-    allUserNames = (await userController.loadAllUsers()).map((User user) => user.userName).toSet().toList();
+    allUserNames = (await userController.loadAllUsers(false)).map((User user) => user.userName).toSet().toList();
     allUserNames.sort();
 
     await loadTaskAndUsers();

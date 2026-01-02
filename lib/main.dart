@@ -1,6 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -291,25 +290,19 @@ class LogInPage extends State<MyHomePage> {
                     mail: mail,
                     password: password,
                     userRole: UserRole.USER,
+                    deleted: false,
                     iconName: Icon(User.getRandomIcon()),
                   );
 
                   clear();
 
-                  /*nameController.clear();
-                  surnameController.clear();
-                  userNameController.clear();
-                  mailController.clear();
-                  paswordController.clear();*/
-
-                  int accountError = await userController.createAccountDB(user);
+                  int accountError = await userController.createAccountDB(user, user);
 
                   try {
                     if (accountError == DbConstants.USERNOTEXISTS) {
-                      setState(() {
-                        control = "Usuari creat, inicia sessió";
-                        _hasAccount = true;
-                      });
+                      control = "Usuari creat, inicia sessió";
+                      _hasAccount = true;
+                      setState(() {});
                     } else if (accountError == DbConstants.USEREXISTS) {
                       setState(() {
                         control = "El nom d'usuari ja existeix, prova a fer-ne un altre";
@@ -333,42 +326,17 @@ class LogInPage extends State<MyHomePage> {
     );
   }
 
-  Future<bool> _logInComp(String username, String pswrd) async {
-    bool ret = false;
-    User user = User.empty();
-    try {
-      final lines = await FirebaseFirestore.instance
-          .collection(DbConstants.USER)
-          .where(DbConstants.USERNAME, isEqualTo: username)
-          .where(DbConstants.PASSWORD, isEqualTo: User.hashPassword(pswrd))
-          .get();
-
-      if (lines.docs.isNotEmpty) {
-        final doc = lines.docs.first;
-        user = User.fromFirestore(doc, null);
-      }
-
-      ret = lines.docs.length == 1;
-    } catch (e) {
-      logError("LOG IN", e);
-      ret = false;
-    }
-
-    setState(() {
-      retUser = user;
-    });
-
-    return ret;
-  }
-
   Future<void> logIn() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       try {
-        if (await _logInComp(_userName, _pasword)) {
+        if (await userController.logIn(_userName, _pasword)) {
           setState(() {
             control = "";
           });
+
+          retUser = await userController.getUserByUserName(_userName);
+
           clear();
           Navigator.push(context, MaterialPageRoute(builder: (context) => MyAppToDo(user: retUser)));
         } else {

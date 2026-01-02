@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:to_do_list/controller/history_controller.dart';
 
 import 'package:to_do_list/controller/notification_controller.dart';
-import 'package:to_do_list/controller/state_controller.dart';
-import 'package:to_do_list/controller/team_controller.dart';
+import 'package:to_do_list/controller/state_controller.dart'; //a
+import 'package:to_do_list/controller/team_controller.dart'; //a
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/relation_tables/team_task.dart';
 import 'package:to_do_list/model/relation_tables/user_task.dart';
@@ -214,7 +214,7 @@ class TaskController {
   }
 
   Future<void> createUserTaskRelation(Task task, User user) async {
-    UserTask ut = UserTask(task: task, user: user);
+    UserTask ut = UserTask(task: task, user: user, deleted: false, id: "");
     try {
       await FirebaseFirestore.instance.collection(DbConstants.USERTASK).add(ut.toFirestore());
     } catch (e) {
@@ -256,16 +256,10 @@ class TaskController {
       logError('UPDATE TASK', e);
     }
   }
+
   //UPDATE RELATION USER - TASK && TEAM - TASK (almb el bool de deleted)
 
   //DELETE TASK
-  Future<void> _deleteTask(String taskId) async {
-    try {
-      await FirebaseFirestore.instance.collection(DbConstants.TASK).doc(taskId).delete();
-    } catch (e) {
-      logError('DELETE TASK', e);
-    }
-  }
 
   Future<void> deleteUserTaskRelationsByUser(User user) async {
     try {
@@ -276,13 +270,13 @@ class TaskController {
 
       for (var doc in db.docs) {
         final taskId = doc.get(DbConstants.TASKID);
-        await removeTaskUser(taskId, user.id);
+        await _removeTaskUser(taskId, user);
       }
     } catch (e) {
       logError('DELETE USER-TASK BY USER', e);
     }
   }
-
+ 
   Future<void> _deleteUserTaskRelations(String taskId) async {
     try {
       final db = await FirebaseFirestore.instance
@@ -291,29 +285,36 @@ class TaskController {
           .get();
 
       for (var doc in db.docs) {
-        await doc.reference.delete();
+        UserTask ut = UserTask.fromFirestore(doc, null);
+        Task task = await getTaskByID(taskId);
+        User user = await UserController().getUserById(ut.user.id);
+
+        ut = UserTask(task: task, user: user, id: ut.id, deleted: true);
+        await doc.reference.update(ut.toFirestore());
       }
     } catch (e) {
       logError('DELETE USER-TASK RELATION', e);
     }
   }
 
-  Future<void> _deleteUserTaskRelation(String userId, String taskId) async {
+  Future<void> _deleteUserTaskRelation(User user, String taskId) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
           .where(DbConstants.TASKID, isEqualTo: taskId)
-          .where(DbConstants.USERID, isEqualTo: userId)
+          .where(DbConstants.USERID, isEqualTo: user.id)
           .get();
       for (var doc in db.docs) {
-        await doc.reference.delete();
+        Task task = await getTaskByID(taskId);
+        UserTask ut = UserTask(task: task, user: user, id: doc.id, deleted: true);
+        await doc.reference.update(ut.toFirestore());
       }
     } catch (e) {
       logError('DELETE USER-TASK RELATION', e);
     }
   }
 
-  Future<void> removeTaskUser(String taskId, String userId) async {
+  Future<void> _removeTaskUser(String taskId, User user) async {
     try {
       final db = await FirebaseFirestore.instance
           .collection(DbConstants.USERTASK)
@@ -321,9 +322,10 @@ class TaskController {
           .get();
 
       if (db.docs.length == 1) {
+        //ñ
         await _deleteUserTask(taskId);
       } else {
-        await _deleteUserTaskRelation(userId, taskId);
+        await _deleteUserTaskRelation(user, taskId);
       }
     } catch (e) {
       logError('REMOVE TASK', e);
@@ -332,8 +334,10 @@ class TaskController {
 
   Future<void> _deleteUserTask(String taskId) async {
     try {
-      await _deleteTask(taskId);
+      Task task = await getTaskByID(taskId);
+      await disableTask(task);
       await _deleteUserTaskRelations(taskId);
+      
       await NotificationController().deleteNotificationByTask(taskId);
     } catch (e) {
       logError('DELETE TASK WITH USER RELATION', e);
@@ -371,7 +375,9 @@ class TaskController {
 
   Future<void> deleteTaskWithTeamRelation(String taskId) async {
     try {
-      await _deleteTask(taskId);
+      Task task = await getTaskByID(taskId);
+      await disableTask(task);
+
       await _deleteTeamTaskRelations(taskId);
       await NotificationController().deleteNotificationByTask(taskId);
     } catch (e) {

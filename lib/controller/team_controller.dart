@@ -38,7 +38,7 @@ class TeamController {
   }
 
   Future<void> addUserToTeam(Team team, User user) async {
-    UserTeam ut = UserTeam(team: team, user: user, role: TeamRole.USER);
+    UserTeam ut = UserTeam(team: team, user: user, role: TeamRole.USER, id : "", deleted: false);
     try {
       await FirebaseFirestore.instance.collection(DbConstants.USERTEAM).add(ut.toFirestore());
       allTeamsAndUsers[team]?.add(ut);
@@ -58,7 +58,8 @@ class TeamController {
 
   Future<void> _deleteTeam(Team team) async {
     try {
-      await FirebaseFirestore.instance.collection(DbConstants.TEAM).doc(team.id).delete();
+      team = team.copyWith(deleted: true);
+      await FirebaseFirestore.instance.collection(DbConstants.TEAM).doc(team.id).update(team.toFirestore());
     } catch (e) {
       logError('DELETE TEAM', e);
     }
@@ -72,7 +73,9 @@ class TeamController {
           .get();
 
       for (var doc in db.docs) {
-        await doc.reference.delete();
+        UserTeam ut = UserTeam.fromFirestore(doc, null);
+        ut = ut.copyWith(deleted: true);
+        await doc.reference.update(ut.toFirestore());
       }
     } catch (e) {
       logError('DELETE USER-TEAM BY TEAM', e);
@@ -115,7 +118,7 @@ class TeamController {
       Team team;
       User user;
 
-      await _uc.loadAllUsers();
+      await _uc.loadAllUsers(false);
       List<User> allUsers = _uc.users;
       await _loadAllTeams();
 
@@ -193,7 +196,7 @@ class TeamController {
       tt = TeamTask.fromFirestore(doc, null);
       team = await TeamController().loadTeambyId(tt.team.id) ?? tt.team;
       task = tc.tasks.firstWhere((tsk) => tsk.id == tt.task.id);
-      tt = TeamTask(team: team, task: task);
+      tt = TeamTask(team: team, task: task, deleted: false, id : "");
       list.add(tt);
     }
     return list;
@@ -209,7 +212,7 @@ class TeamController {
       for (var user in users) {
         if (!adminUsersSelected.contains(user)) {
           users.remove(user);
-          ut = UserTeam(team: team, user: user, role: TeamRole.USER);
+          ut = UserTeam(team: team, user: user, role: TeamRole.USER, id: "", deleted: false);
           await _upadateRelation(ut);
         }
       }
@@ -217,7 +220,7 @@ class TeamController {
       users = users.toSet().toList();
 
       for (var user in users) {
-        ut = UserTeam(team: team, user: user, role: TeamRole.ADMIN);
+        ut = UserTeam(team: team, user: user, role: TeamRole.ADMIN,id: "", deleted: false);
         await _upadateRelation(ut);
       }
 

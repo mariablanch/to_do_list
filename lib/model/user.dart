@@ -6,9 +6,10 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'package:to_do_list/utils/const/db_constants.dart';
+import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/user_role.dart';
 
-class User implements Comparable<User> {
+class User implements Comparable<User>, BaseEntity {
   String _id;
   String _name;
   String _surname;
@@ -16,6 +17,7 @@ class User implements Comparable<User> {
   String _mail;
   String _password;
   UserRole _userRole;
+  bool _deleted;
   Icon _icon;
 
   static final Map<String, IconData> iconMap = {
@@ -84,6 +86,7 @@ class User implements Comparable<User> {
       this._mail = '',
       this._password = '',
       this._userRole = UserRole.USER,
+      this._deleted = false,
       this._icon = Icon(getRandomIcon());
   /*User.parameter(
     String name,
@@ -107,6 +110,7 @@ class User implements Comparable<User> {
       this._password = user.password,
       this._userRole = user.userRole,
       this._icon = user.icon,
+      this._deleted = user.deleted,
       this._id = user.id;
 
   User copyWith({
@@ -117,6 +121,7 @@ class User implements Comparable<User> {
     String? mail,
     String? password,
     UserRole? userRole,
+    bool? deleted,
     Icon? icon,
   }) {
     return User(
@@ -127,10 +132,12 @@ class User implements Comparable<User> {
       mail: mail ?? this.mail,
       password: password ?? this.password,
       userRole: userRole ?? this.userRole,
+      deleted: deleted ?? this.deleted,
       iconName: icon ?? this.icon,
     );
   }
 
+  @override
   String get id => this._id;
   String get name => this._name;
   String get surname => this._surname;
@@ -138,12 +145,14 @@ class User implements Comparable<User> {
   String get mail => this._mail;
   String get password => this._password;
   UserRole get userRole => this._userRole;
+  @override
+  bool get deleted => this._deleted;
   Icon get icon => this._icon;
 
+  set deleted(bool d) => this._deleted = d;
+
   void setPassword(String password) => _password = password;
-    set id(String newId) => _id = newId;
-
-
+  set id(String newId) => _id = newId;
 
   @override
   String toString() {
@@ -152,6 +161,8 @@ class User implements Comparable<User> {
     str += 'Nom d\'usuari: $_userName \n';
     str += 'Correu: $_mail \n';
     str += 'Contrasenya: $_password \n';
+    if(_deleted) str += 'TASCA ELIMINADA \n';
+    str += 'UserRole: ${_userRole.name} \n';
     return str;
   }
 
@@ -163,6 +174,7 @@ class User implements Comparable<User> {
       'mail': _mail,
       DbConstants.PASSWORD: _password,
       DbConstants.USERROLE: _userRole.name,
+      DbConstants.DELETED: _deleted,
       DbConstants.ICON: iconMap.entries.firstWhere((line) => line.value == _icon.icon).key,
     };
   }
@@ -176,6 +188,7 @@ class User implements Comparable<User> {
     required String password,
     required UserRole userRole,
     required Icon iconName,
+    required bool deleted,
   }) : _id = id,
        _name = name,
        _surname = surname,
@@ -183,6 +196,7 @@ class User implements Comparable<User> {
        _mail = mail,
        _password = password,
        _userRole = userRole,
+       _deleted = deleted,
        _icon = iconName;
 
   factory User.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
@@ -199,6 +213,7 @@ class User implements Comparable<User> {
       userRole: UserRole.values.firstWhere(
         (uR) => uR.name.toLowerCase() == (data?[DbConstants.USERROLE] ?? '').toString().toLowerCase(),
       ),
+      deleted: data?[DbConstants.DELETED] ?? false,
       iconName: Icon(iconMap[iconName] ?? Icons.person),
     );
   }
@@ -211,6 +226,9 @@ class User implements Comparable<User> {
 
   @override
   int compareTo(User other) {
+    if (this.deleted && !other.deleted) return 1;
+    if (!this.deleted && other.deleted) return -1;
+
     int comp = this.name.compareTo(other.name);
     if (comp == 0) {
       comp = this.surname.compareTo(other.surname);

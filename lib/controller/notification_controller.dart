@@ -63,7 +63,11 @@ class NotificationController {
   Future<void> deleteNotificationByID(String notId) async {
     try {
       //String id = notifications[index].id;
-      await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).doc(notId).delete();
+
+      Notifications not = await getNotificationFromId(notId);
+      not.deleted = true;
+
+      await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).doc(notId).update(not.toFirestore());
 
       //notifications.removeAt(index);
     } catch (e) {
@@ -73,13 +77,15 @@ class NotificationController {
 
   Future<void> deleteNotificationByUser(User user) async {
     try {
-      final notification = await FirebaseFirestore.instance
+      final db = await FirebaseFirestore.instance
           .collection(DbConstants.NOTIFICATION)
           .where(DbConstants.USERID, isEqualTo: user.id)
           .get();
 
-      for (var doc in notification.docs) {
-        await doc.reference.delete();
+      for (var doc in db.docs) {
+        Notifications not = Notifications.fromFirestore(doc, null);
+        not.deleted = true;
+        await doc.reference.update(not.toFirestore());
       }
     } catch (e) {
       logError('DELETE NOTIFICATION BY USER', e);
@@ -94,7 +100,8 @@ class NotificationController {
           .get();
 
       for (var doc in notification.docs) {
-        await doc.reference.delete();
+        Notifications not = await getNotificationFromId(doc.id);
+        await doc.reference.update(not.toFirestore());
       }
     } catch (e) {
       logError('DELETE NOTIFICATION BY TASK', e);
@@ -112,6 +119,7 @@ class NotificationController {
       user: destinationUser,
       message: message,
       description: userDescription,
+      deleted: false,
       taskId: task.id,
     );
 
@@ -147,5 +155,18 @@ class NotificationController {
       logError('NOTIFICATION EXISTS', e);
     }
     return ret;
+  }
+
+  Future<Notifications> getNotificationFromId(String id) async {
+    Notifications not = Notifications.empty();
+    try {
+      final doc = await FirebaseFirestore.instance.collection(DbConstants.NOTIFICATION).doc(id).get();
+      if (doc.exists) {
+        not = Notifications.fromFirestore(doc, null);
+      }
+    } catch (e) {
+      logError('GET TASK BY ID', e);
+    }
+    return not;
   }
 }

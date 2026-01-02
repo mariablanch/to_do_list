@@ -184,7 +184,7 @@ class TaskFormState extends State<TaskForm> {
             SizedBox(height: 10),
 
             //AFEGIR USUARIS
-            if (isAdmin && isCreating)
+            if (isAdmin && isCreating) ...[
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -197,8 +197,8 @@ class TaskFormState extends State<TaskForm> {
                   textAlign: TextAlign.left,
                 ),
               ),
-            if (isAdmin && isCreating) SizedBox(height: 5),
-            if (isAdmin && isCreating)
+              SizedBox(height: 5),
+
               Autocomplete<User>(
                 displayStringForOption: (user) => user.userName,
 
@@ -228,8 +228,8 @@ class TaskFormState extends State<TaskForm> {
                   );
                 },
               ),
-            if (isAdmin && isCreating) SizedBox(height: 10),
-            if (isAdmin && isCreating)
+              SizedBox(height: 10),
+
               Align(
                 alignment: Alignment.centerLeft,
                 child: Wrap(
@@ -253,11 +253,8 @@ class TaskFormState extends State<TaskForm> {
                       .toList(),
                 ),
               ),
-
-            if (isAdmin && isCreating) SizedBox(height: 10),
-
-            //AFEGIR EQUIPS
-            if (isAdmin && isCreating)
+              
+              //AFEGIR EQUIPS
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -270,62 +267,62 @@ class TaskFormState extends State<TaskForm> {
                   textAlign: TextAlign.left,
                 ),
               ),
-            if (isAdmin && isCreating) SizedBox(height: 5),
-            if (isAdmin && isCreating)
-              Autocomplete<Team>(
-                displayStringForOption: (team) => team.name,
+              if (isAdmin && isCreating) SizedBox(height: 5),
+              if (isAdmin && isCreating)
+                Autocomplete<Team>(
+                  displayStringForOption: (team) => team.name,
 
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) return const Iterable<Team>.empty();
-                  return allTeams.where(
-                    (t) =>
-                        t.name.toLowerCase().contains(textEditingValue.text.toLowerCase()) &&
-                        !selectedTeams.contains(t),
-                  );
-                },
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) return const Iterable<Team>.empty();
+                    return allTeams.where(
+                      (t) =>
+                          t.name.toLowerCase().contains(textEditingValue.text.toLowerCase()) &&
+                          !selectedTeams.contains(t),
+                    );
+                  },
 
-                onSelected: (Team selection) {
-                  setState(() {
-                    selectedTeams.add(selection);
-                  });
-                },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
+                  onSelected: (Team selection) {
+                    setState(() {
+                      selectedTeams.add(selection);
+                    });
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
 
-                    decoration: InputDecoration(
-                      //labelText: "Nom equip",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
-                    ),
-                  );
-                },
-              ),
-            if (isAdmin && isCreating) SizedBox(height: 10),
-            if (isAdmin && isCreating)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 8,
-                  children: selectedTeams
-                      .map(
-                        (t) => Chip(
-                          label: Text(t.name),
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
-                          side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
-
-                          onDeleted: () {
-                            setState(() {
-                              selectedTeams.remove(t);
-                            });
-                          },
-                          deleteButtonTooltipMessage: "Eliminar",
-                        ),
-                      )
-                      .toList(),
+                      decoration: InputDecoration(
+                        //labelText: "Nom equip",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                      ),
+                    );
+                  },
                 ),
-              ),
+              if (isAdmin && isCreating) SizedBox(height: 10),
+              if (isAdmin && isCreating)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    children: selectedTeams
+                        .map(
+                          (t) => Chip(
+                            label: Text(t.name),
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(90),
+                            side: BorderSide(color: Theme.of(context).colorScheme.inversePrimary),
 
+                            onDeleted: () {
+                              setState(() {
+                                selectedTeams.remove(t);
+                              });
+                            },
+                            deleteButtonTooltipMessage: "Eliminar",
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+            ],
             if (isAdmin && !isCreating)
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(border: OutlineInputBorder()),
@@ -375,7 +372,7 @@ class TaskFormState extends State<TaskForm> {
                     openDate: selectedOpenDate!,
                     completedDate: widget.task.completedDate,
                     state: stateController.getStateByName(stateSTR!),
-                  );                  
+                  );
 
                   if (isCreating) {
                     widget.onTaskCreated!(updatedTask.copyWith(id: ""), selectedUserIds, selectedTeams);
@@ -402,7 +399,7 @@ class TaskFormState extends State<TaskForm> {
 
   Future<void> usersFromTask() async {
     UserController uc = UserController();
-    users = await uc.loadAllUsers();
+    users = await uc.loadAllUsers(false);
     users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
     setState(() {});
     //users = usersList.map((User user) => user.userName).toList();

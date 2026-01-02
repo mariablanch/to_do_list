@@ -19,6 +19,7 @@ import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/user_role_team.dart';
 import 'package:to_do_list/utils/history_enums.dart';
 import 'package:to_do_list/utils/user_role.dart';
@@ -49,6 +50,7 @@ Future<void> main() async {
     mail: "111",
     password: "f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae",
     userRole: UserRole.ADMIN,
+    deleted: false,
     iconName: Icon(User.getRandomIcon()),
   );
   runApp(MyAppConfig(user: userProva));
@@ -85,9 +87,7 @@ class ConfigHP extends StatefulWidget {
 class ConfigPage extends State<ConfigHP> {
   int selectedIndex = 0;
   late User myUser;
-  bool viewUserList = true,
-      viewTeamList = true,
-      viewHistoryList = true,
+  bool viewList = true,
       userEdit = false,
       isUserAdmin = false,
       isTeamAdmin = false,
@@ -160,7 +160,7 @@ class ConfigPage extends State<ConfigHP> {
   Map<Team, List<UserTeam>> myTeams = {};
   Map<Team, List<Task>> tasksFromTeams = {};
   List<Task> allTasks = [];
-  Map<History, Object> history = {};
+  Map<History, BaseEntity> history = {};
 
   Set<User> usersAdded = {};
 
@@ -301,7 +301,7 @@ class ConfigPage extends State<ConfigHP> {
             pageLabel(AppStrings.EDIT_PROFILE.toUpperCase()),
 
             SizedBox(height: 20),
-            editAccount(myUser, false),
+            editAccount(editUser, false),
           ],
         ),
       ),
@@ -320,13 +320,6 @@ class ConfigPage extends State<ConfigHP> {
     String userName = editUser.userName;
     String mail = editUser.mail;
     String password = editUser.password;
-
-    clear();
-
-    nameController = TextEditingController(text: editUser.name);
-    surnameController = TextEditingController(text: surname);
-    userNameController = TextEditingController(text: editUser.userName);
-    mailController = TextEditingController(text: editUser.mail);
 
     return Form(
       key: formKey,
@@ -459,9 +452,8 @@ class ConfigPage extends State<ConfigHP> {
                       return DropdownMenuItem<String>(value: iconName, child: Icon(User.iconMap[iconName]));
                     }).toList(),
                     onChanged: (String? newValue) {
-                      setState(() {
-                        iconSelected = newValue!;
-                      });
+                      iconSelected = newValue!;
+                      setState(() {});
                     },
                     selectedItemBuilder: (BuildContext context) {
                       return User.iconMap.keys.map((String iconName) {
@@ -492,8 +484,9 @@ class ConfigPage extends State<ConfigHP> {
                         mail: mail,
                         password: AppStrings.DEFAULT_PSWRD,
                       );
-                      await userController.createAccountDB(user);
-                      await _loadUsers();
+
+                      await userController.createAccountDB(user, myUser);
+                      await _loadUsers(true);
 
                       Navigator.pop(context);
                     } else {
@@ -522,17 +515,16 @@ class ConfigPage extends State<ConfigHP> {
                           icon: Icon(User.iconMap[iconSelected]),
                         );
 
-                        await userController.updateProfileDB(updatedUser, editUser);
-
+                        await userController.updateProfileDB(updatedUser, editUser, myUser);
                         setState(() {
-                          viewUserList = true;
+                          viewList = true;
                           userEdit = false;
                         });
 
                         if (!adminEdit) {
                           Navigator.pop(context, updatedUser);
                         } else {
-                          await _loadUsers();
+                          await _loadUsers(true);
                         }
                       }
                     }
@@ -554,11 +546,11 @@ class ConfigPage extends State<ConfigHP> {
       children: [
         Row(
           children: [
-            if (!viewUserList)
+            if (!viewList)
               IconButton(
                 onPressed: () {
                   setState(() {
-                    viewUserList = true;
+                    viewList = true;
                     filter = "";
                   });
                 },
@@ -566,26 +558,26 @@ class ConfigPage extends State<ConfigHP> {
               ),
 
             /*Text(
-              viewUserList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName,
+              viewList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName,
               style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20),
             ),*/
-            pageLabel(viewUserList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName),
+            pageLabel(viewList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName),
           ],
         ),
 
         SizedBox(height: 20),
 
-        viewUserList ? userList() : Expanded(child: viewUser(userEdit, editUser)),
+        viewList ? userList() : Expanded(child: viewUser(userEdit, editUser)),
 
-        if (viewUserList)
+        if (viewList)
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: FloatingActionButton.extended(
               heroTag: "createUser",
               onPressed: () async {
-                await openFormCreateUser();
-                await _loadUsers();
+                await openFormCreateUser(User.empty());
+                await _loadUsers(true);
               },
               label: Text("Crear Usuari"),
               icon: Icon(Icons.add),
@@ -606,7 +598,11 @@ class ConfigPage extends State<ConfigHP> {
           }
 
           return Card(
+            color: user.deleted ? Colors.black54 : null,
             child: ListTile(
+              textColor: user.deleted ? Colors.white : null,
+              iconColor: user.deleted ? Colors.white : null,
+
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.all(5),
 
@@ -624,7 +620,7 @@ class ConfigPage extends State<ConfigHP> {
                       onPressed: () async {
                         //await taskController.loadTasksFromDB(allUsers[index].userName);
                         setState(() {
-                          viewUserList = false;
+                          viewList = false;
                           userEdit = false;
                           editUser = allUsers[index];
                         });
@@ -637,9 +633,11 @@ class ConfigPage extends State<ConfigHP> {
                         setState(() {
                           editUser = allUsers[index];
                           iconSelected = User.iconMap.entries.firstWhere((e) => e.value == editUser.icon.icon).key;
-                          viewUserList = false;
+                          viewList = false;
                           userEdit = true;
                           isUserAdmin = UserRole.isAdmin(editUser.userRole);
+                          clear();
+                          controllersFromUser(editUser);
                         });
                       },
                       icon: Icon(Icons.edit),
@@ -655,7 +653,12 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget viewUser(bool edit, User user) {
-    List<Task> tasks = tasksFromUsers[user.userName]!;
+    List<Task> tasks = [];
+
+    if (tasksFromUsers.containsKey(user.userName)) {
+      tasks = tasksFromUsers[user.userName]!;
+    }
+
     return edit
         ? editAccount(user, false)
         : SingleChildScrollView(
@@ -705,7 +708,7 @@ class ConfigPage extends State<ConfigHP> {
 
                       setState(() {
                         allUsers.removeAt(pos);
-                        viewUserList = true;
+                        viewList = true;
                       });
                     }
                   },
@@ -823,11 +826,11 @@ class ConfigPage extends State<ConfigHP> {
             children: [
               Row(
                 children: [
-                  if (!viewTeamList)
+                  if (!viewList)
                     IconButton(
                       onPressed: () {
                         setState(() {
-                          viewTeamList = true;
+                          viewList = true;
                           filter = "";
                         });
                       },
@@ -835,20 +838,20 @@ class ConfigPage extends State<ConfigHP> {
                     ),
 
                   pageLabel(
-                    viewTeamList
+                    viewList
                         ? (admin ? AppStrings.TEAMS_LABEL.toUpperCase() : AppStrings.MY_TEAMS.toUpperCase())
                         : editTeam.name,
                   ),
                 ],
               ),
               SizedBox(height: 20),
-              if (!viewTeamList && isTeamAdmin) editTeamButton(),
+              if (!viewList && isTeamAdmin) editTeamButton(),
 
               SizedBox(height: 10),
 
-              viewTeamList ? teamList(admin) : Expanded(child: viewTeam(editTeam, admin)),
+              viewList ? teamList(admin) : Expanded(child: viewTeam(editTeam, admin)),
 
-              if (viewTeamList)
+              if (viewList)
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(horizontal: 20),
@@ -884,7 +887,7 @@ class ConfigPage extends State<ConfigHP> {
               borderRadius: BorderRadius.circular(16),
               onTap: () {
                 setState(() {
-                  viewTeamList = false;
+                  viewList = false;
                   isViewTeam = true;
                   editTeam = teamKey;
                   isTeamAdmin = allteams
@@ -927,7 +930,7 @@ class ConfigPage extends State<ConfigHP> {
       //USUARIS QUE NO ESTAN AL EQUIP
       usersAviable = allUsers
           .where((u) => !teamsAndUsers[team]!.any((ut) => ut.user.userName == u.userName))
-          .map((user) => UserTeam(team: team, user: user, role: TeamRole.NONE))
+          .map((user) => UserTeam(team: team, user: user, role: TeamRole.NONE, id: "", deleted: false))
           .toList();
     } else {
       //USUARIS QUE ESTAN JA AL EQUIP PER A ELIMINAR-LOS
@@ -994,7 +997,7 @@ class ConfigPage extends State<ConfigHP> {
             child: Text("Veure equip"),
             onTap: () {
               setState(() {
-                viewTeamList = false;
+                viewList = false;
                 isViewTeam = true;
                 isAddToTeam = true;
               });
@@ -1004,7 +1007,7 @@ class ConfigPage extends State<ConfigHP> {
             child: Text("Afegir membres"),
             onTap: () {
               setState(() {
-                viewTeamList = false;
+                viewList = false;
                 isViewTeam = false;
                 isAddToTeam = true;
               });
@@ -1014,7 +1017,7 @@ class ConfigPage extends State<ConfigHP> {
             child: Text("Treure membres"),
             onTap: () {
               setState(() {
-                viewTeamList = false;
+                viewList = false;
                 isViewTeam = false;
                 isAddToTeam = false;
               });
@@ -1371,10 +1374,10 @@ class ConfigPage extends State<ConfigHP> {
                 color: Colors.grey.shade300,
                 child: Row(
                   children: [
-                    Tables.header("Usuari"),
-                    Tables.header("Tipus entitat"),
                     Tables.header("Data"),
                     Tables.header("Nom"),
+                    Tables.header("Tipus entitat"),
+                    if (isWide) ...[Tables.header("Abans"), Tables.header("Desprès")],
                   ],
                 ),
               ),
@@ -1422,8 +1425,8 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Widget historyRow(History h, Object obj) {
-    String nameObj = "";
+  Widget historyRow<T extends BaseEntity>(History h, T obj) {
+    String nameObj = "", oldValue = "", newValue = "";
 
     switch (h.entity) {
       case Entity.NONE:
@@ -1433,7 +1436,7 @@ class ConfigPage extends State<ConfigHP> {
         if (obj is Task) {
           nameObj = obj.name;
           // - ${obj.description.substring(0, obj.description.length < 20 ? obj.description.length : 20)}";
-          // subtitle = task.description;
+          //ñ
         }
         break;
       case Entity.USER:
@@ -1488,10 +1491,11 @@ class ConfigPage extends State<ConfigHP> {
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
-              Tables.cell("${h.user.name} ${h.user.surname} (${h.user.userName})"),
-              Tables.cell(h.entity.name),
               Tables.cell(DateFormat("dd/MM/yyyy").format(h.time)),
               Tables.cell(nameObj),
+              Tables.cell(h.entity.name),
+              if (isWide) ...[Tables.cell(oldValue), Tables.cell(newValue)],
+              //Tables.cell("${h.user.name} ${h.user.surname} (${h.user.userName})"),
             ],
           ),
         ),
@@ -1501,6 +1505,10 @@ class ConfigPage extends State<ConfigHP> {
 
   Row filterHistButtons() {
     return Row();
+  }
+
+  Widget viewHistory<T extends BaseEntity>(History h, T entity) {
+    return Column();
   }
 
   //DELETE ACC
@@ -1553,6 +1561,13 @@ class ConfigPage extends State<ConfigHP> {
     mailController.clear();
     passwordController.clear();
     //colorController.clear();
+  }
+
+  void controllersFromUser(User u) {
+    nameController.text = u.name;
+    surnameController.text = u.surname;
+    userNameController.text = u.userName;
+    mailController.text = u.mail;
   }
 
   //TABLE - DRAWER - RAIL
@@ -1610,9 +1625,15 @@ class ConfigPage extends State<ConfigHP> {
   void pageChanged(int index) {
     selectedIndex = index;
     filter = "";
-    viewTeamList = true;
-    viewUserList = true;
-    if (index == 1) iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+    viewList = true;
+    if (index == 1) {
+      iconSelected = User.iconMap.entries.firstWhere((e) => e.value == myUser.icon.icon).key;
+      editUser = myUser;
+    }
+
+    clear();
+    controllersFromUser(editUser);
+
     setState(() {});
   }
 
@@ -1637,6 +1658,7 @@ class ConfigPage extends State<ConfigHP> {
                         nameExists("estat");
                       } else {
                         await stateController.createState(tState);
+                        await HistoryController.createTaskState(tState, myUser);
                         states.add(tState);
                         Navigator.of(context).pop();
                       }
@@ -1672,15 +1694,21 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  openFormCreateUser() {
+  openFormCreateUser(User user) {
+    clear();
+    controllersFromUser(user);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
 
-          child: SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: editAccount(User.empty(), true)),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, modalSetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
+              child: SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: editAccount(user, true)),
+            );
+          },
         );
       },
     );
@@ -1730,7 +1758,7 @@ class ConfigPage extends State<ConfigHP> {
                       teamsAndUsers.removeWhere((key, value) => key.id == team.id);
                       teamsAndUsers[teamEdited] = users;
                       teamsAndUsers = teamController.sortMap(teamsAndUsers);
-                      viewTeamList = true;
+                      viewList = true;
                       setState(() {});
                     },
                   ),
@@ -1765,9 +1793,9 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   //LOAD
-  Future<void> _loadUsers() async {
-    List<User> users = await userController.loadAllUsers();
-    users.sort((user1, user2) => user1.userName.compareTo(user2.userName));
+  Future<void> _loadUsers(bool loadDeleted) async {
+    List<User> users = await userController.loadAllUsers(loadDeleted);
+    users.sort();
     setState(() {
       allUsers = users;
     });
@@ -1792,7 +1820,7 @@ class ConfigPage extends State<ConfigHP> {
 
   Future<void> _loadAdminData() async {
     tasksFromTeams.clear();
-    await _loadUsers();
+    await _loadUsers(true);
     await _loadTaskByUser();
     if (isAdmin) {
       await _loadAllTask();

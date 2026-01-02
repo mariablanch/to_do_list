@@ -38,7 +38,7 @@ class History implements Comparable<History> {
 
   History.copy(History history)
     : this.id = history.id,
-    this.idChange = history.idChange,
+      this.idChange = history.idChange,
       this.idEntity = history.idEntity,
       this.user = history.user,
       this.newValue = history.newValue,
@@ -111,5 +111,18 @@ class History implements Comparable<History> {
       }
     }
     return ret;
+  }
+
+  @override
+  String toString() {
+    String str = "History{id: $id,\n";
+    str += "idChange: $idChange,\n";
+    str += "idEntity: $idEntity,\n";
+    str += "user: ${user.userName},\n";
+    str += "newValue: $newValue,\n";
+    str += "changeType: ${changeType.name},\n";
+    str += "field: $field,\n";
+    str += "entity: ${entity.name}}";
+    return str;
   }
 }

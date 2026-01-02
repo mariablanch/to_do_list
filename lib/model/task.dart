@@ -3,10 +3,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
+import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/model/task_state.dart';
 
-class Task implements Comparable<Task> {
+class Task implements Comparable<Task>, BaseEntity {
   String _id;
   String _name;
   String _description;
@@ -91,11 +92,15 @@ class Task implements Comparable<Task> {
   DateTime get openDate => _openDate;
   DateTime? get completedDate => _completedDate;
   TaskState get state => _state;
+  @override
   String get id => _id;
+  @override
   bool get deleted => _deleted;
 
   set id(String newId) => _id = newId;
   set state(TaskState newState) => _state = newState;
+  set deleted(bool d) => _deleted = d;
+
 
   @override
   String toString() {
@@ -143,7 +148,7 @@ class Task implements Comparable<Task> {
           ? (data?[DbConstants.COMPLETED_DATE] as Timestamp).toDate()
           : null,
       openDate: (data?[DbConstants.OPEN_DATE] as Timestamp).toDate(),
-      state: TaskState(id: data?['state'] ?? '', color: null, name: ''),
+      state: TaskState(id: data?['state'] ?? '', color: null, name: '', deleted: false),
       deleted: data?[DbConstants.DELETED] ?? false,
     );
   }

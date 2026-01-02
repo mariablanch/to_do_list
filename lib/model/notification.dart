@@ -1,19 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
+import 'package:to_do_list/utils/interfaces.dart';
 
-class Notifications implements Comparable<Notifications> {
+class Notifications implements Comparable<Notifications>, BaseEntity {
   String _id;
   String _taskId;
   String _description;
   User _user;
   String _message;
+  bool _deleted;
 
   Notifications.empty()
     : this._id = '',
       this._taskId = '',
       this._description = '',
       this._user = User.empty(),
+      this._deleted = false,
       this._message = '';
 
   Notifications.copy(Notifications not)
@@ -21,23 +24,30 @@ class Notifications implements Comparable<Notifications> {
       this._taskId = not.taskId,
       this._description = not.description,
       this._user = User.copy(not.user),
+      this._deleted = not.deleted,
       this._message = not.message;
 
-  Notifications copyWith({String? id, String? taskId, String? description, User? user, String? message}) {
+  Notifications copyWith({String? id, String? taskId, String? description, User? user, String? message, bool? deleted}) {
     return Notifications(
       id: id ?? this._id,
       taskId: taskId ?? this._taskId,
       description: description ?? this._description,
       user: user ?? this._user,
+      deleted: deleted ?? this._deleted,
       message: message ?? this._message,
     );
   }
 
+  @override
   String get id => this._id;
+  @override
+  bool get deleted => this._deleted;
   String get taskId => this._taskId;
   String get description => this._description;
   User get user => this._user;
   String get message => this._message;
+
+  set deleted(bool d) => _deleted = d; 
 
   Notifications({
     required String id,
@@ -45,10 +55,12 @@ class Notifications implements Comparable<Notifications> {
     required String description,
     required User user,
     required String message,
+    required bool deleted,
   }) : this._id = id,
        this._taskId = taskId,
        this._description = description,
        this._user = user,
+       this._deleted = deleted,
        this._message = message;
 
   Map<String, dynamic> toFirestore() {
@@ -57,6 +69,7 @@ class Notifications implements Comparable<Notifications> {
       'description': _description,
       DbConstants.USERID: _user.id,
       'message': _message,
+      DbConstants.DELETED: _deleted,
     };
   }
 
@@ -69,6 +82,7 @@ class Notifications implements Comparable<Notifications> {
       taskId: data?[DbConstants.TASKID] ?? '',
       description: data?['description'] ?? '',
       user: u,
+      deleted: data?[DbConstants.DELETED] ?? false,
       message: data?['message'] ?? '',
     );
   }

@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/priorities.dart';
+import 'package:to_do_list/utils/user_role.dart';
 import 'package:uuid/uuid.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/history.dart';
@@ -14,9 +17,9 @@ import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/history_enums.dart';
 
 class HistoryController {
-  static const String _DELETED = "deleted";
+  static const String _DELETED = DbConstants.DELETED;
 
-  static Future<List<History>> loadAllHistory() async {
+  static Future<List<History>> _loadAllHistory() async {
     try {
       List<History> ret = [];
       History hist;
@@ -38,10 +41,15 @@ class HistoryController {
     return const Uuid().v4();
   }
 
-  static Future<Map<History, Object>> eventMap() async {
-    Map<History, Object> ret = {};
+  /// Agrupa els canvis indivuduals de la base de dades a un sol objecte
+  ///
+  /// Retorna: ```Map<History, Object>```
+  ///- Key   → History amb dades essencials (data, usuari, tipus, entitat)
+  ///- Value → Objecte (Task/User/Team/...)
+  static Future<Map<History, BaseEntity>> eventMap() async {
+    Map<History, BaseEntity> ret = {};
     Map<String, List<History>> temp = {};
-    List<History> allHistory = await loadAllHistory();
+    List<History> allHistory = await _loadAllHistory();
     History h;
 
     for (var hist in allHistory) {
@@ -49,7 +57,7 @@ class HistoryController {
     }
 
     for (var line in temp.entries) {
-      final obj = historyToObject(line.value);
+      final obj = _historyToObject(line.value);
       h = History(
         id: "",
         idChange: line.value.first.idChange,
@@ -67,15 +75,14 @@ class HistoryController {
     return ret;
   }
 
-  static Object historyToObject(List<History> list) {
+  static BaseEntity _historyToObject(List<History> list) {
     switch (list.first.entity) {
       case Entity.NONE:
-        return list.first;
+        return Task.empty();
       case Entity.TASK:
-        return mapTask(list);
+        return _mapTask(list);
       case Entity.USER:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return _mapUser(list);
       case Entity.TEAM:
         // TODO: Handle this case.
         throw UnimplementedError();
@@ -94,6 +101,36 @@ class HistoryController {
       case Entity.USER_TEAM:
         // TODO: Handle this case.
         throw UnimplementedError();
+    }
+  }
+
+  static Map<String, String> _changedFields(Map<String, String> oldO, Map<String, String> newO) {
+    Map<String, String> ret = {};
+
+    for (var item in newO.entries) {
+      if (oldO[item.key] != item.value) {
+        ret[item.key] = item.value;
+      }
+    }
+    return ret;
+  }
+
+  static Future<void> _delete<T extends BaseEntity>(User creator, T entity, Entity e) async {
+    try {
+      final history = History(
+        id: "",
+        idChange: _generateID(),
+        idEntity: entity.id,
+        user: creator,
+        newValue: "true",
+        changeType: ChangeType.DELETE,
+        field: _DELETED,
+        entity: e,
+        time: DateTime.now(),
+      );
+      await FirebaseFirestore.instance.collection(DbConstants.HISTORY).add(history.toFirestore());
+    } catch (e) {
+      logError("DELETE", e);
     }
   }
 
@@ -154,16 +191,18 @@ class HistoryController {
 
   static Future<void> updateTask(Task oldTask, Task newTask, User user) async {
     try {
-      Map<String, String> fields = _taskChangedFields(oldTask, newTask);
+      Map<String, String> fields = _changedFields(
+        _taskFields(oldTask),
+        _taskFields(newTask),
+      ); // _taskChangedFields(oldTask, newTask);
       final batch = FirebaseFirestore.instance.batch();
-      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY);
+      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
       final idChange = _generateID();
 
       for (final item in fields.entries) {
         final history = _instanceHistoryTask(newTask.id, user, item.key, item.value, ChangeType.UPDATE, idChange);
 
-        final docRef = ref.doc();
-        batch.set(docRef, history.toFirestore());
+        batch.set(ref, history.toFirestore());
       }
 
       await batch.commit();
@@ -174,14 +213,13 @@ class HistoryController {
 
   static Future<void> deleteTask(Task task, User user) async {
     try {
-      final history = _instanceHistoryTask(task.id, user, _DELETED, "true", ChangeType.DELETE, _generateID());
-      await FirebaseFirestore.instance.collection(DbConstants.HISTORY).add(history.toFirestore());
+      await _delete(user, task, Entity.TASK);
     } catch (e) {
-      logError('UPDATE TASK HISTORY', e);
+      logError('DELETE TASK HISTORY', e);
     }
   }
 
-  static Map<String, String> _taskChangedFields(Task oldTask, Task newTask) {
+  /*static Map<String, String> _taskChangedFields(Task oldTask, Task newTask) {
     Map<String, String> ret = {};
     Map<String, String> oldT = _taskFields(oldTask);
     Map<String, String> newT = _taskFields(newTask);
@@ -193,8 +231,9 @@ class HistoryController {
     }
     return ret;
   }
+*/
 
-  static Task mapTask(List<History> list) {
+  static Task _mapTask(List<History> list) {
     String name = "", description = "";
     Priorities priority = Priorities.NONE;
     DateTime limitDate = DateTime.now(), openDate = DateTime.now();
@@ -209,7 +248,7 @@ class HistoryController {
       "limitDate": (v) => limitDate = DateFormat('dd/MMM/yyyy').parse(v),
       "openDate": (v) => openDate = DateFormat('dd/MMM/yyyy').parse(v),
       "completedDate": (v) => completedDate = (v == "null" ? null : DateFormat('dd/MMM/yyyy').parse(v)),
-      "state": (v) => state = TaskState(id: v, color: null, name: ''),
+      "state": (v) => state = TaskState(id: v, color: null, name: '', deleted: false),
       "deleted": (v) => deleted = v == "true",
     };
 
@@ -232,7 +271,7 @@ class HistoryController {
   }
 
   //USER
-  static Future<void> createUser(User newUser) async {
+  static Future<void> createUser(User newUser, User creator) async {
     try {
       Map<String, String> fields = _userFields(newUser);
       final batch = FirebaseFirestore.instance.batch();
@@ -240,7 +279,7 @@ class HistoryController {
       final idChange = _generateID();
 
       for (final item in fields.entries) {
-        final history = _instanceHistoryCreateUser(newUser, item.key, item.value, idChange);
+        final history = _instanceHistoryUser(creator, newUser, item.key, item.value, idChange, ChangeType.CREATE);
 
         final docRef = ref.doc();
         batch.set(docRef, history.toFirestore());
@@ -260,21 +299,90 @@ class HistoryController {
       "mail": user.mail,
       "password": user.password,
       "userRole": user.userRole.name,
+      _DELETED: '${user.deleted}',
       "icon": User.iconMap.entries.firstWhere((line) => line.value == user.icon.icon).key,
     };
   }
 
-  static History _instanceHistoryCreateUser(User user, String field, String newValue, String idChange) {
+  static History _instanceHistoryUser(
+    User creator,
+    User user,
+    String field,
+    String newValue,
+    String idChange,
+    ChangeType ct,
+  ) {
     return History(
       id: "",
       idChange: idChange,
-      idEntity: user.userName,
-      user: user,
+      idEntity: user.id,
+      user: creator,
       newValue: newValue,
-      changeType: ChangeType.CREATE,
+      changeType: ct,
       field: field,
       entity: Entity.USER,
       time: DateTime.now(),
+    );
+  }
+
+  static Future<void> updateUser(User oldUser, User updatedUser, User creator) async {
+    try {
+      Map<String, String> fields = _changedFields(_userFields(oldUser), _userFields(updatedUser));
+      final batch = FirebaseFirestore.instance.batch();
+      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
+      final idChange = _generateID();
+
+      for (final item in fields.entries) {
+        final history = _instanceHistoryUser(creator, updatedUser, item.key, item.value, idChange, ChangeType.UPDATE);
+        batch.set(ref, history.toFirestore());
+      }
+
+      await batch.commit();
+    } catch (e) {
+      logError('UPDATE USER HISTORY', e);
+    }
+  }
+
+  static Future<void> deleteUser(User user, User creator) async {
+    try {
+      await _delete(creator, user, Entity.USER);
+    } catch (e) {
+      logError('DELETE USER HISTORY', e);
+    }
+  }
+
+  static User _mapUser(List<History> list) {
+    String name = "", surname = "", userName = "", mail = "", password = "";
+    UserRole userRole = UserRole.USER;
+    Icon iconName = Icon(User.getRandomIcon());
+    bool deleted = false;
+
+    final Map<String, void Function(String)> userFieldSetters = {
+      "name": (v) => name = v,
+      "surname": (v) => surname = v,
+      "userName": (v) => userName = v,
+      "mail": (v) => mail = v,
+      "password": (v) => password = v,
+      "userRole": (v) => userRole = UserRole.values.firstWhere((uR) => uR.name.toLowerCase() == v.toLowerCase()),
+      _DELETED: (v) => deleted = (v == "true"),
+      "icon": (v) => iconName = Icon(User.iconMap[v] ?? Icons.person),
+    };
+
+    for (final h in list) {
+      final setter = userFieldSetters[h.field];
+      if (setter != null) setter(h.newValue);
+    }
+
+    return User(
+      id: list.first.idEntity,
+      name: name,
+      surname: surname,
+      userName: userName,
+      mail: mail,
+      password: password,
+      userRole: userRole,
+      iconName: iconName,
+      deleted: deleted,
     );
   }
 
@@ -287,7 +395,14 @@ class HistoryController {
       final idChange = _generateID();
 
       for (final item in fields.entries) {
-        final history = _instanceHistoryCreateTaskState(newState, user, item.key, item.value, idChange);
+        final history = _instanceHistoryCreateTaskState(
+          newState,
+          user,
+          item.key,
+          item.value,
+          idChange,
+          ChangeType.CREATE,
+        );
 
         final docRef = ref.doc();
         batch.set(docRef, history.toFirestore());
@@ -309,6 +424,7 @@ class HistoryController {
     String field,
     String newValue,
     String idChange,
+    ChangeType changeType,
   ) {
     return History(
       id: "",
@@ -316,7 +432,7 @@ class HistoryController {
       idEntity: state.id,
       user: user,
       newValue: newValue,
-      changeType: ChangeType.CREATE,
+      changeType: changeType,
       field: field,
       entity: Entity.TASKSTATE,
       time: DateTime.now(),
