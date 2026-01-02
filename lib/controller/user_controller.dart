@@ -55,7 +55,7 @@ class UserController {
       await _deleteUser(user);
       await NotificationController().deleteNotificationByUser(user);
     } catch (e) {
-      logError('DELETE USER', e); 
+      logError('DELETE USER', e);
     }
   }
 
@@ -88,7 +88,15 @@ class UserController {
     User user;
 
     try {
-      final db = await FirebaseFirestore.instance.collection(DbConstants.USER).where(DbConstants.DELETED, isEqualTo: loadDeletd).get();
+      QuerySnapshot<Map<String, dynamic>> db;
+      if (loadDeletd) {
+        db = await FirebaseFirestore.instance.collection(DbConstants.USER).get();
+      } else {
+        db = await FirebaseFirestore.instance
+            .collection(DbConstants.USER)
+            .where(DbConstants.DELETED, isEqualTo: false)
+            .get();
+      }
       final docs = db.docs;
 
       for (var doc in docs) {
