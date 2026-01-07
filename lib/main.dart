@@ -57,6 +57,7 @@ class LogInPage extends State<MyHomePage> {
   UserController userController = UserController();
 
   String control = "";
+  bool showPassword = false;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController pswrdController = TextEditingController();
@@ -105,6 +106,7 @@ class LogInPage extends State<MyHomePage> {
                   setState(() {
                     _hasAccount = !_hasAccount;
                     control = "";
+                    showPassword = false;
                     clear();
                   });
                 },
@@ -148,7 +150,7 @@ class LogInPage extends State<MyHomePage> {
             controller: pswrdController,
             decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Contrasenya"),
 
-            obscureText: true,
+            obscureText: !showPassword,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return "Es requereix de la contrasenya";
@@ -261,7 +263,7 @@ class LogInPage extends State<MyHomePage> {
             child: TextFormField(
               decoration: InputDecoration(border: OutlineInputBorder(), labelText: "Contrasenya"),
               controller: paswordController,
-              obscureText: true,
+              obscureText: !showPassword,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return "Aquest camp és obligatori";

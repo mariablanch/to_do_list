@@ -1037,6 +1037,10 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Column teamMembers(Team team, bool isAdmin) {
+    List<UserTeam> users = [];
+    if (teamsAndUsers.containsKey(team)) {
+      users = teamsAndUsers[team]!;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1053,9 +1057,8 @@ class ConfigPage extends State<ConfigHP> {
         Text("Membres del equip:", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         SizedBox(height: 15),
 
-        teamsAndUsers[team]!.isEmpty
-            ? Text("\t\tNo hi ha usuaris")
-            : Table(
+        teamsAndUsers.containsKey(team) && teamsAndUsers[team]!.isNotEmpty
+            ? Table(
                 columnWidths: {
                   0: IntrinsicColumnWidth(),
                   1: IntrinsicColumnWidth(),
@@ -1064,13 +1067,11 @@ class ConfigPage extends State<ConfigHP> {
                   4: IntrinsicColumnWidth(),
                 },
                 children: [
-                  for (UserTeam ut in teamsAndUsers[team]!)
-                    tableRowUser(
-                      Text("${teamsAndUsers[team]!.indexOf(ut) + 1}", style: TextStyle(fontWeight: FontWeight.bold)),
-                      ut,
-                    ),
+                  for (UserTeam ut in users)
+                    tableRowUser(Text("${users.indexOf(ut) + 1}", style: TextStyle(fontWeight: FontWeight.bold)), ut),
                 ],
-              ),
+              )
+            : Text("\t\tNo hi ha usuaris"),
       ],
     );
   }
@@ -1152,7 +1153,10 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget teamTasks(Team team) {
-    List<Task> teamTask = tasksFromTeams[team]!;
+    List<Task> teamTask = [];
+    if (tasksFromTeams.containsKey(team)) {
+      teamTask = tasksFromTeams[team]!;
+    }
     return teamTask.isNotEmpty
         ? Table(
             columnWidths: {0: IntrinsicColumnWidth(), 1: IntrinsicColumnWidth()},
@@ -1426,7 +1430,7 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget historyRow<T extends BaseEntity>(History h, T obj) {
-    String nameObj = "", oldValue = "", newValue = "";
+    String nameObj = "", oldValue = "", newValue = h.newValue;
 
     switch (h.entity) {
       case Entity.NONE:
