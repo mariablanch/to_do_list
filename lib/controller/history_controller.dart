@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/priorities.dart';
-import 'package:to_do_list/utils/user_role.dart';
+import 'package:to_do_list/utils/user_role_team.dart';
 import 'package:uuid/uuid.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/history.dart';

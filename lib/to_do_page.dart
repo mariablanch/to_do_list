@@ -17,7 +17,7 @@ import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/priorities.dart';
-import 'package:to_do_list/utils/user_role.dart';
+import 'package:to_do_list/utils/user_role_team.dart';
 import 'package:to_do_list/utils/widgets.dart';
 import 'package:to_do_list/utils/sort.dart';
 import 'package:to_do_list/view_form/task_filter.dart';
