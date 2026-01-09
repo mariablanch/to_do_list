@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:to_do_list/model/relation_tables/user_team.dart';
 import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/model/user.dart';
-import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/roles.dart';
 
 class TeamForm extends StatefulWidget {
   final Function(Team newTeam, List<User> usersToAdd)? onTeamCreated;

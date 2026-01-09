@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/interfaces.dart';
-import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/roles.dart';
 
 class User implements Comparable<User>, BaseEntity {
   String _id;

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/priorities.dart';
-import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/roles.dart';
 
 /// Taules que s'utilitzen més d'un cop a més d'una classe
 ///

@@ -20,7 +20,7 @@ import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
 import 'package:to_do_list/utils/interfaces.dart';
-import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/roles.dart';
 import 'package:to_do_list/utils/history_enums.dart';
 import 'package:to_do_list/utils/widgets.dart';
 import 'package:to_do_list/utils/sort.dart';

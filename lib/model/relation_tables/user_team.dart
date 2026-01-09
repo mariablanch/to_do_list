@@ -3,7 +3,7 @@ import 'package:to_do_list/model/team.dart';
 import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/db_constants.dart';
 import 'package:to_do_list/utils/interfaces.dart';
-import 'package:to_do_list/utils/user_role_team.dart';
+import 'package:to_do_list/utils/roles.dart';
 
 class UserTeam implements Comparable<UserTeam>, BaseEntity {
   String _id;
