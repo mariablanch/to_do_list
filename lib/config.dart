@@ -123,7 +123,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) Icons.history,
     Icons.delete,
   ];
-  List<Widget> get pages => [
+  List<Widget> get pagess => [
     profilePage(),
     editAccountPage(),
     if (isAdmin) usersPage(),
@@ -134,7 +134,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) historyPage(),
     deleteAccountPage(),
   ];
-  List<Widget> get pagess => [
+  List<Widget> get pages => [
     if (isAdmin) historyPage(),
     profilePage(),
     editAccountPage(),
@@ -160,7 +160,8 @@ class ConfigPage extends State<ConfigHP> {
   Map<Team, List<UserTeam>> myTeams = {};
   Map<Team, List<Task>> tasksFromTeams = {};
   List<Task> allTasks = [];
-  Map<History, BaseEntity> history = {};
+  Map<History, BaseEntity> allHistory = {};
+  List<History> showHistory = [];
 
   Set<User> usersAdded = {};
 
@@ -1239,7 +1240,7 @@ class ConfigPage extends State<ConfigHP> {
         ),
         child: isWide
             ? Text(
-                isWide ? "Vreure només les tasques eliminades" : "Veure només eliminades",
+                isWide ? "Veure només les tasques eliminades" : "Veure només eliminades",
                 style: TextStyle(fontSize: 17),
               )
             : Icon(Icons.remove_red_eye),
@@ -1365,72 +1366,82 @@ class ConfigPage extends State<ConfigHP> {
 
   //HISTORY PAGE
   Widget historyPage() {
-    return isLoading
-        ? Center(child: CircularProgressIndicator())
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return isLoading ? Center(child: CircularProgressIndicator()) : historyListPage();
+  }
+
+  Column historyListPage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [pageLabel(AppStrings.HISTORY.toUpperCase())]),
+        SizedBox(height: 20),
+
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          color: Colors.grey.shade300,
+          child: Row(
             children: [
-              Row(children: [pageLabel(AppStrings.HISTORY.toUpperCase())]),
-              SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                color: Colors.grey.shade300,
-                child: Row(
-                  children: [
-                    Tables.header("Data"),
-                    Tables.header("Nom"),
-                    Tables.header("Tipus entitat"),
-                    if (isWide) ...[Tables.header("Abans"), Tables.header("Desprès")],
-                  ],
-                ),
-              ),
-              SizedBox(height: 5),
-              historyList(),
-
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Icon(Icons.circle, color: ChangeType.CREATE.getColor()),
-                  SizedBox(width: 5),
-                  Text("Crear"),
-                  SizedBox(width: 20),
-                  Icon(Icons.circle, color: ChangeType.UPDATE.getColor()),
-                  SizedBox(width: 5),
-                  Text("Editar"),
-                  SizedBox(width: 20),
-                  Icon(Icons.circle, color: ChangeType.DELETE.getColor()),
-                  SizedBox(width: 5),
-                  Text("Eliminar"),
-                ],
-              ),
+              Tables.header("Data"),
+              Tables.header("Nom"),
+              Tables.header("Tipus entitat"),
+              if (isWide) ...[Tables.header("Abans"), Tables.header("Després")],
             ],
-          );
+          ),
+        ),
+        SizedBox(height: 5),
+        historyList(),
+
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Icon(Icons.circle, color: ChangeType.CREATE.getColor()),
+            SizedBox(width: 5),
+            Text("Crear"),
+            SizedBox(width: 20),
+            Icon(Icons.circle, color: ChangeType.UPDATE.getColor()),
+            SizedBox(width: 5),
+            Text("Editar"),
+            SizedBox(width: 20),
+            Icon(Icons.circle, color: ChangeType.DELETE.getColor()),
+            SizedBox(width: 5),
+            Text("Eliminar"),
+          ],
+        ),
+      ],
+    );
   }
 
   Expanded historyList() {
-    final entries = history.entries.toList();
+    //final entries = allHistory.entries.toList();
     return Expanded(
       child: ListView.builder(
-        itemCount: entries.length,
+        itemCount: showHistory.length, //entries.length,
         itemBuilder: (context, index) {
-          final hist = entries[index].key;
-          final obj = entries[index].value;
+          // final hist = entries[index].key;
+          // final obj = entries[index].value;
 
-          // final hist = history[index];
+          final lastHist = showHistory[index];
+          final obj = allHistory.entries.firstWhere((entry) => entry.key.idEntity == lastHist.idEntity).value;
 
           // FILTRAR
           //if ((hist.time.isBefore(DateTime.now()))) {return SizedBox();}
 
-          return historyRow(hist, obj);
+          return historyRow(lastHist, obj);
         },
       ),
     );
   }
 
   Widget historyRow<T extends BaseEntity>(History h, T obj) {
-    String nameObj = "", oldValue = "", newValue = h.newValue;
+    String nameObj = "", oldValue = "", newValue = "";
+    if (h.field == "state") {
+      oldValue = states.firstWhere((state) => state.id == h.oldValue).name;
+      newValue = states.firstWhere((state) => state.id == h.newValue).name;
+    } else {
+      oldValue = h.oldValue;
+      newValue = h.newValue;
+    }
 
     switch (h.entity) {
       case Entity.NONE:
@@ -1439,6 +1450,9 @@ class ConfigPage extends State<ConfigHP> {
       case Entity.TASK:
         if (obj is Task) {
           nameObj = obj.name;
+          if (nameObj.isEmpty) {
+            nameObj = allTasks.firstWhere((task) => task.id == h.idEntity).name;
+          }
           // - ${obj.description.substring(0, obj.description.length < 20 ? obj.description.length : 20)}";
           //ñ
         }
@@ -1490,7 +1504,7 @@ class ConfigPage extends State<ConfigHP> {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       color: h.changeType.getColor(),
       child: InkWell(
-        onTap: () => logToDo("Veure detall history", "ConfigPage(historyRow)"),
+        onTap: () {}, //() => !isWide ? openViewTaskHistoryMOBILE(h, nameObj) : openViewTaskHistoryCOMPUTER(h, nameObj),
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
@@ -1511,8 +1525,89 @@ class ConfigPage extends State<ConfigHP> {
     return Row();
   }
 
-  Widget viewHistory<T extends BaseEntity>(History h, T entity) {
-    return Column();
+  Widget viewHistory(History h) {
+    logToDo("Veure detall history", "ConfigPage(historyRow)");
+    //logPrintClass(entity);
+    Map<History, BaseEntity> selectedHistory = Map.fromEntries(
+      allHistory.entries.where((entry) => entry.key.idEntity == h.idEntity),
+    );
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          for (final line in selectedHistory.entries) ...[
+            Text(line.key.field, style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontSize: 20)),
+
+            tableHistory(),
+          ],
+
+          TextFormField(),
+          Text(selectedHistory.entries.first.key.field),
+          Text("data"),
+          Text("data"),
+          Text("data"),
+          Text("data"),
+          Text("data"),
+          Text("data"),
+        ],
+      ),
+    );
+  }
+
+  Table tableHistory() {
+    return Table(
+      columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+      children: [
+        TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text("label", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+              child: Text("value", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void openViewTaskHistoryMOBILE(History h, String name) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
+
+          child: SizedBox(height: MediaQuery.of(context).size.height * 0.8, child: viewHistory(h)),
+        );
+      },
+    );
+  }
+
+  void openViewTaskHistoryCOMPUTER(History h, String name) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Historic"),
+          content: viewHistory(h),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Tancar"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   //DELETE ACC
@@ -1819,7 +1914,15 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Future<void> _loadHistory() async {
-    history = await HistoryController.eventMap();
+    allHistory = await HistoryController.eventMap();
+    Set<String> seen = {};
+    showHistory = [];
+
+    for (final h in allHistory.keys) {
+      if (seen.add(h.idEntity)) {
+        showHistory.add(h);
+      }
+    }
   }
 
   Future<void> _loadAdminData() async {

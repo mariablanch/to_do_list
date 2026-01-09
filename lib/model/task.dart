@@ -115,7 +115,7 @@ class Task implements Comparable<Task>, BaseEntity {
     str += 'Data límit: $limitDateF \n';
     str += 'Data completada: $completedDateF \n';
     str += 'Data obertura: $openDateF \n';
-    str += 'Estat: ${_state.name} \n';
+    str += 'Estat: ${_state.id} - ${_state.name} \n';
     str += 'Eliminada: $deleted \n ';
     return str;
   }

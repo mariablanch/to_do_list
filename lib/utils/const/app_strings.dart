@@ -47,7 +47,7 @@ class AppStrings {
   }
 
   static String titleText(Task task) {
-    return "${task.name}   -   ${DateFormat("dd/MMM/yyyy").format(task.limitDate)}";
+    return "${task.name}  -  ${DateFormat("dd/MMM/yyyy").format(task.limitDate)}";
   }
 
   static String shownTasks(int num) {

@@ -8,6 +8,7 @@ class History implements Comparable<History> {
   String idEntity;
   User user;
   String newValue;
+  String oldValue;
   ChangeType changeType;
   String field;
   Entity entity;
@@ -19,6 +20,7 @@ class History implements Comparable<History> {
       this.idEntity = "",
       this.user = User.empty(),
       this.newValue = "",
+      this.oldValue = "",
       this.changeType = ChangeType.NONE,
       this.field = "",
       this.entity = Entity.NONE,
@@ -30,6 +32,7 @@ class History implements Comparable<History> {
     required this.idEntity,
     required this.user,
     required this.newValue,
+    required this.oldValue,
     required this.changeType,
     required this.field,
     required this.entity,
@@ -42,6 +45,7 @@ class History implements Comparable<History> {
       this.idEntity = history.idEntity,
       this.user = history.user,
       this.newValue = history.newValue,
+      this.oldValue = history.oldValue,
       this.changeType = history.changeType,
       this.field = history.field,
       this.entity = history.entity,
@@ -53,6 +57,7 @@ class History implements Comparable<History> {
     String? idEntity,
     User? user,
     String? newValue,
+    String? oldValue,
     ChangeType? changeType,
     String? field,
     Entity? entity,
@@ -64,6 +69,7 @@ class History implements Comparable<History> {
       idEntity: idEntity ?? this.idEntity,
       user: user ?? this.user,
       newValue: newValue ?? this.newValue,
+      oldValue: oldValue ?? this.oldValue,
       changeType: changeType ?? this.changeType,
       field: field ?? this.field,
       entity: entity ?? this.entity,
@@ -77,6 +83,7 @@ class History implements Comparable<History> {
       "idChange": idChange,
       "user": user.id,
       "newValue": newValue,
+      "oldValue": oldValue,
       "changeType": changeType.name,
       "field": field,
       "entity": entity.name,
@@ -92,6 +99,7 @@ class History implements Comparable<History> {
       idEntity: data?["idEntity"] ?? '',
       user: User.empty().copyWith(id: data?["user"] ?? ''),
       newValue: data?["newValue"] ?? '',
+      oldValue: data?["oldValue"] ?? '',
       changeType: ChangeType.values.firstWhere(
         (c) => c.name.toLowerCase() == (data?["changeType"] ?? '').toString().toLowerCase(),
       ),
@@ -120,6 +128,7 @@ class History implements Comparable<History> {
     str += "idEntity: $idEntity,\n";
     str += "user: ${user.userName},\n";
     str += "newValue: $newValue,\n";
+    str += "oldValue: $oldValue,\n";
     str += "changeType: ${changeType.name},\n";
     str += "field: $field,\n";
     str += "entity: ${entity.name}}";
