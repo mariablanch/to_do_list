@@ -677,11 +677,11 @@ class ConfigPage extends State<ConfigHP> {
                 Table(
                   columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
                   children: [
-                    Tables.tableRow2(
+                    Tables.tableRow(
                       "Tasques de l'usuari:",
                       tasks.isEmpty ? "Aquest usuari no té tasques assignades." : tasks.first.name,
                     ),
-                    for (Task task in tasks.skip(1).toList()) Tables.tableRow2("", task.name),
+                    for (Task task in tasks.skip(1).toList()) Tables.tableRow("", task.name),
                   ],
                 ),
 
@@ -1375,18 +1375,8 @@ class ConfigPage extends State<ConfigHP> {
         Row(children: [pageLabel(AppStrings.HISTORY.toUpperCase())]),
         SizedBox(height: 20),
 
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          color: Colors.grey.shade300,
-          child: Row(
-            children: [
-              Tables.header("Data"),
-              Tables.header("Nom"),
-              Tables.header("Tipus entitat"),
-              if (isWide) ...[Tables.header("Abans"), Tables.header("Després")],
-            ],
-          ),
-        ),
+        Tables.historyHeader(isWide),
+
         SizedBox(height: 5),
         historyList(),
 
@@ -1420,19 +1410,20 @@ class ConfigPage extends State<ConfigHP> {
           // final hist = entries[index].key;
           // final obj = entries[index].value;
 
-          final lastHist = showHistory[index];
-          final obj = allHistory.entries.firstWhere((entry) => entry.key.idEntity == lastHist.idEntity).value;
+          History thisHist = showHistory[index];
+
+          BaseEntity entity = allHistory.entries.firstWhere((entry) => entry.key.idEntity == thisHist.idEntity).value;
 
           // FILTRAR
           //if ((hist.time.isBefore(DateTime.now()))) {return SizedBox();}
 
-          return historyRow(lastHist, obj);
+          return historyRow(thisHist, entity);
         },
       ),
     );
   }
 
-  Widget historyRow<T extends BaseEntity>(History h, T obj) {
+  Widget historyRow(History h, BaseEntity obj) {
     String nameObj = "", oldValue = "", newValue = "";
     if (h.field == "state") {
       oldValue = states.firstWhere((state) => state.id == h.oldValue).name;
@@ -1453,7 +1444,6 @@ class ConfigPage extends State<ConfigHP> {
             nameObj = allTasks.firstWhere((task) => task.id == h.idEntity).name;
           }
           // - ${obj.description.substring(0, obj.description.length < 20 ? obj.description.length : 20)}";
-          //ñ
         }
         break;
       case Entity.USER:
@@ -1498,24 +1488,13 @@ class ConfigPage extends State<ConfigHP> {
           // subtitle = "";
         }
     }
+
     return Card(
-      //ñ
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       color: h.changeType.getColor(),
       child: InkWell(
-        onTap: () {}, //() => !isWide ? openViewTaskHistoryMOBILE(h, nameObj) : openViewTaskHistoryCOMPUTER(h, nameObj),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Tables.cell(DateFormat("dd/MM/yyyy").format(h.time)),
-              Tables.cell(nameObj),
-              Tables.cell(h.entity.name),
-              if (isWide) ...[Tables.cell(oldValue), Tables.cell(newValue)],
-              //Tables.cell("${h.user.name} ${h.user.surname} (${h.user.userName})"),
-            ],
-          ),
-        ),
+        onTap: () => !isWide ? openViewTaskHistoryMOBILE(h, nameObj) : openViewTaskHistoryCOMPUTER(h, nameObj),
+        child: Tables.historyLine(isWide, nameObj, h, oldValue, newValue),
       ),
     );
   }
@@ -1525,37 +1504,40 @@ class ConfigPage extends State<ConfigHP> {
   }
 
   Widget viewHistory(History h) {
-    logToDo("Veure detall history", "ConfigPage(historyRow)");
-    //logPrintClass(entity);
+    //logToDo("Veure detall history", "ConfigPage(historyRow)");
+
     Map<History, BaseEntity> selectedHistory = Map.fromEntries(
       allHistory.entries.where((entry) => entry.key.idEntity == h.idEntity),
     );
+    List<MapEntry<History, BaseEntity>> lines = selectedHistory.entries.toList();
+
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
 
         children: [
-          for (final line in selectedHistory.entries) ...[
-            Text(line.key.field, style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontSize: 20)),
+          for (int i = 0; i < lines.length; i++) ...[
+            Text(
+              "${DateFormat("dd/MM/yyyy - H:m").format(lines[i].key.time)} (${lines[i].key.user.userName})",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontSize: 18),
+            ),
 
-            tableHistory(),
+            //if(line.value is Task) Tables.viewTasks(line.value, Theme.of(context).colorScheme.onPrimaryContainer),
+            //tableHistory(line),
+            Tables.historyTable(
+              lines[i].key.entity,
+              lines[i].value,
+              i + 1 < lines.length ? lines[i + 1].value : lines[i].value,
+            ),
+            SizedBox(height: 15),
           ],
-
-          TextFormField(),
-          Text(selectedHistory.entries.first.key.field),
-          Text("data"),
-          Text("data"),
-          Text("data"),
-          Text("data"),
-          Text("data"),
-          Text("data"),
         ],
       ),
     );
   }
 
-  Table tableHistory() {
+  Table tableHistory(MapEntry<History, BaseEntity> line) {
     return Table(
       columnWidths: {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
       children: [
@@ -1583,7 +1565,12 @@ class ConfigPage extends State<ConfigHP> {
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 30),
 
-          child: SizedBox(height: MediaQuery.of(context).size.height * 0.8, child: viewHistory(h)),
+          //ñ
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.8,
+            width: MediaQuery.of(context).size.width,
+            child: viewHistory(h),
+          ),
         );
       },
     );
@@ -1594,6 +1581,7 @@ class ConfigPage extends State<ConfigHP> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           title: Text("Historic"),
           content: viewHistory(h),
           actions: <Widget>[

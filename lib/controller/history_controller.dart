@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:to_do_list/controller/state_controller.dart';
 import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/priorities.dart';
 import 'package:to_do_list/utils/roles.dart';
@@ -52,6 +53,9 @@ class HistoryController {
     List<History> allHistory = await _loadAllHistory();
     History h;
 
+    StateController sc = StateController();
+    await sc.loadAllStates();
+
     //SORT PER A Q ESTIGUI DEL REVES (mes antigues damunt)
     allHistory = allHistory.reversed.toList();
 
@@ -65,7 +69,7 @@ class HistoryController {
       String idObj = line.value.first.idEntity;
 
       List<History>? oldValue = lastHistoryByEntity[idObj];
-      BaseEntity obj = _historyToObject(line.value, oldValue);
+      BaseEntity obj = _historyToObject(line.value, sc.states, oldValue);
 
       lastHistoryByEntity[idObj] = line.value;
 
@@ -90,12 +94,12 @@ class HistoryController {
     return ret;
   }
 
-  static BaseEntity _historyToObject(List<History> list, [List<History>? oldValue]) {
+  static BaseEntity _historyToObject(List<History> list, List<TaskState> states,[List<History>? oldValue]) {
     switch (list.first.entity) {
       case Entity.NONE:
         return Task.empty();
       case Entity.TASK:
-        return _mapTask(list, oldValue);
+        return _mapTask(list,states, oldValue);
       case Entity.USER:
         return _mapUser(list, oldValue);
       case Entity.TEAM:
@@ -269,7 +273,7 @@ class HistoryController {
   }
 */
 
-  static Task _mapTask(List<History> list, [List<History>? oldValue]) {
+  static Task _mapTask(List<History> list, List<TaskState> states,[List<History>? oldValue]) {
     String name = "", description = "";
     Priorities priority = Priorities.NONE;
     DateTime limitDate = DateTime.now(), openDate = DateTime.now();
@@ -285,7 +289,7 @@ class HistoryController {
       "limitDate": (v) => limitDate = DateFormat('dd/MMM/yyyy').parse(v),
       "openDate": (v) => openDate = DateFormat('dd/MMM/yyyy').parse(v),
       "completedDate": (v) => completedDate = (v == "null" ? null : DateFormat('dd/MMM/yyyy').parse(v)),
-      "state": (v) => state = TaskState(id: v, color: null, name: '', deleted: false),
+      "state": (v) => state = states.firstWhere((state) => state.id == v),
       "deleted": (v) => deleted = v == "true",
     };
 
