@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:to_do_list/controller/history_controller.dart';
 import 'package:to_do_list/controller/task_controller.dart';
 import 'package:to_do_list/controller/user_controller.dart';
 import 'package:to_do_list/model/relation_tables/team_task.dart';
@@ -19,26 +20,28 @@ class TeamController {
 
   TeamController() : team = Team.empty(), allTeamsAndUsers = {}, myTeamsAndUsers = {}, _uc = UserController();
 
-  Future<void> createTeam(Team team) async {
+  Future<void> createTeam(Team team, User creator) async {
     try {
       final docRef = await FirebaseFirestore.instance.collection(DbConstants.TEAM).add(team.toFirestore());
       team.id = docRef.id;
       allTeamsAndUsers[team] = [];
+      await HistoryController.createTeam(team, creator);
     } catch (e) {
       logError('CREATE TEAM', e);
     }
   }
 
-  Future<void> updateTeam(Team team) async {
+  Future<void> updateTeam(Team team, Team oldTeam, User creator) async {
     try {
       await FirebaseFirestore.instance.collection(DbConstants.TEAM).doc(team.id).update(team.toFirestore());
+      await HistoryController.updateTeam(oldTeam, team, creator);
     } catch (e) {
       logError('UPDATE TEAM', e);
     }
   }
 
   Future<void> addUserToTeam(Team team, User user) async {
-    UserTeam ut = UserTeam(team: team, user: user, role: TeamRole.USER, id : "", deleted: false);
+    UserTeam ut = UserTeam(team: team, user: user, role: TeamRole.USER, id: "", deleted: false);
     try {
       await FirebaseFirestore.instance.collection(DbConstants.USERTEAM).add(ut.toFirestore());
       allTeamsAndUsers[team]?.add(ut);
@@ -47,19 +50,20 @@ class TeamController {
     }
   }
 
-  Future<void> deleteTeamWithRelation(Team team) async {
+  Future<void> deleteTeamWithRelation(Team team, User creator) async {
     try {
-      _deleteTeam(team); //ELIMINA EL EQUIP
+      _deleteTeam(team, creator); //ELIMINA EL EQUIP
       _deleteUserTeamRelationByTeam(team); // ELIMINA LES RELACIONS AMB EL ID DEL EQUIP ELIMINAT
     } catch (e) {
       logError('DELETE TEAM WITH RELATION', e);
     }
   }
 
-  Future<void> _deleteTeam(Team team) async {
+  Future<void> _deleteTeam(Team team, User creator) async {
     try {
       team = team.copyWith(deleted: true);
       await FirebaseFirestore.instance.collection(DbConstants.TEAM).doc(team.id).update(team.toFirestore());
+      HistoryController.deleteTeam(team, creator);
     } catch (e) {
       logError('DELETE TEAM', e);
     }
@@ -126,9 +130,9 @@ class TeamController {
       if (db.docs.isNotEmpty) {
         for (var doc in db.docs) {
           UserTeam ut = UserTeam.fromFirestore(doc, null);
-          
+
           user = allUsers.firstWhere((u) => u.id == ut.user.id);
-          team = allTeamsAndUsers.keys.firstWhere((t) => t.id == ut.team.id); 
+          team = allTeamsAndUsers.keys.firstWhere((t) => t.id == ut.team.id);
 
           ut = ut.copyWith(user: user, team: team);
           allTeamsAndUsers[team]?.add(ut);
@@ -196,7 +200,7 @@ class TeamController {
       tt = TeamTask.fromFirestore(doc, null);
       team = await TeamController().loadTeambyId(tt.team.id) ?? tt.team;
       task = tc.tasks.firstWhere((tsk) => tsk.id == tt.task.id);
-      tt = TeamTask(team: team, task: task, deleted: false, id : "");
+      tt = TeamTask(team: team, task: task, deleted: false, id: "");
       list.add(tt);
     }
     return list;
@@ -220,7 +224,7 @@ class TeamController {
       users = users.toSet().toList();
 
       for (var user in users) {
-        ut = UserTeam(team: team, user: user, role: TeamRole.ADMIN,id: "", deleted: false);
+        ut = UserTeam(team: team, user: user, role: TeamRole.ADMIN, id: "", deleted: false);
         await _upadateRelation(ut);
       }
 

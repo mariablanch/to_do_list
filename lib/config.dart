@@ -19,6 +19,7 @@ import 'package:to_do_list/model/user.dart';
 import 'package:to_do_list/utils/const/firebase_options.dart';
 import 'package:to_do_list/utils/const/app_strings.dart';
 import 'package:to_do_list/utils/const/messages.dart';
+import 'package:to_do_list/utils/filter.dart';
 import 'package:to_do_list/utils/interfaces.dart';
 import 'package:to_do_list/utils/roles.dart';
 import 'package:to_do_list/utils/history_enums.dart';
@@ -122,7 +123,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) Icons.history,
     Icons.delete,
   ];
-  List<Widget> get pagess => [
+  List<Widget> get pages => [
     profilePage(),
     editAccountPage(),
     if (isAdmin) usersPage(),
@@ -133,7 +134,7 @@ class ConfigPage extends State<ConfigHP> {
     if (isAdmin) historyPage(),
     deleteAccountPage(),
   ];
-  List<Widget> get pages => [
+  List<Widget> get pagess => [
     if (isAdmin) historyPage(),
     profilePage(),
     editAccountPage(),
@@ -297,7 +298,6 @@ class ConfigPage extends State<ConfigHP> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //Text("EDITAR PERFIL", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 20)),
             pageLabel(AppStrings.EDIT_PROFILE.toUpperCase()),
 
             SizedBox(height: 20),
@@ -564,8 +564,8 @@ class ConfigPage extends State<ConfigHP> {
             pageLabel(viewList ? AppStrings.USERS_LABEL.toUpperCase() : editUser.userName),
           ],
         ),
-
         SizedBox(height: 20),
+        if (viewList) ...[searchField(), SizedBox(height: 15)],
 
         viewList ? userList() : Expanded(child: viewUser(userEdit, editUser)),
 
@@ -594,6 +594,12 @@ class ConfigPage extends State<ConfigHP> {
         itemBuilder: (context, index) {
           final user = allUsers[index];
           if (user == myUser) {
+            return SizedBox();
+          }
+
+          if (!user.userName.toLowerCase().contains(filter) &&
+              !user.name.toLowerCase().contains(filter) &&
+              !user.surname.toLowerCase().contains(filter)) {
             return SizedBox();
           }
 
@@ -727,8 +733,10 @@ class ConfigPage extends State<ConfigHP> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [pageLabel(AppStrings.TASKSTATES.toUpperCase())]),
-
               SizedBox(height: 20),
+              searchField(),
+              SizedBox(height: 15),
+
               taskStateList(),
               Container(
                 width: double.infinity,
@@ -753,6 +761,10 @@ class ConfigPage extends State<ConfigHP> {
         itemBuilder: (context, index) {
           final state = states[index];
           bool canDelete = AppStrings.DEFAULT_STATES.contains(state.name);
+
+          if (!state.name.toLowerCase().contains(filter)) {
+            return SizedBox();
+          }
 
           return Card(
             color: stateController.getShade200(state.color),
@@ -1190,28 +1202,17 @@ class ConfigPage extends State<ConfigHP> {
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(children: [searchTask(), SizedBox(width: 10), showOnlyDeletedBtn()]),
+                  child: Row(children: [searchField(), SizedBox(width: 10), showOnlyDeletedBtn()]),
                 ),
               ),
             ],
           )
-        /*
-           * Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              searchTask(),
-              SizedBox(height: 10),
-              showOnlyDeletedBtn(),
-              //SizedBox(height: 10), shownTasks()
-            ],
-          )
-           */
         : Row(
             children: [
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(children: [searchTask(), SizedBox(width: 10), showOnlyDeletedBtn()]),
+                  child: Row(children: [searchField(), SizedBox(width: 10), showOnlyDeletedBtn()]),
                 ),
               ),
               shownTasks(),
@@ -1255,7 +1256,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  Widget searchTask() {
+  Widget searchField() {
     return SizedBox(
       width: 300,
       child: TextField(
@@ -1375,6 +1376,8 @@ class ConfigPage extends State<ConfigHP> {
         Row(children: [pageLabel(AppStrings.HISTORY.toUpperCase())]),
         SizedBox(height: 20),
 
+        /*historyFiltter(),
+        SizedBox(height: 15),*/
         Tables.historyHeader(isWide),
 
         SizedBox(height: 5),
@@ -1493,7 +1496,7 @@ class ConfigPage extends State<ConfigHP> {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       color: h.changeType.getColor(),
       child: InkWell(
-        onTap: () => !isWide ? openViewTaskHistoryMOBILE(h, nameObj) : openViewTaskHistoryCOMPUTER(h, nameObj),
+        onTap: () => !isWide ? openViewTaskHistoryMOBILE(h) : openViewTaskHistoryCOMPUTER(h),
         child: Tables.historyLine(isWide, nameObj, h, oldValue, newValue),
       ),
     );
@@ -1557,7 +1560,7 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  void openViewTaskHistoryMOBILE(History h, String name) {
+  void openViewTaskHistoryMOBILE(History h) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1576,14 +1579,17 @@ class ConfigPage extends State<ConfigHP> {
     );
   }
 
-  void openViewTaskHistoryCOMPUTER(History h, String name) {
+  void openViewTaskHistoryCOMPUTER(History h) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final maxHeight = MediaQuery.of(context).size.height * 0.6;
         return AlertDialog(
-          scrollable: true,
           title: Text("Historic"),
-          content: viewHistory(h),
+          content: SizedBox(
+            height: maxHeight,
+            child: SingleChildScrollView(child: viewHistory(h)),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -1596,6 +1602,129 @@ class ConfigPage extends State<ConfigHP> {
       },
     );
   }
+
+  DateFilterType dateType = DateFilterType.ALL;
+  /*
+  DateTime? startDate;
+  DateTime? endDate;
+  bool isFilterOpen = false;
+  OverlayEntry? _overlay;
+  final LayerLink _link = LayerLink();
+
+  Widget historyFiltter() {
+    return CompositedTransformTarget(
+      link: _link,
+      child: OutlinedButton(
+        onPressed: _toggleOverlay,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [Text('Data'), SizedBox(width: 6), Icon(Icons.arrow_drop_down)],
+        ),
+      ),
+    );
+  }
+
+  void _toggleOverlay() {
+    if (_overlay != null) {
+      _closeOverlay();
+    } else {
+      _openOverlay();
+    }
+  }
+
+  void _openOverlay() {
+    _overlay = OverlayEntry(
+      builder: (context) {
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _closeOverlay,
+          child: Stack(
+            children: [
+              Positioned(
+                width: 280,
+                child: CompositedTransformFollower(
+                  link: _link,
+                  showWhenUnlinked: false,
+                  offset: const Offset(0, 44),
+                  child: _menu(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  void _closeOverlay() {
+    _overlay?.remove();
+    _overlay = null;
+  }
+
+  Widget _menu() {
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _item('Mostrar totes', DateFilterType.ALL),
+          _item('Avui', DateFilterType.TODAY),
+          _item('Últims 7 dies', DateFilterType.LAST7DAYS),
+          _item('Últims 30 dies', DateFilterType.LAST30DAYS),
+          _item('Aquest any', DateFilterType.THISYEAR),
+          _item('Darrer any', DateFilterType.LASTYEAR),
+          _item('Personalitzat', DateFilterType.CUSTOM),
+
+          if (dateType == DateFilterType.CUSTOM)
+            Column(
+              children: [
+                _pickDate('Inici', startDate, (d) => setState(() => startDate = d)),
+                _pickDate('Fi', endDate, (d) => setState(() => endDate = d)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _item(String text, DateFilterType type) {
+    return ListTile(
+      dense: true,
+      title: Text(text),
+      trailing: dateType == type ? const Icon(Icons.check) : null,
+      onTap: () => setState(() {
+        setState(() => dateType = type);
+        _overlay?.markNeedsBuild(); 
+
+        if (dateType != DateFilterType.CUSTOM) {
+          startDate = null;
+          endDate = null;
+        }
+      }),
+    );
+  }
+
+  Widget _pickDate(String label, DateTime? date, ValueChanged<DateTime> onPick) {
+    return ListTile(
+      dense: true,
+      title: Text(label),
+      subtitle: Text(date == null ? 'Seleccionar' : '${date.day}/${date.month}/${date.year}'),
+      trailing: const Icon(Icons.date_range),
+      onTap: () async {
+        final d = await showDatePicker(
+          context: context,
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+          initialDate: date ?? DateTime.now(),
+        );
+        if (d != null) onPick(d);
+      },
+    );
+  }
+*/
 
   //DELETE ACC
   Widget deleteAccountPage() {
@@ -1820,7 +1949,7 @@ class ConfigPage extends State<ConfigHP> {
                       if (teamsAndUsers.keys.any((t) => t.name == team.name)) {
                         nameExists("equip");
                       } else {
-                        await teamController.createTeam(team);
+                        await teamController.createTeam(team, myUser);
                         for (final u in users) {
                           await teamController.addUserToTeam(team, u);
                         }
@@ -1835,7 +1964,7 @@ class ConfigPage extends State<ConfigHP> {
                     allUsers: allUsers,
                     usersInTeam: teamsAndUsers[team]!,
                     onTeamEdited: (teamEdited, adminUsers) async {
-                      await teamController.updateTeam(teamEdited);
+                      await teamController.updateTeam(teamEdited, team, myUser);
                       var users = await teamController.updateAdmins(adminUsers, teamsAndUsers[team]!, team);
 
                       Navigator.of(context).pop();

@@ -79,13 +79,14 @@ class Tables {
   static Container historyHeader(bool isWide) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: Colors.grey.shade300,
+      //color: Colors.grey.shade300,
+      decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _historyHeader("Data"),
+              _historyHeader("Data (Hora)"),
               _historyHeader("Nom"),
               _historyHeader("Tipus entitat"),
               if (isWide) ...[_historyHeader("Abans"), _historyHeader("Després")],
@@ -112,7 +113,7 @@ class Tables {
         children: [
           Row(
             children: [
-              Tables._cell(DateFormat("dd/MM/yyyy").format(h.time)),
+              Tables._cell(DateFormat("dd/MM/yyyy (HH:mm)").format(h.time)),
               Tables._cell(nameObj),
               Tables._cell(h.entity.name),
               if (isWide) ...[Tables._cell(oldValue), Tables._cell(newValue)],
@@ -165,7 +166,9 @@ class Tables {
         }
         break;
       case Entity.TEAM:
-        if (oldEntity is Team) {}
+        if (oldEntity is Team) {
+          children = _teamLines(oldEntity, newEntity as Team);
+        }
         break;
       case Entity.NOTIFICATION:
         if (oldEntity is Notifications) {}
@@ -239,7 +242,7 @@ class Tables {
           (task.completedDate == newTask.completedDate) ? "" : DateFormat("dd/MM/yyyy").format(newTask.completedDate!),
         ),
       _tableRowHist("Estat", task.state.name, (task.state.id == newTask.state.id) ? "" : newTask.state.name),
-      if (task.deleted) _tableRowHist("", "Tasca eliminada", ""),
+      if (task.deleted) _tableRowHist("", "Tasca eliminada", " "),
     ];
   }
 
@@ -249,19 +252,26 @@ class Tables {
       _tableRowHist("Cognom", user.surname, (user.surname == newUser.surname) ? "" : newUser.surname),
       _tableRowHist("Nom d'usuari", user.userName, (user.userName == newUser.userName) ? "" : newUser.userName),
 
-      _tableRowHist("Cognom", user.mail, (user.mail == newUser.mail) ? "" : newUser.mail),
-      _tableRowHist("Cognom", user.password, (user.password == newUser.password) ? "" : newUser.password),
-      _tableRowHist("Cognom", user.userRole.name, (user.userRole == newUser.userRole) ? "" : newUser.userRole.name),
+      _tableRowHist("Correu", user.mail, (user.mail == newUser.mail) ? "" : newUser.mail),
+      _tableRowHist("Contrasenya", "***", (user.password == newUser.password) ? "" : "***"),
+      _tableRowHist("Rol", user.userRole.name, (user.userRole == newUser.userRole) ? "" : newUser.userRole.name),
 
       _tableRowHist(
         "Icona",
         User.iconMap.entries.firstWhere((line) => line.value == user.icon.icon).key,
-        (user.userName == newUser.userName)
+        (user.icon == newUser.icon)
             ? ""
-            : User.iconMap.entries.firstWhere((line) => line.value == newUser.icon.icon).value.toString(),
+            : User.iconMap.entries.firstWhere((line) => line.value == newUser.icon.icon).key,
       ),
 
-      if (user.deleted) _tableRowHist("", "Tasca eliminada", ""),
+      if (user.deleted) _tableRowHist("", "Usuari elliminat", " "),
+    ];
+  }
+
+  static List<TableRow> _teamLines(Team team, Team newTeam) {
+    return [
+      _tableRowHist("Nom", team.name, (team.name == newTeam.name) ? "" : newTeam.name),
+      if (team.deleted) _tableRowHist("", "Equip eliminat", " "),
     ];
   }
 }

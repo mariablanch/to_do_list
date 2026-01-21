@@ -6,3 +6,13 @@ enum TaskFilter {
   USER,
   TEAM;
 }
+
+enum DateFilterType {
+  ALL,
+  TODAY, 
+  LAST7DAYS,
+  LAST30DAYS,
+  THISYEAR,
+  LASTYEAR,
+  CUSTOM;
+}

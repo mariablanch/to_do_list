@@ -63,15 +63,15 @@ class HistoryController {
       temp.putIfAbsent(hist.idChange, () => []).add(hist);
     }
 
-    final Map<String, List<History>> lastHistoryByEntity = {};
+    final Map<String, BaseEntity> lastHistoryByEntity = {};
 
     for (var line in temp.entries) {
       String idObj = line.value.first.idEntity;
 
-      List<History>? oldValue = lastHistoryByEntity[idObj];
+      BaseEntity? oldValue = lastHistoryByEntity[idObj];
       BaseEntity obj = _historyToObject(line.value, sc.states, oldValue);
 
-      lastHistoryByEntity[idObj] = line.value;
+      lastHistoryByEntity[idObj] = obj;
 
       h = History(
         id: "",
@@ -94,18 +94,16 @@ class HistoryController {
     return ret;
   }
 
-  static BaseEntity _historyToObject(List<History> list, List<TaskState> states,[List<History>? oldValue]) {
+  static BaseEntity _historyToObject(List<History> list, List<TaskState> states, [BaseEntity? oldValue]) {
     switch (list.first.entity) {
       case Entity.NONE:
         return Task.empty();
       case Entity.TASK:
-        return _mapTask(list,states, oldValue);
+        return _mapTask(list, states, oldValue as Task?);
       case Entity.USER:
-        return _mapUser(list, oldValue);
+        return _mapUser(list, oldValue as User?);
       case Entity.TEAM:
-        // TODO: Handle this case.
-        logToDo("Map de list<History> a Team", "HistoryController(_historyToObject)");
-        return Team.empty();
+        return _mapTeam(list);
       case Entity.NOTIFICATION:
         // TODO: Handle this case.
         logToDo("Map de list<History> a Notification", "HistoryController(_historyToObject)");
@@ -186,6 +184,43 @@ class HistoryController {
     }
   }
 
+  static Future<void> updateTask(Task oldTask, Task newTask, User user) async {
+    try {
+      Map<String, String> oldFields = _taskFields(oldTask);
+      Map<String, String> fields = _changedFields(oldFields, _taskFields(newTask));
+
+      final batch = FirebaseFirestore.instance.batch();
+      final idChange = _generateID();
+
+      for (final item in fields.entries) {
+        final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
+        final history = _instanceHistoryTask(
+          newTask.id,
+          user,
+          item.key,
+          item.value,
+          oldFields[item.key]!,
+          ChangeType.UPDATE,
+          idChange,
+        );
+
+        batch.set(ref, history.toFirestore());
+      }
+
+      await batch.commit();
+    } catch (e) {
+      logError('UPDATE TASK HISTORY', e);
+    }
+  }
+
+  static Future<void> deleteTask(Task task, User user) async {
+    try {
+      await _delete(user, task, Entity.TASK);
+    } catch (e) {
+      logError('DELETE TASK HISTORY', e);
+    }
+  }
+
   static Map<String, String> _taskFields(Task task) {
     return {
       "name": task.name,
@@ -222,83 +257,26 @@ class HistoryController {
     );
   }
 
-  static Future<void> updateTask(Task oldTask, Task newTask, User user) async {
-    try {
-      Map<String, String> oldFields = _taskFields(oldTask);
-      Map<String, String> fields = _changedFields(oldFields, _taskFields(newTask));
-
-      final batch = FirebaseFirestore.instance.batch();
-      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
-      final idChange = _generateID();
-
-      for (final item in fields.entries) {
-        final history = _instanceHistoryTask(
-          newTask.id,
-          user,
-          item.key,
-          item.value,
-          oldFields[item.key]!,
-          ChangeType.UPDATE,
-          idChange,
-        );
-
-        batch.set(ref, history.toFirestore());
-      }
-
-      await batch.commit();
-    } catch (e) {
-      logError('UPDATE TASK HISTORY', e);
-    }
-  }
-
-  static Future<void> deleteTask(Task task, User user) async {
-    try {
-      await _delete(user, task, Entity.TASK);
-    } catch (e) {
-      logError('DELETE TASK HISTORY', e);
-    }
-  }
-
-  /*static Map<String, String> _taskChangedFields(Task oldTask, Task newTask) {
-    Map<String, String> ret = {};
-    Map<String, String> oldT = _taskFields(oldTask);
-    Map<String, String> newT = _taskFields(newTask);
-
-    for (var item in newT.entries) {
-      if (oldT[item.key] != item.value) {
-        ret[item.key] = item.value;
-      }
-    }
-    return ret;
-  }
-*/
-
-  static Task _mapTask(List<History> list, List<TaskState> states,[List<History>? oldValue]) {
-    String name = "", description = "";
-    Priorities priority = Priorities.NONE;
-    DateTime limitDate = DateTime.now(), openDate = DateTime.now();
-    DateTime? completedDate;
-    TaskState state = TaskState.empty();
-    bool deleted = false;
+  static Task _mapTask(List<History> list, List<TaskState> states, [Task? oldValue]) {
+    oldValue = oldValue ?? Task.empty();
+    String name = oldValue.name, description = oldValue.description;
+    Priorities priority = oldValue.priority;
+    DateTime limitDate = oldValue.limitDate, openDate = oldValue.openDate;
+    DateTime? completedDate = oldValue.completedDate;
+    TaskState state = oldValue.state;
+    bool deleted = oldValue.deleted;
 
     final Map<String, void Function(String)> taskFieldSetters = {
       "name": (v) => name = v,
       "description": (v) => description = v,
       "priority": (v) =>
           priority = Priorities.values.firstWhere((p) => p.name.toLowerCase() == v.toString().toLowerCase()),
-      "limitDate": (v) => limitDate = DateFormat('dd/MMM/yyyy').parse(v),
-      "openDate": (v) => openDate = DateFormat('dd/MMM/yyyy').parse(v),
-      "completedDate": (v) => completedDate = (v == "null" ? null : DateFormat('dd/MMM/yyyy').parse(v)),
+      "limitDate": (v) => limitDate = DateFormat('dd/MM/yyyy').parse(v),
+      "openDate": (v) => openDate = DateFormat('dd/MM/yyyy').parse(v),
+      "completedDate": (v) => completedDate = (v == "null" ? null : DateFormat('dd/MM/yyyy').parse(v)),
       "state": (v) => state = states.firstWhere((state) => state.id == v),
       "deleted": (v) => deleted = v == "true",
     };
-
-    if (oldValue != null) {
-      for (final h in oldValue) {
-        final setter = taskFieldSetters[h.field];
-        if (setter != null) setter(h.newValue);
-      }
-    }
 
     for (final h in list) {
       final setter = taskFieldSetters[h.field];
@@ -339,6 +317,42 @@ class HistoryController {
     }
   }
 
+  static Future<void> updateUser(User oldUser, User updatedUser, User creator) async {
+    try {
+      Map<String, String> oldFields = _userFields(oldUser);
+      Map<String, String> fields = _changedFields(oldFields, _userFields(updatedUser));
+
+      final idChange = _generateID();
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final item in fields.entries) {
+        final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
+        final history = _instanceHistoryUser(
+          creator,
+          updatedUser,
+          item.key,
+          item.value,
+          oldFields[item.key]!,
+          idChange,
+          ChangeType.UPDATE,
+        );
+        batch.set(ref, history.toFirestore());
+      }
+
+      await batch.commit();
+    } catch (e) {
+      logError('UPDATE USER HISTORY', e);
+    }
+  }
+
+  static Future<void> deleteUser(User user, User creator) async {
+    try {
+      await _delete(creator, user, Entity.USER);
+    } catch (e) {
+      logError('DELETE USER HISTORY', e);
+    }
+  }
+
   static Map<String, String> _userFields(User user) {
     return {
       "name": user.name,
@@ -375,47 +389,16 @@ class HistoryController {
     );
   }
 
-  static Future<void> updateUser(User oldUser, User updatedUser, User creator) async {
-    try {
-      Map<String, String> oldFields = _userFields(oldUser);
-      Map<String, String> fields = _changedFields(oldFields, _userFields(updatedUser));
-
-      final batch = FirebaseFirestore.instance.batch();
-      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
-      final idChange = _generateID();
-
-      for (final item in fields.entries) {
-        final history = _instanceHistoryUser(
-          creator,
-          updatedUser,
-          item.key,
-          item.value,
-          oldFields[item.key]!,
-          idChange,
-          ChangeType.UPDATE,
-        );
-        batch.set(ref, history.toFirestore());
-      }
-
-      await batch.commit();
-    } catch (e) {
-      logError('UPDATE USER HISTORY', e);
-    }
-  }
-
-  static Future<void> deleteUser(User user, User creator) async {
-    try {
-      await _delete(creator, user, Entity.USER);
-    } catch (e) {
-      logError('DELETE USER HISTORY', e);
-    }
-  }
-
-  static User _mapUser(List<History> list, [List<History>? oldValue]) {
-    String name = "", surname = "", userName = "", mail = "", password = "";
-    UserRole userRole = UserRole.USER;
-    Icon iconName = Icon(User.getRandomIcon());
-    bool deleted = false;
+  static User _mapUser(List<History> list, [User? oldValue]) {
+    oldValue = oldValue ?? User.empty();
+    String name = oldValue.name,
+        surname = oldValue.surname,
+        userName = oldValue.userName,
+        mail = oldValue.mail,
+        password = oldValue.password;
+    UserRole userRole = oldValue.userRole;
+    Icon iconName = oldValue.icon;
+    bool deleted = oldValue.deleted;
 
     final Map<String, void Function(String)> userFieldSetters = {
       "name": (v) => name = v,
@@ -427,13 +410,6 @@ class HistoryController {
       _DELETED: (v) => deleted = (v == "true"),
       "icon": (v) => iconName = Icon(User.iconMap[v] ?? Icons.person),
     };
-
-    if (oldValue != null) {
-      for (final h in oldValue) {
-        final setter = userFieldSetters[h.field];
-        if (setter != null) setter(h.newValue);
-      }
-    }
 
     for (final h in list) {
       final setter = userFieldSetters[h.field];
@@ -451,6 +427,108 @@ class HistoryController {
       iconName: iconName,
       deleted: deleted,
     );
+  }
+
+  //TEAM
+  static Future<void> createTeam(Team newTeam, User user) async {
+    try {
+      Map<String, String> fields = _teamFields(newTeam);
+      final batch = FirebaseFirestore.instance.batch();
+      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY);
+      final idChange = _generateID();
+
+      for (final item in fields.entries) {
+        final history = _instanceHistoryTeam(newTeam, user, item.key, item.value, "", idChange, ChangeType.CREATE);
+
+        final docRef = ref.doc();
+        batch.set(docRef, history.toFirestore());
+      }
+
+      await batch.commit();
+    } catch (e) {
+      logError('CREATE TEAM HISTORY', e);
+    }
+  }
+
+  static Future<void> updateTeam(Team oldTeam, Team updatedTeam, User creator) async {
+    try {
+      Map<String, String> oldFields = _teamFields(oldTeam);
+      Map<String, String> fields = _changedFields(oldFields, _teamFields(updatedTeam));
+
+      final batch = FirebaseFirestore.instance.batch();
+      final idChange = _generateID();
+
+      for (final item in fields.entries) {
+        final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY).doc();
+        final history = _instanceHistoryTeam(
+          updatedTeam,
+          creator,
+          item.key,
+          item.value,
+          oldFields[item.key]!,
+          idChange,
+          ChangeType.UPDATE,
+        );
+        batch.set(ref, history.toFirestore());
+      }
+
+      await batch.commit();
+    } catch (e) {
+      logError('UPDATE TEAM HISTORY', e);
+    }
+  }
+
+  static Future<void> deleteTeam(Team team, User creator) async {
+    try {
+      await _delete(creator, team, Entity.TEAM);
+    } catch (e) {
+      logError('DELETE TEAM HISTORY', e);
+    }
+  }
+
+  static Map<String, String> _teamFields(Team team) {
+    return {"name": team.name, _DELETED: '${team.deleted}'};
+  }
+
+  static History _instanceHistoryTeam(
+    Team team,
+    User user,
+    String field,
+    String newValue,
+    String oldValue,
+    String idChange,
+    ChangeType ct,
+  ) {
+    return History(
+      id: "",
+      idChange: idChange,
+      idEntity: team.id,
+      user: user,
+      newValue: newValue,
+      oldValue: oldValue,
+      changeType: ct,
+      field: field,
+      entity: Entity.TEAM,
+      time: DateTime.now(),
+    );
+  }
+
+  static Team _mapTeam(List<History> list, [Team? oldValue]) {
+    oldValue = oldValue ?? Team.empty();
+    String name = oldValue.name;
+    bool deleted = oldValue.deleted;
+
+    final Map<String, void Function(String)> userFieldSetters = {
+      "name": (v) => name = v,
+      _DELETED: (v) => deleted = (v == "true"),
+    };
+
+    for (final h in list) {
+      final setter = userFieldSetters[h.field];
+      if (setter != null) setter(h.newValue);
+    }
+
+    return Team(id: list.first.idEntity, name: name, deleted: deleted);
   }
 
   //TASK STATE
@@ -505,53 +583,6 @@ class HistoryController {
       changeType: changeType,
       field: field,
       entity: Entity.TASKSTATE,
-      time: DateTime.now(),
-    );
-  }
-
-  //TEAM
-  static Future<void> createTeam(Team newTeam, User user) async {
-    try {
-      Map<String, String> fields = _teamFields(newTeam);
-      final batch = FirebaseFirestore.instance.batch();
-      final ref = FirebaseFirestore.instance.collection(DbConstants.HISTORY);
-      final idChange = _generateID();
-
-      for (final item in fields.entries) {
-        final history = _instanceHistoryCreateTeam(newTeam, user, item.key, item.value, "", idChange);
-
-        final docRef = ref.doc();
-        batch.set(docRef, history.toFirestore());
-      }
-
-      await batch.commit();
-    } catch (e) {
-      logError('CREATE TEAM HISTORY', e);
-    }
-  }
-
-  static Map<String, String> _teamFields(Team team) {
-    return {"name": team.name};
-  }
-
-  static History _instanceHistoryCreateTeam(
-    Team team,
-    User user,
-    String field,
-    String newValue,
-    String oldValue,
-    String idChange,
-  ) {
-    return History(
-      id: "",
-      idChange: idChange,
-      idEntity: team.id,
-      user: user,
-      newValue: newValue,
-      oldValue: oldValue,
-      changeType: ChangeType.CREATE,
-      field: field,
-      entity: Entity.TEAM,
       time: DateTime.now(),
     );
   }
