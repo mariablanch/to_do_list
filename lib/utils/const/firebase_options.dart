@@ -42,34 +42,29 @@ class DefaultFirebaseOptions {
   );*/
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: "AIzaSyBmrs9YC0Yr5ahrtuq15GRPCa4haNSethU",
-    appId: "1:703255082825:web:c1b487036915e447760c98",
-    messagingSenderId: "703255082825",
-    projectId: "project1-aa671",
-    authDomain: "project1-aa671.firebaseapp.com",
-    //storageBucket: "project1-aa671.firebasestorage.app",
-    storageBucket: 'project1-aa671.appspot.com',
-    measurementId: "G-F28TZP3MP2",
+    apiKey: "AIzaSyBMEKpxiPdc4h9jS3VClVK2_h8XA7GLmp8",
+    appId: "1:757519577734:web:280cfd50802d34dd81d707",
+    messagingSenderId: "757519577734",
+    projectId: "tasques-novestecnologies",
+    authDomain: "tasques-novestecnologies.firebaseapp.com",
+    storageBucket: "tasques-novestecnologies.firebasestorage.app",
+    measurementId: "G-L07HF1P5P5",
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: "AIzaSyBmrs9YC0Yr5ahrtuq15GRPCa4haNSethU",
-    appId: "1:703255082825:web:c1b487036915e447760c98",
-    messagingSenderId: "703255082825",
-    projectId: "project1-aa671",
-    authDomain: "project1-aa671.firebaseapp.com",
-    //storageBucket: "project1-aa671.firebasestorage.app",
-    storageBucket: 'project1-aa671.appspot.com',
-    measurementId: "G-F28TZP3MP2",
+    apiKey: "AIzaSyBMEKpxiPdc4h9jS3VClVK2_h8XA7GLmp8",
+    appId: "1:757519577734:windows:280cfd50802d34dd81d707",
+    messagingSenderId: "757519577734",
+    projectId: "tasques-novestecnologies",
+    storageBucket: "tasques-novestecnologies.firebasestorage.app",
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyANj6UzMLVrnjRRVnOWsmCZqoyRnIIRfpU',
-    appId: '1:703255082825:android:0c9ce35d188c4a2c760c98',
-    messagingSenderId: '703255082825',
-    projectId: 'project1-aa671',
-    //databaseURL: 'xxxxxxxxxxxxxxxxxxx',
-    storageBucket: 'project1-aa671.firebasestorage.app',
+    apiKey: "AIzaSyBMEKpxiPdc4h9jS3VClVK2_h8XA7GLmp8",
+    appId: "1:757519577734:android:81ab93e40347163d81d707",
+    messagingSenderId: "757519577734",
+    projectId: "tasques-novestecnologies",
+    storageBucket: "tasques-novestecnologies.firebasestorage.app",
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

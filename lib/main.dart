@@ -2,6 +2,7 @@
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:to_do_list/controller/user_controller.dart';
@@ -14,6 +15,13 @@ import 'package:to_do_list/utils/roles.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HardwareKeyboard.instance.addHandler((KeyEvent event) {
+    if (event is KeyDownEvent &&
+        HardwareKeyboard.instance.physicalKeysPressed.contains(event.physicalKey)) {
+      return false;
+    }
+    return true;
+  });
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
